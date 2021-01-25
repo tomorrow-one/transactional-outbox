@@ -1,0 +1,44 @@
+image: adoptopenjdk:14.0.2_12-jdk-hotspot
+
+variables:
+  # Instruct Testcontainers to use the daemon of DinD.
+  DOCKER_HOST: "tcp://docker:2375"
+  # Improve performance with overlayfs.
+  DOCKER_DRIVER: overlay2
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle_home"
+
+cache: &global_cache
+  key: cache_internet
+  paths:
+    - $GRADLE_USER_HOME/
+    - .gradle
+  policy: pull-push
+
+stages:
+  - build
+  - publish
+
+build-and-test:
+  # DinD service is required for Testcontainers
+  services:
+    - docker:dind
+  stage: build
+  cache:
+    <<: *global_cache
+  script:
+    - du -sh $GRADLE_USER_HOME .gradle || echo "Cache directories missing"
+    - ./gradlew --no-daemon build
+
+publish-artifact:
+  # DinD service is required for Testcontainers
+  services:
+    - docker:dind
+  stage: publish
+  only:
+    - master
+  cache:
+    <<: *global_cache
+    policy: pull
+  script:
+    # build and push artifact to nexus
+    - ./gradlew --no-daemon build publish

@@ -12,7 +12,7 @@ and eventually published to Kafka (after the transaction was successfully commit
 
 The application stores the serialized message that shall be published (to a certain topic) in the same transaction as the business object is changed.
 
-The transactional outbox continuously processes the outbox and publishes the serialized message together with some headers
+The library continuously processes the outbox and publishes the serialized message together with some headers
 to the specified topic. Messages are published with strict ordering guarantees, i.e. messages are published in the order
 they're stored in the outbox. In consequence, if a message could not be published, it will not try to publish the next message.
 
@@ -30,13 +30,13 @@ the lock-holding instance crashed (or is stuck somehow and does no longer refres
 ### Alternatives
 
 This library was created because alternative solutions like Debezium or Kafka Connect would require additional operational
-efforts (such a solution would have to be operated in a highly available fashion and would have to be monitored.
+efforts (such a solution would have to be operated in a highly available fashion and would have to be monitored).
 Additionally, these solutions limit flexibility, e.g. for the usage of custom headers for a kafka message (depending on
 the message / payload), a solution would have to be found or developed. At the time of evaluation there was also no existing
 experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
-* This library assumes and uses Hibernate and Spring (for transaction handling) - extracting a core and making the usage of Spring stuff an optional add-on would be a possible contribution)
+* This library assumes and uses Hibernate and Spring (for transaction handling) - extracting a core and making the usage of Spring stuff an optional add-on would be a possible contribution
 * Currently it supports protobuf 3 for messages to publish (could be extended to other serialization libs)
 * It's tested with postgresql only (verified support for other databases could be contributed)
 

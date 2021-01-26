@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration status="INFO">
+    <Appenders>
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <PatternLayout pattern="Log4j2-STDOUTs - %d %-6p- [%t] [%C{2}][%F:%L] - %m%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="one.tomorrow.transactionaloutbox" level="INFO" additivity="false">
+            <appender-ref ref="STDOUT"/>
+        </Logger>
+        <!-- Silence SqlExceptionHelper -->
+        <Logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="FATAL" additivity="false">
+            <appender-ref ref="STDOUT"/>
+        </Logger>
+        <Root level="WARN">
+            <appender-ref ref="STDOUT"/>
+        </Root>
+    </Loggers>
+</Configuration>

@@ -2,7 +2,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LockRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import kafka.server.KafkaConfig$;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -49,7 +49,7 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @ContextConfiguration(classes = {
         OutboxRecord.class,
         OutboxRepository.class,
-        LockRepository.class,
+        OutboxLockRepository.class,
         TransactionalOutboxRepository.class,
         IntegrationTestConfig.class
 })
@@ -75,7 +75,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
     @Autowired
     private TransactionalOutboxRepository transactionalRepository;
     @Autowired
-    private LockRepository lockRepository;
+    private OutboxLockRepository lockRepository;
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -98,7 +98,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
     public void should_ProcessRecordsOnceInOrder() {
         // given
         Duration lockTimeout = Duration.ofMillis(20); // very aggressive lock stealing
-        LockService lockService = postProcessBeanForTransactionCapabilities(new LockService(lockRepository, lockTimeout));
+        OutboxLockService lockService = postProcessBeanForTransactionCapabilities(new OutboxLockService(lockRepository, lockTimeout));
         Duration processingInterval = Duration.ZERO;
         DefaultKafkaProducerFactory producerFactory = new DefaultKafkaProducerFactory(producerProps(embeddedKafka()));
         testee1 = new OutboxProcessor(repository, producerFactory, processingInterval, lockService, "processor1", "test");

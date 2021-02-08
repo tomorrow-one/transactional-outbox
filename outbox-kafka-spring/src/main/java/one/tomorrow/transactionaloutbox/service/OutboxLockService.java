@@ -1,6 +1,6 @@
 package one.tomorrow.transactionaloutbox.service;
 
-import one.tomorrow.transactionaloutbox.repository.LockRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +12,10 @@ import java.time.Duration;
 
 @Service
 @AllArgsConstructor
-public class LockService {
+public class OutboxLockService {
 
 	@Autowired
-	private LockRepository repository;
+	private OutboxLockRepository repository;
 	@Getter
 	@Autowired @Qualifier("outboxLockTimeout")
 	private Duration lockTimeout;

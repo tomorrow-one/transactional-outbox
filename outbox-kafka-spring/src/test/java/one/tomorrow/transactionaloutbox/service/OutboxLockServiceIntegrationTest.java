@@ -2,7 +2,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
-import one.tomorrow.transactionaloutbox.repository.LockRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.hibernate.SessionFactory;
@@ -35,7 +35,7 @@ import static org.junit.Assume.assumeTrue;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxLock.class,
-        LockRepository.class,
+        OutboxLockRepository.class,
         IntegrationTestConfig.class
 })
 @TestExecutionListeners({
@@ -44,14 +44,14 @@ import static org.junit.Assume.assumeTrue;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class LockServiceIntegrationTest {
+public class OutboxLockServiceIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(LockServiceIntegrationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(OutboxLockServiceIntegrationTest.class);
 
     @Autowired
     private SessionFactory sessionFactory;
     @Autowired
-    private LockRepository lockRepository;
+    private OutboxLockRepository lockRepository;
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -72,7 +72,7 @@ public class LockServiceIntegrationTest {
         // given
         String ownerId1 = "owner-1";
         String ownerId2 = "owner-2";
-        LockService lockService = postProcessBeanForTransactionCapabilities(new LockService(lockRepository, Duration.ZERO));
+        OutboxLockService lockService = postProcessBeanForTransactionCapabilities(new OutboxLockService(lockRepository, Duration.ZERO));
 
         boolean locked = lockService.acquireOrRefreshLock(ownerId1);
         assumeTrue(locked);

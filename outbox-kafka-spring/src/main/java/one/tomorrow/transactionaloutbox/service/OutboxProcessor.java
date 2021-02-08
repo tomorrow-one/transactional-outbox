@@ -35,7 +35,7 @@ public class OutboxProcessor {
 
 	private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
-	private final LockService lockService;
+	private final OutboxLockService lockService;
 	private final String lockOwnerId;
 	private final OutboxRepository repository;
 	private final KafkaProducerFactory producerFactory;
@@ -50,7 +50,7 @@ public class OutboxProcessor {
 			OutboxRepository repository,
 			KafkaProducerFactory producerFactory,
 			Duration processingInterval,
-			LockService lockService,
+			OutboxLockService lockService,
 			String lockOwnerId,
 			String eventSource) {
 		logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",

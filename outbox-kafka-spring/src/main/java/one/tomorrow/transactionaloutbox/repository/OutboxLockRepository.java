@@ -23,9 +23,9 @@ import static java.time.Instant.now;
 
 @Repository
 @AllArgsConstructor
-public class LockRepository {
+public class OutboxLockRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(LockRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(OutboxLockRepository.class);
 
     private static final LockOptions PESSIMISTIC_NOWAIT =
             new LockOptions(LockMode.PESSIMISTIC_WRITE).setTimeOut(LockOptions.NO_WAIT);

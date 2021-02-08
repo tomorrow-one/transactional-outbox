@@ -3,7 +3,7 @@ package one.tomorrow.transactionaloutbox.service;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LockRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import com.google.protobuf.Message;
 import kafka.server.KafkaConfig$;
@@ -47,8 +47,8 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         OutboxRecord.class,
         OutboxRepository.class,
         OutboxLock.class,
-        LockRepository.class,
-        LockService.class,
+        OutboxLockRepository.class,
+        OutboxLockService.class,
         OutboxService.class,
         SampleService.class,
         IntegrationTestConfig.class,
@@ -137,7 +137,7 @@ public class OutboxUsageIntegrationTest {
     @Configuration
     public static class OutboxProcessorSetup {
         @Bean @Lazy // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
-        public OutboxProcessor outboxProcessor(OutboxRepository repository, LockService lockService) {
+        public OutboxProcessor outboxProcessor(OutboxRepository repository, OutboxLockService lockService) {
             Duration processingInterval = Duration.ofMillis(50);
             String lockOwnerId = "processor";
             String eventSource = "test";

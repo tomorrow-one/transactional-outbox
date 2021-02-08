@@ -62,26 +62,32 @@ The `OutboxProcessor` is the component which processes the outbox and publishes 
  it (in case the lock-holding instance crashed or could not longer refresh the lock).
 
 ```java
-@Bean @Qualifier("outboxLockTimeout")
-public Duration outboxLockTimeout() {
-    return Duration.ofMillis(1000);
-}
+@Configuration
+@ComponentScan(basePackages = "one.tomorrow.transactionaloutbox")
+public class TransactionalOutboxConfig {
 
-@Bean
-public OutboxProcessor outboxProcessor(LockService lockService,
-                                       OutboxRepository repository,
-                                       Duration processingInterval,
-                                       String lockOwnerId,
-                                       String eventSource,
-                                       Map<String, Object> producerProps) {
-    return new OutboxProcessor(
-            repository,
-            new DefaultKafkaProducerFactory(producerProps),
-            processingInterval,
-            lockService,
-            lockOwnerId,
-            eventSource
-    );
+    @Bean @Qualifier("outboxLockTimeout")
+    public Duration outboxLockTimeout() {
+        return Duration.ofMillis(1000);
+    }
+
+    @Bean
+    public OutboxProcessor outboxProcessor(OutboxLockService lockService,
+                                           OutboxRepository repository,
+                                           Duration processingInterval,
+                                           String lockOwnerId,
+                                           String eventSource,
+                                           Map<String, Object> producerProps) {
+        return new OutboxProcessor(
+                repository,
+                new DefaultKafkaProducerFactory(producerProps),
+                processingInterval,
+                lockService,
+                lockOwnerId,
+                eventSource
+        );
+    }
+
 }
 ```
 
@@ -90,8 +96,8 @@ public OutboxProcessor outboxProcessor(LockService lockService,
   * the chosen value should be higher than the 99%ile of gc pauses; but even if you'd use a smaller value (and lock would
     often get lost due to gc pauses) the library would still work correctly
   * the chosen value should be smaller than the max message publishing delay that you'd like to see (e.g. in deployment scenarios)
-  * the `outboxLockTimeout` (`Duration` with `@Qualifier("outboxLockTimeout")`) is used by the `LockService`
-* `LockService`: is instantiated by Spring, autowiring the `Duration` with `@Qualifier("outboxLockTimeout")`
+  * the `outboxLockTimeout` (`Duration` with `@Qualifier("outboxLockTimeout")`) is used by the `OutboxLockService`
+* `OutboxLockService`: is instantiated by Spring, autowiring the `Duration` with `@Qualifier("outboxLockTimeout")`
 * `OutboxRepository`: can be instantiated by Spring, only asking for a Hibernate `SessionFactory`
 * `Duration processingInterval`: the interval to wait after the outbox was processed completely before it's processed
    again. This value should be significantly smaller than `outboxLockTimeout`. If it's higher, this is still not an issue,

@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
-        LockRepository.class,
+        OutboxLockRepository.class,
         OutboxLock.class,
         IntegrationTestConfig.class
 })
@@ -42,10 +42,10 @@ import static org.junit.Assert.assertTrue;
         FlywayTestExecutionListener.class
 })
 @FlywayTest
-public class LockRepositoryIntegrationTest {
+public class OutboxLockRepositoryIntegrationTest {
 
     @Autowired
-    private LockRepository testee;
+    private OutboxLockRepository testee;
     @Autowired
     private SessionFactory sessionFactory;
 

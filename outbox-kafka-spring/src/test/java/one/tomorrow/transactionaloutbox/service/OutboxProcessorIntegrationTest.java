@@ -3,7 +3,7 @@ package one.tomorrow.transactionaloutbox.service;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LockRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import kafka.server.KafkaConfig$;
 import kafka.server.KafkaServer;
@@ -50,8 +50,8 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         OutboxRepository.class,
         TransactionalOutboxRepository.class,
         OutboxLock.class,
-        LockRepository.class,
-        LockService.class,
+        OutboxLockRepository.class,
+        OutboxLockService.class,
         IntegrationTestConfig.class
 })
 @TestExecutionListeners({
@@ -77,7 +77,7 @@ public class OutboxProcessorIntegrationTest {
     @Autowired
     private TransactionalOutboxRepository transactionalRepository;
     @Autowired
-    private LockService lockService;
+    private OutboxLockService lockService;
 
     private OutboxProcessor testee;
 

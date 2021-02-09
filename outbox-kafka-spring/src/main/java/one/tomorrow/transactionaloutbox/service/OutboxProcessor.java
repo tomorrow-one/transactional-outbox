@@ -7,7 +7,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
@@ -23,7 +22,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SOURCE_NAME;
 
-@Service
 public class OutboxProcessor {
 
 	@FunctionalInterface

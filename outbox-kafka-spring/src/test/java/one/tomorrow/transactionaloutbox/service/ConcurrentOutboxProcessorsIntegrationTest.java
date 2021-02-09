@@ -1,10 +1,10 @@
 package one.tomorrow.transactionaloutbox.service;
 
+import kafka.server.KafkaConfig$;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import kafka.server.KafkaConfig$;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -20,7 +20,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
@@ -37,10 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static one.tomorrow.transactionaloutbox.TestUtils.assertConsumedRecord;
-import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
-import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static java.util.stream.IntStream.range;
+import static one.tomorrow.transactionaloutbox.TestUtils.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
@@ -77,7 +75,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
     @Autowired
     private OutboxLockRepository lockRepository;
     @Autowired
-    private ApplicationContext applicationContext;
+    private AutowireCapableBeanFactory beanFactory;
 
     private OutboxProcessor testee1;
     private OutboxProcessor testee2;
@@ -98,11 +96,10 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
     public void should_ProcessRecordsOnceInOrder() {
         // given
         Duration lockTimeout = Duration.ofMillis(20); // very aggressive lock stealing
-        OutboxLockService lockService = postProcessBeanForTransactionCapabilities(new OutboxLockService(lockRepository, lockTimeout));
         Duration processingInterval = Duration.ZERO;
         DefaultKafkaProducerFactory producerFactory = new DefaultKafkaProducerFactory(producerProps(embeddedKafka()));
-        testee1 = new OutboxProcessor(repository, producerFactory, processingInterval, lockService, "processor1", "test");
-        testee2 = new OutboxProcessor(repository, producerFactory, processingInterval, lockService, "processor2", "test");
+        testee1 = new OutboxProcessor(repository, producerFactory, processingInterval, lockTimeout, "processor1", "test", beanFactory);
+        testee2 = new OutboxProcessor(repository, producerFactory, processingInterval, lockTimeout, "processor2", "test", beanFactory);
 
         // when
         List<OutboxRecord> outboxRecords = range(0, 1000).mapToObj(
@@ -143,11 +140,6 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
         // use unique groupId, so that a new consumer does not get into conflicts with some previous one, which might not yet be fully shutdown
         consumer = cf.createConsumer("testConsumer-" + System.currentTimeMillis(), "someClientIdSuffix");
         embeddedKafka().consumeFromAllEmbeddedTopics(consumer);
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T postProcessBeanForTransactionCapabilities(T bean) {
-        return (T)applicationContext.getAutowireCapableBeanFactory().applyBeanPostProcessorsAfterInitialization(bean, null);
     }
 
 }

@@ -1,12 +1,14 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
@@ -48,14 +50,17 @@ public class OutboxProcessor {
 			OutboxRepository repository,
 			KafkaProducerFactory producerFactory,
 			Duration processingInterval,
-			OutboxLockService lockService,
+			Duration lockTimeout,
 			String lockOwnerId,
-			String eventSource) {
+			String eventSource,
+			AutowireCapableBeanFactory beanFactory) {
 		logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
 				lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
 		this.repository = repository;
 		this.processingInterval = processingInterval;
-		this.lockService = lockService;
+		OutboxLockRepository lockRepository = beanFactory.getBean(OutboxLockRepository.class);
+		OutboxLockService rawLockService = new OutboxLockService(lockRepository, lockTimeout);
+		this.lockService = (OutboxLockService) beanFactory.applyBeanPostProcessorsAfterInitialization(rawLockService, "OutboxLockService");
 		this.lockOwnerId = lockOwnerId;
 		this.eventSource = eventSource.getBytes();
 		this.producerFactory = producerFactory;

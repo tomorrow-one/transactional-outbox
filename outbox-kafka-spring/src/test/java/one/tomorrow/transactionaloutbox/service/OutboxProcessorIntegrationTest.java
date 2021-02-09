@@ -1,12 +1,12 @@
 package one.tomorrow.transactionaloutbox.service;
 
+import kafka.server.KafkaConfig$;
+import kafka.server.KafkaServer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import kafka.server.KafkaConfig$;
-import kafka.server.KafkaServer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -21,6 +21,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
@@ -33,15 +34,14 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 import java.time.Duration;
 import java.util.Map;
 
+import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SOURCE_NAME;
+import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static one.tomorrow.transactionaloutbox.service.Numbers.toLong;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SOURCE_NAME;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -51,7 +51,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         TransactionalOutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,
-        OutboxLockService.class,
         IntegrationTestConfig.class
 })
 @TestExecutionListeners({
@@ -77,7 +76,7 @@ public class OutboxProcessorIntegrationTest {
     @Autowired
     private TransactionalOutboxRepository transactionalRepository;
     @Autowired
-    private OutboxLockService lockService;
+    private AutowireCapableBeanFactory beanFactory;
 
     private OutboxProcessor testee;
 
@@ -92,7 +91,7 @@ public class OutboxProcessorIntegrationTest {
     public void should_ProcessNewRecords() {
         // given
         String eventSource = "test";
-        testee = new OutboxProcessor(repository, producerFactory(), Duration.ofMillis(50), lockService, "processor", eventSource);
+        testee = new OutboxProcessor(repository, producerFactory(), Duration.ofMillis(50), DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, beanFactory);
 
         // when
         OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
@@ -132,7 +131,7 @@ public class OutboxProcessorIntegrationTest {
         // when
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
-        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, lockService, "processor", eventSource);
+        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, beanFactory);
 
         Thread.sleep(processingInterval.plusMillis(200).toMillis());
         startKafkaServers();
@@ -150,7 +149,7 @@ public class OutboxProcessorIntegrationTest {
 
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
-        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, lockService, "processor", eventSource);
+        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, beanFactory);
 
         // when
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();

@@ -5,7 +5,6 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.configuration.ClassicConfiguration;
 import org.flywaydb.test.FlywayHelperFactory;
 import org.hibernate.SessionFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
@@ -20,6 +19,8 @@ import java.util.Properties;
 @Configuration
 @EnableTransactionManagement
 public class IntegrationTestConfig {
+
+    public static final Duration DEFAULT_OUTBOX_LOCK_TIMEOUT = Duration.ofMillis(200);
 
     @Bean
     public LocalSessionFactoryBean sessionFactory(DataSource dataSource) {
@@ -72,11 +73,6 @@ public class IntegrationTestConfig {
         configuration.setLocationsAsStrings("classpath:/db/migration");
 
         return configuration;
-    }
-
-    @Bean @Qualifier("outboxLockTimeout")
-    public Duration outboxLockTimeout() {
-        return Duration.ofMillis(200);
     }
 
 }

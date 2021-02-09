@@ -66,47 +66,44 @@ The `OutboxProcessor` is the component which processes the outbox and publishes 
 @ComponentScan(basePackages = "one.tomorrow.transactionaloutbox")
 public class TransactionalOutboxConfig {
 
-    @Bean @Qualifier("outboxLockTimeout")
-    public Duration outboxLockTimeout() {
-        return Duration.ofMillis(1000);
-    }
-
     @Bean
-    public OutboxProcessor outboxProcessor(OutboxLockService lockService,
-                                           OutboxRepository repository,
+    public OutboxProcessor outboxProcessor(OutboxRepository repository,
                                            Duration processingInterval,
+                                           Duration outboxLockTimeout,
                                            String lockOwnerId,
                                            String eventSource,
-                                           Map<String, Object> producerProps) {
+                                           Map<String, Object> producerProps,
+                                           AutowireCapableBeanFactory beanFactory) {
         return new OutboxProcessor(
                 repository,
                 new DefaultKafkaProducerFactory(producerProps),
                 processingInterval,
-                lockService,
+                outboxLockTimeout,
                 lockOwnerId,
-                eventSource
+                eventSource,
+                beanFactory
         );
     }
 
 }
 ```
 
-* `outboxLockTimeout`: the time after that a lock should be considered to be timed out
+* `OutboxLockService`: is instantiated by Spring, autowiring the `Duration` with `@Qualifier("outboxLockTimeout")`
+* `OutboxRepository`: can be instantiated by Spring, only asking for a Hibernate `SessionFactory`
+* `Duration processingInterval`: the interval to wait after the outbox was processed completely before it's processed
+   again. This value should be significantly smaller than `outboxLockTimeout` (described next). If it's higher, this is still not an issue,
+   then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process
+   the outbox.
+* `Duration outboxLockTimeout`: the time after that a lock should be considered to be timed out
   * a lock can be taken over by another instance only after that time had passed without a lock refresh by the lock owner
   * the chosen value should be higher than the 99%ile of gc pauses; but even if you'd use a smaller value (and lock would
     often get lost due to gc pauses) the library would still work correctly
   * the chosen value should be smaller than the max message publishing delay that you'd like to see (e.g. in deployment scenarios)
-  * the `outboxLockTimeout` (`Duration` with `@Qualifier("outboxLockTimeout")`) is used by the `OutboxLockService`
-* `OutboxLockService`: is instantiated by Spring, autowiring the `Duration` with `@Qualifier("outboxLockTimeout")`
-* `OutboxRepository`: can be instantiated by Spring, only asking for a Hibernate `SessionFactory`
-* `Duration processingInterval`: the interval to wait after the outbox was processed completely before it's processed
-   again. This value should be significantly smaller than `outboxLockTimeout`. If it's higher, this is still not an issue,
-   then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process
-   the outbox.
 * `String lockOwnerId`: used to identify the instance trying to obtain the lock, must be unique per instance (you could e.g.
    use the hostname)
 * `String eventSource`: used as value for the `x-source` header set for a message published to Kafka
 * `Map<String, Object> producerProps`: the properties used to create the `KafkaProducer` (contains e.g. `bootstrap.servers` etc)
+* `AutowireCapableBeanFactory beanFactory`: used to create the lock service (`OutboxLockService`)
 
 ## Usage
 

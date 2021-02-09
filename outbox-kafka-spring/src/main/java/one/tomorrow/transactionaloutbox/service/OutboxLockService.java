@@ -3,22 +3,16 @@ package one.tomorrow.transactionaloutbox.service;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
-@Service
 @AllArgsConstructor
 public class OutboxLockService {
 
-	@Autowired
-	private OutboxLockRepository repository;
+	private final OutboxLockRepository repository;
 	@Getter
-	@Autowired @Qualifier("outboxLockTimeout")
-	private Duration lockTimeout;
+	private final Duration lockTimeout;
 
 	public boolean acquireOrRefreshLock(String ownerId) {
 		return repository.acquireOrRefreshLock(ownerId, lockTimeout);

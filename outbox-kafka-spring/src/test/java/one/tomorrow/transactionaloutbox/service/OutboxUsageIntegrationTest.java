@@ -1,13 +1,13 @@
 package one.tomorrow.transactionaloutbox.service;
 
+import com.google.protobuf.Message;
+import kafka.server.KafkaConfig$;
+import one.tomorrow.kafka.core.KafkaProtoBufDeserializer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import com.google.protobuf.Message;
-import kafka.server.KafkaConfig$;
-import one.tomorrow.kafka.core.KafkaProtoBufDeserializer;
 import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -18,6 +18,7 @@ import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,11 +36,10 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.service.SampleService.Topics.topic1;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -48,7 +48,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         OutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,
-        OutboxLockService.class,
         OutboxService.class,
         SampleService.class,
         IntegrationTestConfig.class,
@@ -137,7 +136,7 @@ public class OutboxUsageIntegrationTest {
     @Configuration
     public static class OutboxProcessorSetup {
         @Bean @Lazy // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
-        public OutboxProcessor outboxProcessor(OutboxRepository repository, OutboxLockService lockService) {
+        public OutboxProcessor outboxProcessor(OutboxRepository repository, AutowireCapableBeanFactory beanFactory) {
             Duration processingInterval = Duration.ofMillis(50);
             String lockOwnerId = "processor";
             String eventSource = "test";
@@ -145,9 +144,10 @@ public class OutboxUsageIntegrationTest {
                     repository,
                     new DefaultKafkaProducerFactory(producerProps(embeddedKafka())),
                     processingInterval,
-                    lockService,
+                    DEFAULT_OUTBOX_LOCK_TIMEOUT,
                     lockOwnerId,
-                    eventSource
+                    eventSource,
+                    beanFactory
             );
         }
     }

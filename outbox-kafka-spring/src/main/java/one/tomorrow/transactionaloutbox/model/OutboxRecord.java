@@ -1,11 +1,7 @@
 package one.tomorrow.transactionaloutbox.model;
 
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
@@ -28,6 +24,7 @@ import java.util.Map;
 @Builder
 @Getter
 @Setter
+@ToString
 public class OutboxRecord {
 
     @Id

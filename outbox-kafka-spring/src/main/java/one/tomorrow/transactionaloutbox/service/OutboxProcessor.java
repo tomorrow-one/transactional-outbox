@@ -89,11 +89,16 @@ public class OutboxProcessor {
 	}
 
 	private void tryLockAcquisition() {
-		logger.info("{} trying to acquire outbox lock", lockOwnerId);
+		boolean originalActive = active;
+		logger.debug("{} trying to acquire outbox lock", lockOwnerId);
 		active = lockService.acquireOrRefreshLock(lockOwnerId);
 		lastLockAckquisitionAttempt = now();
 		if (active) {
-			logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+			if (originalActive)
+				logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+			else
+				logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+
 			processOutboxWithLock();
 		}
 		else
@@ -134,7 +139,7 @@ public class OutboxProcessor {
 			ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
 			Future<RecordMetadata> result = producer.send(producerRecord);
 			result.get();
-			logger.info("Sent record to kafka: {} - {}", outboxRecord, producerRecord);
+			logger.info("Sent record to kafka: {}", outboxRecord);
 			outboxRecord.setProcessed(now());
 			repository.update(outboxRecord);
 		}

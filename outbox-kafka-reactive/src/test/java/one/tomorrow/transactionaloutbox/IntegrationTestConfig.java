@@ -46,8 +46,6 @@ public class IntegrationTestConfig {
 
     @Bean
     public Flyway flywayFactory(ClassicConfiguration configuration) {
-
-        System.out.println("*** creating flyway with " + configuration.getDataSource());
         FlywayHelperFactory factory = new FlywayHelperFactory();
 
         factory.setFlywayConfiguration(configuration);

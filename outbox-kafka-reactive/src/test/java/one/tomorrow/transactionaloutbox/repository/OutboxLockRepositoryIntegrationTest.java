@@ -3,7 +3,6 @@ package one.tomorrow.transactionaloutbox.repository;
 import one.tomorrow.transactionaloutbox.AbstractIntegrationTest;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

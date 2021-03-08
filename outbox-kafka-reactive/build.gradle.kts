@@ -63,6 +63,7 @@ dependencies {
     // testing
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:2.4.2")
     testImplementation("org.springframework:spring-test:$springVersion")
+    testImplementation("io.projectreactor:reactor-test:3.4.3")
     testImplementation(platform("org.junit:junit-bom:5.7.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.testcontainers:junit-jupiter:1.15.1")

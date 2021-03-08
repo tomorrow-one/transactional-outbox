@@ -5,12 +5,10 @@ import lombok.AllArgsConstructor;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.ReactiveTransactionManager;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 
@@ -26,26 +24,39 @@ public class OutboxLockRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxLockRepository.class);
 
-    private final ReactiveTransactionManager tm;
     private final DatabaseClient db;
+    private final TransactionalOperator rxtx;
 
     public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration timeout) {
-        TransactionalOperator rxtx = TransactionalOperator.create(tm);
         return selectOutboxLock()
                 .flatMap(lock -> handleExistingLock(lock, ownerId, timeout))
                 .switchIfEmpty(
                         insertOutboxLock(ownerId, timeout)
-                                .onErrorResume(
-                                        DataIntegrityViolationException.class,
-                                        e -> handleException(e, ownerId)
-                                )
                 )
-                .as(rxtx::transactional);
+                .as(rxtx::transactional)
+                .onErrorResume(
+                        DataIntegrityViolationException.class,
+                        e -> handleDuplicateKey(e, ownerId)
+                )
+                .onErrorResume(
+                        e -> e instanceof DataAccessResourceFailureException && e.toString().contains("could not obtain lock"),
+                        e -> handleRowIsLocked(e, ownerId)
+                )
+                .doOnError(e -> logger.error("Unexpected error on acquireOrRefreshLock: {}", e, e));
+    }
+
+    private Mono<Boolean> handleDuplicateKey(DataIntegrityViolationException e, String ownerId) {
+        logger.info("Outbox lock for owner {} could not be created, another one has been created concurrently: {}", ownerId, e);
+        return Mono.just(false);
+    }
+
+    private Mono<Boolean> handleRowIsLocked(Throwable e, String ownerId) {
+        logger.info("Could not grab lock for owner {} - database row is locked: {}", ownerId, e);
+        return Mono.just(false);
     }
 
     private Mono<OutboxLock> selectOutboxLock() {
-        return db
-                .sql("select * from outbox_kafka_lock where id = :id")
+        return db.sql("select * from outbox_kafka_lock where id = :id FOR SHARE NOWAIT") //  FOR KEY SHARE NOWAIT
                 .bind("id", OUTBOX_LOCK_ID)
                 .map(this::toOutboxLock)
                 .one();
@@ -62,12 +73,6 @@ public class OutboxLockRepository {
                     .rowsUpdated()
                     .map(rowsUpdated -> rowsUpdated > 0);
         });
-    }
-
-    private Mono<Boolean> handleException(DataIntegrityViolationException e, String ownerId) {
-        String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
-        logger.info("Outbox lock for owner {} could not be created, another one has been created concurrently: {}", ownerId, reason);
-        return Mono.just(false);
     }
 
     private Mono<Boolean> handleExistingLock(OutboxLock lock, String ownerId, Duration timeout) {
@@ -96,30 +101,23 @@ public class OutboxLockRepository {
     }
 
     private OutboxLock toOutboxLock(Row row) {
+        logger.info("Found lock for {}", row.get("owner_id", String.class));
         return new OutboxLock(row.get("owner_id", String.class), row.get("valid_until", Instant.class));
     }
 
-    /*
-    private boolean handleException(LockingStrategyException e, String ownerId, OutboxLock lock) {
-        String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
-        logger.info("Could not grab lock {} for owner {} - database row is locked: {}", lock, ownerId, reason);
-        return false;
+    public Mono<Boolean> preventLockStealing(String ownerId) {
+        return lockOutboxLock(ownerId)
+                //db.sql("LOCK outbox_kafka_lock IN ACCESS SHARE MODE NOWAIT").then()
+                .thenReturn(true)
+                .defaultIfEmpty(false);
     }
 
-    private boolean handleException(ConstraintViolationException e, String ownerId, Transaction tx) {
-        String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
-        logger.info("Outbox lock for owner {} could not be created, another one has been created concurrently: {}", ownerId, reason);
-        if (tx != null) tx.rollback();
-        return false;
+    private Mono<OutboxLock> lockOutboxLock(String ownerId) {
+        return db.sql("select * from outbox_kafka_lock where owner_id = :ownerId for update")
+                        .bind("ownerId", ownerId)
+                        .map(this::toOutboxLock)
+                        .one();
     }
-
-    public boolean preventLockStealing(String ownerId) {
-        Optional<OutboxLock> lock = queryByOwnerId(sessionFactory.getCurrentSession(), ownerId)
-                .setLockMode(LockModeType.PESSIMISTIC_READ)
-                .uniqueResultOptional();
-        return lock.isPresent();
-    }
-    */
 
     public Mono<Void> releaseLock(String ownerId) {
         return db.sql("delete from outbox_kafka_lock where owner_id = :ownerId")

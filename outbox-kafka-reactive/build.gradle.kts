@@ -57,6 +57,7 @@ dependencies {
     implementation("io.r2dbc:r2dbc-postgresql:0.8.7.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.12.2")
     implementation("one.tomorrow.kafka:kafka-utils:0.4")
     implementation("org.slf4j:slf4j-api:1.7.30")
 
@@ -66,6 +67,7 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test:3.4.3")
     testImplementation(platform("org.junit:junit-bom:5.7.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.testcontainers:junit-jupiter:1.15.1")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:0.8.6.RELEASE")

@@ -99,7 +99,8 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
 
         // then
         StepVerifier.create(runWithLockResult)
-                .expectErrorMatches(e -> e instanceof RuntimeException && e.getMessage().equals("simulated error"));
+                .expectErrorMatches(e -> e instanceof RuntimeException && e.getMessage().equals("simulated error"))
+                .verify();
     }
 
     /** Awaits the given barrier, turning checked exceptions into unchecked, for easier usage in lambdas. */

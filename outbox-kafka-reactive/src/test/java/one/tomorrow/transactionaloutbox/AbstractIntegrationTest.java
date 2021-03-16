@@ -3,6 +3,7 @@ package one.tomorrow.transactionaloutbox;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.service.OutboxLockService;
+import one.tomorrow.transactionaloutbox.service.OutboxService;
 import org.flywaydb.test.junit5.annotation.FlywayTestExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         OutboxLockRepository.class,
         OutboxLock.class,
         OutboxLockService.class,
+        OutboxService.class,
         IntegrationTestConfig.class
 })
 @Testcontainers

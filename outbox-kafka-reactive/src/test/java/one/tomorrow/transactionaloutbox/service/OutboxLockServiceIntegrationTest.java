@@ -49,9 +49,10 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
         // given
         String ownerId1 = "owner-1";
         String ownerId2 = "owner-2";
-        OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx, Duration.ZERO);
+        Duration lockTimeout = Duration.ZERO;
+        OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx);
 
-        boolean locked = lockService.acquireOrRefreshLock(ownerId1).block();
+        boolean locked = lockService.acquireOrRefreshLock(ownerId1, lockTimeout).block();
         assertThat(locked, is(true));
 
         CyclicBarrier barrier1 = new CyclicBarrier(2);
@@ -75,7 +76,7 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
         Future<Boolean> lockStealingAttemptResult = executorService.submit(() -> {
             await(barrier1);
             barrier2Mono.block(); // start acquireOrRefreshLock not before owner1 is inside "runWithLock"
-            boolean result = lockService.acquireOrRefreshLock(ownerId2).block();
+            boolean result = lockService.acquireOrRefreshLock(ownerId2, lockTimeout).block();
             barrier3CompletionStage.complete(null); // let owner1 runWithLock action complete
             return result;
         });
@@ -89,8 +90,8 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
     void runWithLock_should_returnError_from_callback() throws ExecutionException, InterruptedException, TimeoutException {
         // given
         String ownerId = "owner-1";
-        OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx, Duration.ZERO);
-        boolean locked = lockService.acquireOrRefreshLock(ownerId).block();
+        OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx);
+        boolean locked = lockService.acquireOrRefreshLock(ownerId, Duration.ZERO).block();
         assertThat(locked, is(true));
 
         // when

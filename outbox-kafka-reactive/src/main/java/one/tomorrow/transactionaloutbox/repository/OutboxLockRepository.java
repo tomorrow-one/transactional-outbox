@@ -41,8 +41,7 @@ public class OutboxLockRepository {
                 .onErrorResume(
                         e -> e instanceof DataAccessResourceFailureException && e.toString().contains("could not obtain lock"),
                         e -> handleRowIsLocked(e, ownerId)
-                )
-                .doOnError(e -> logger.error("Unexpected error on acquireOrRefreshLock: {}", e, e));
+                );
     }
 
     private Mono<Boolean> handleDuplicateKey(DataIntegrityViolationException e, String ownerId) {
@@ -128,7 +127,7 @@ public class OutboxLockRepository {
                     if (rowsUpdated > 0)
                         logger.info("Released outbox lock for owner {}", ownerId);
                     else
-                        logger.debug("Outbox lock for owner {} not found, nothing released.", ownerId);
+                        logger.info("Outbox lock for owner {} not found, nothing released.", ownerId);
                 })
                 .then();
     }

@@ -1,29 +1,25 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
-import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
-import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
-import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
+@Service
 @AllArgsConstructor
 public class OutboxLockService {
 
+	private static final Logger logger = LoggerFactory.getLogger(OutboxLockService.class);
+
 	private final OutboxLockRepository repository;
 	private final TransactionalOperator rxtx;
-	@Getter
-	private final Duration lockTimeout;
 
-	public Mono<Boolean> acquireOrRefreshLock(String ownerId) {
+	public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration lockTimeout) {
 		return repository.acquireOrRefreshLock(ownerId, lockTimeout);
 	}
 
@@ -33,11 +29,11 @@ public class OutboxLockService {
 
 	@SuppressWarnings("java:S5411")
 	public Mono<Boolean> runWithLock(String ownerId, Mono<Void> action) {
-		return Mono.defer(() -> repository.preventLockStealing(ownerId).flatMap(outboxLockIsPreventedFromLockStealing ->
+		return repository.preventLockStealing(ownerId).flatMap(outboxLockIsPreventedFromLockStealing ->
 				outboxLockIsPreventedFromLockStealing
 						? action.thenReturn(true)
 						: Mono.just(false)
-		)).as(rxtx::transactional);
+		).as(rxtx::transactional);
 	}
 
 }

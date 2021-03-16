@@ -13,6 +13,11 @@
         <Logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="FATAL" additivity="false">
             <appender-ref ref="STDOUT"/>
         </Logger>
+
+        <Logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="WARN" />
+        <Logger name="org.apache.kafka.clients.producer.ProducerConfig" level="WARN" />
+        <Logger name="org.apache.kafka.clients.admin.AdminClientConfig" level="WARN" />
+
         <Root level="INFO">
             <appender-ref ref="STDOUT"/>
         </Root>

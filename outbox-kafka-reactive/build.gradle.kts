@@ -47,6 +47,7 @@ dependencies {
     val springDataVersion = "2.1.4"
     val kafkaVersion = "2.5.0"
     val springKafkaVersion = "2.5.4.RELEASE"
+    val testcontainersVersion = "1.15.2"
     val log4jVersion = "2.13.3"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -58,8 +59,9 @@ dependencies {
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.12.2")
-    implementation("one.tomorrow.kafka:kafka-utils:0.4")
+    implementation("one.tomorrow.kafka:kafka-utils:0.5")
     implementation("org.slf4j:slf4j-api:1.7.30")
+    implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:2.4.2")
@@ -71,12 +73,17 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:1.15.1")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:0.8.6.RELEASE")
-    testImplementation("org.testcontainers:postgresql:1.15.1")
+    testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+    testImplementation("org.testcontainers:kafka:$testcontainersVersion")
+    testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
+    // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
+    testRuntimeOnly("com.google.code.gson:gson:2.8.0")
     testImplementation("org.postgresql:postgresql:42.2.9")
     testImplementation("org.flywaydb:flyway-core:5.2.4")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:6.4.0")
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
+    testImplementation("org.awaitility:awaitility:4.0.3")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion")
 }

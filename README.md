@@ -13,8 +13,10 @@ and eventually published to Kafka (after the transaction was successfully commit
 The application stores the serialized message that shall be published (to a certain topic) in the same transaction as the business object is changed.
 
 The library continuously processes the outbox and publishes the serialized message together with some headers
-to the specified topic. Messages are published with strict ordering guarantees, i.e. messages are published in the order
+to the specified topic. Messages are published with the following guarantees:
+* *strict ordering*: i.e. messages are published in the order
 they're stored in the outbox. In consequence, if a message could not be published, it will not try to publish the next message.
+* *at-least-once delivery*: every message from the outbox is published at least once, i.e. in case of errors (e.g. database unavailability or network errors) there may be duplicates. Consumers are responsible for deduplication.
 
 Messages are published with the headers `x-value-type`, `x-sequence` and `x-source`:
 * `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace).
@@ -36,7 +38,8 @@ the message / payload), a solution would have to be found or developed. At the t
 experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
-* This library assumes and uses Hibernate and Spring (for transaction handling) - extracting a core and making the usage of Spring stuff an optional add-on would be a possible contribution
+* This library assumes and uses Spring (for transaction handling)
+* It comes with a module for usage in classic spring projects using sync/blocking operations (this module uses hibernate), and another module for reactive operations (uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
 * Currently it supports protobuf 3 for messages to publish (could be extended to other serialization libs)
 * It's tested with postgresql only (verified support for other databases could be contributed)
 
@@ -44,11 +47,13 @@ experience in the team with Debezium or Kafka Connect.
 
 ### Add Library
 
-Add the library dependency to your project: `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
+Depending on your application add one of the following libraries as dependency to your project:
+* classic (sync/blocking): `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
+* reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
 
 ### Prepare Database
 
-Create the tables using your preferred database migration tool: use the DDLs from [this sql file](outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql).
+Create the tables using your preferred database migration tool: use the DDLs from [this sql file](outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql) (or for reactive projects [this one](outbox-kafka-spring-reactive/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql)).
 
 You should review if the column restrictions for `topic`, `key` and `owner_id` match your use case / context.
 The `owner_id` column (of the `outbox_kafka_lock` table) stores the unique id that you provide for identifying the
@@ -60,6 +65,8 @@ per instance).
 The `OutboxProcessor` is the component which processes the outbox and publishes messages/events to Kafka, once it could
  obtain the lock. If it could not obtain the lock on startup, it will continuously monitor the lock and try to obtain
  it (in case the lock-holding instance crashed or could not longer refresh the lock).
+
+#### Setup the `OutboxProcessor` from `outbox-kafka-spring` (classic projects)
 
 ```java
 @Configuration
@@ -88,27 +95,60 @@ public class TransactionalOutboxConfig {
 }
 ```
 
-* `OutboxLockService`: is instantiated by Spring, autowiring the `Duration` with `@Qualifier("outboxLockTimeout")`
 * `OutboxRepository`: can be instantiated by Spring, only asking for a Hibernate `SessionFactory`
 * `Duration processingInterval`: the interval to wait after the outbox was processed completely before it's processed
-   again. This value should be significantly smaller than `outboxLockTimeout` (described next). If it's higher, this is still not an issue,
-   then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process
-   the outbox.
+  again. This value should be significantly smaller than `outboxLockTimeout` (described next). If it's higher, this is still not an issue,
+  then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process
+  the outbox.
 * `Duration outboxLockTimeout`: the time after that a lock should be considered to be timed out
-  * a lock can be taken over by another instance only after that time had passed without a lock refresh by the lock owner
-  * the chosen value should be higher than the 99%ile of gc pauses; but even if you'd use a smaller value (and lock would
-    often get lost due to gc pauses) the library would still work correctly
-  * the chosen value should be smaller than the max message publishing delay that you'd like to see (e.g. in deployment scenarios)
+    * a lock can be taken over by another instance only after that time had passed without a lock refresh by the lock owner
+    * the chosen value should be higher than the 99%ile of gc pauses; but even if you'd use a smaller value (and lock would
+      often get lost due to gc pauses) the library would still work correctly
+    * the chosen value should be smaller than the max message publishing delay that you'd like to see (e.g. in deployment scenarios)
 * `String lockOwnerId`: used to identify the instance trying to obtain the lock, must be unique per instance (you could e.g.
-   use the hostname)
+  use the hostname)
 * `String eventSource`: used as value for the `x-source` header set for a message published to Kafka
 * `Map<String, Object> producerProps`: the properties used to create the `KafkaProducer` (contains e.g. `bootstrap.servers` etc)
 * `AutowireCapableBeanFactory beanFactory`: used to create the lock service (`OutboxLockService`)
 
+
+#### Setup the `OutboxProcessor` from `outbox-kafka-spring-reactive`
+
+Only slightly different looks the setup of the `OutboxProcessor` for reactive applications:
+
+```java
+@Configuration
+@ComponentScan(basePackages = "one.tomorrow.transactionaloutbox.reactive")
+public class TransactionalOutboxConfig {
+
+    @Bean
+    public OutboxProcessor outboxProcessor(OutboxRepository repository,
+                                           OutboxLockService lockService,
+                                           Duration processingInterval,
+                                           Duration outboxLockTimeout,
+                                           String lockOwnerId,
+                                           String eventSource,
+                                           Map<String, Object> producerProps) {
+        return new OutboxProcessor(
+                repository,
+                lockService,
+                new DefaultKafkaProducerFactory(producerProps),
+                processingInterval,
+                outboxLockTimeout,
+                lockOwnerId,
+                eventSource
+        );
+    }
+
+}
+```
+
 ## Usage
 
 In a service that changes the database (inside a transaction), create and serialize the message/event that should
-be published to Kafka transactionally (i.e. only if the current transaction could be committed). This could look like this:
+be published to Kafka transactionally (i.e. only if the current transaction could be committed).
+
+In a **classic application** this could look like this:
 
 ```java
 @Autowired
@@ -126,3 +166,28 @@ public void doSomething(String id, String name) {
     outboxService.saveForPublishing("some-topic", id, event);
 }
 ```
+
+In a **reactive application** it would look like this (you could also use `@Transactional` if you'd prefer this rather than using the `TransactionalOperator`):
+
+```java
+@Autowired
+private OutboxService outboxService;
+@Autowired
+private TransactionalOperator rxtx;
+
+public Mono<OutboxRecord> doSomething(String name) {
+
+    // Here s.th. else would be done within the transaction, e.g. some entity created.
+    return createSomeThing(name)
+        .flatMap(someThing -> {
+            SomeEvent event = SomeEvent.newBuilder()
+                .setId(someThing.getId())
+                .setName(someThing.getName())
+                .build();
+            return outboxService.saveForPublishing("some-topic", someThing.getId(), event);
+        })
+        .as(rxtx::transactional);
+
+}
+```
+

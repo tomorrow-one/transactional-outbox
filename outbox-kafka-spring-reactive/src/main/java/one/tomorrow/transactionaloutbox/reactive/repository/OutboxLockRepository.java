@@ -55,7 +55,7 @@ public class OutboxLockRepository {
     }
 
     private Mono<OutboxLock> selectOutboxLock() {
-        return db.sql("select * from outbox_kafka_lock where id = :id FOR SHARE NOWAIT") //  FOR KEY SHARE NOWAIT
+        return db.sql("select * from outbox_kafka_lock where id = :id FOR UPDATE NOWAIT")
                 .bind("id", OUTBOX_LOCK_ID)
                 .map(this::toOutboxLock)
                 .one();

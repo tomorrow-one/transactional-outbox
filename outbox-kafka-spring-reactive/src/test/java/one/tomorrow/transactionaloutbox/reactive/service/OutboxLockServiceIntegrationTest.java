@@ -18,6 +18,7 @@ import java.util.concurrent.*;
 import reactor.test.StepVerifier;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static one.tomorrow.transactionaloutbox.reactive.TestUtils.randomBoolean;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -52,7 +53,7 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
         Duration lockTimeout = Duration.ZERO;
         OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx);
 
-        boolean locked = lockService.acquireOrRefreshLock(ownerId1, lockTimeout).block();
+        boolean locked = lockService.acquireOrRefreshLock(ownerId1, lockTimeout, randomBoolean()).block();
         assertThat(locked, is(true));
 
         CyclicBarrier barrier1 = new CyclicBarrier(2);
@@ -76,7 +77,7 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
         Future<Boolean> lockStealingAttemptResult = executorService.submit(() -> {
             await(barrier1);
             barrier2Mono.block(); // start acquireOrRefreshLock not before owner1 is inside "runWithLock"
-            boolean result = lockService.acquireOrRefreshLock(ownerId2, lockTimeout).block();
+            boolean result = lockService.acquireOrRefreshLock(ownerId2, lockTimeout, randomBoolean()).block();
             barrier3CompletionStage.complete(null); // let owner1 runWithLock action complete
             return result;
         });
@@ -91,7 +92,7 @@ class OutboxLockServiceIntegrationTest extends AbstractIntegrationTest {
         // given
         String ownerId = "owner-1";
         OutboxLockService lockService = new OutboxLockService(lockRepository, rxtx);
-        boolean locked = lockService.acquireOrRefreshLock(ownerId, Duration.ZERO).block();
+        boolean locked = lockService.acquireOrRefreshLock(ownerId, Duration.ZERO, randomBoolean()).block();
         assertThat(locked, is(true));
 
         // when

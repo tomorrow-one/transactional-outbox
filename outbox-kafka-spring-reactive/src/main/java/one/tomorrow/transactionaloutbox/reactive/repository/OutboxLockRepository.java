@@ -27,9 +27,9 @@ public class OutboxLockRepository {
     private final DatabaseClient db;
     private final TransactionalOperator rxtx;
 
-    public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration timeout) {
-        return selectOutboxLock()
-                .flatMap(lock -> handleExistingLock(lock, ownerId, timeout))
+    public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration timeout, boolean refreshLock) {
+        return selectOutboxLock(refreshLock)
+                .flatMap(lock -> handleExistingLock(lock, refreshLock, ownerId, timeout))
                 .switchIfEmpty(
                         insertOutboxLock(ownerId, timeout)
                 )
@@ -54,8 +54,10 @@ public class OutboxLockRepository {
         return Mono.just(false);
     }
 
-    private Mono<OutboxLock> selectOutboxLock() {
-        return db.sql("select * from outbox_kafka_lock where id = :id FOR UPDATE NOWAIT")
+    private Mono<OutboxLock> selectOutboxLock(boolean forUpdate) {
+        String sql = "select * from outbox_kafka_lock where id = :id" +
+                (forUpdate ? " FOR UPDATE NOWAIT" : "");
+        return db.sql(sql)
                 .bind("id", OUTBOX_LOCK_ID)
                 .map(this::toOutboxLock)
                 .one();
@@ -74,8 +76,16 @@ public class OutboxLockRepository {
         });
     }
 
-    private Mono<Boolean> handleExistingLock(OutboxLock lock, String ownerId, Duration timeout) {
-        if (ownerId.equals(lock.getOwnerId())) {
+    private Mono<Boolean> handleExistingLock(OutboxLock lock, boolean selectedForUpdate, String ownerId, Duration timeout) {
+        if (isForeignValidLock(lock, ownerId)) {
+            logger.debug("Found outbox lock with owner {}, valid until {} (now: {})", lock.getOwnerId(), lock.getValidUntil(), now());
+            return Mono.just(false);
+        } else if (!selectedForUpdate) {
+            // we'd like to update the lock, but at first we have to lock it
+            return selectOutboxLock(true).flatMap(lockForUpdate ->
+                    handleExistingLock(lockForUpdate, true, ownerId, timeout)
+            );
+        } else if (ownerId.equals(lock.getOwnerId())) {
             logger.debug("Found outbox lock with requested owner {}, valid until {} - updating lock", lock.getOwnerId(), lock.getValidUntil());
             return db.sql("update outbox_kafka_lock set valid_until = :validUntil where id = :id and owner_id = :ownerId")
                     .bind("validUntil", now().plus(timeout))
@@ -84,9 +94,6 @@ public class OutboxLockRepository {
                     .fetch()
                     .rowsUpdated()
                     .map(rowsUpdated -> rowsUpdated > 0);
-        } else if (!ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now())) {
-            logger.debug("Found outbox lock with owner {}, valid until {} (now: {})", lock.getOwnerId(), lock.getValidUntil(), now());
-            return Mono.just(false);
         } else {
             logger.info("Found expired outbox lock with owner {}, which was valid until {} - grabbing lock for {}", lock.getOwnerId(), lock.getValidUntil(), ownerId);
             return db.sql("update outbox_kafka_lock set owner_id = :ownerId, valid_until = :validUntil where id = :id")
@@ -99,6 +106,10 @@ public class OutboxLockRepository {
         }
     }
 
+    private boolean isForeignValidLock(OutboxLock lock, String ownerId) {
+        return !ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now());
+    }
+
     private OutboxLock toOutboxLock(Row row) {
         logger.info("Found lock for {}", row.get("owner_id", String.class));
         return new OutboxLock(row.get("owner_id", String.class), row.get("valid_until", Instant.class));
@@ -106,8 +117,7 @@ public class OutboxLockRepository {
 
     public Mono<Boolean> preventLockStealing(String ownerId) {
         return lockOutboxLock(ownerId)
-                //db.sql("LOCK outbox_kafka_lock IN ACCESS SHARE MODE NOWAIT").then()
-                .thenReturn(true)
+                .map(existingLock -> true)
                 .defaultIfEmpty(false);
     }
 

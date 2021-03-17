@@ -5,8 +5,19 @@ import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Random;
 
 public class TestUtils {
+
+	private static final Random RANDOM = new Random();
+
+	public static boolean randomBoolean() {
+		return RANDOM.nextBoolean();
+	}
+
+	public static int randomInt(int bound) {
+		return RANDOM.nextInt(bound);
+	}
 
 	public static OutboxRecord newRecord(String topic, String key, String value) {
 		return newRecord(topic, key, value, null);

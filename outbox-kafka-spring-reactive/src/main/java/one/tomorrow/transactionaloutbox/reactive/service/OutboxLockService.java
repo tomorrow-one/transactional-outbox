@@ -19,8 +19,8 @@ public class OutboxLockService {
 	private final OutboxLockRepository repository;
 	private final TransactionalOperator rxtx;
 
-	public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration lockTimeout) {
-		return repository.acquireOrRefreshLock(ownerId, lockTimeout);
+	public Mono<Boolean> acquireOrRefreshLock(String ownerId, Duration lockTimeout, boolean refreshLock) {
+		return repository.acquireOrRefreshLock(ownerId, lockTimeout, refreshLock);
 	}
 
 	public Mono<Void> releaseLock(String ownerId) {

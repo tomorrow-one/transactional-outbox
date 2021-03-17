@@ -107,7 +107,7 @@ public class OutboxProcessor {
 		boolean originalActive = active;
 		logger.debug("{} trying to acquire outbox lock", lockOwnerId);
 
-		lockService.acquireOrRefreshLock(lockOwnerId, lockTimeout)
+		lockService.acquireOrRefreshLock(lockOwnerId, lockTimeout, active)
 				.doOnNext(acquiredOrRefreshedLock -> {
 					this.active = acquiredOrRefreshedLock;
 					lastLockAckquisitionAttempt = now();

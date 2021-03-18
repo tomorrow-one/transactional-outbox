@@ -17,7 +17,7 @@ version = "1.0.3-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(14))
+        languageVersion.set(JavaLanguageVersion.of(11))
     }
     withSourcesJar()
 }

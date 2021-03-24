@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+option java_package = "one.tomorrow.transactionaloutbox.reactive.test";
+
+message SomethingHappened {
+    int32 id = 1;
+    string name = 2;
+}

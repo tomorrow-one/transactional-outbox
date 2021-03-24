@@ -1,6 +1,6 @@
-package one.tomorrow.transactionaloutbox.service;
+package one.tomorrow.transactionaloutbox.reactive.service;
 
-import one.tomorrow.transactionaloutbox.service.OutboxProcessor.KafkaProducerFactory;
+import one.tomorrow.transactionaloutbox.reactive.service.OutboxProcessor.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -8,11 +8,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.MAX_BLOCK_MS_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION;
-import static org.apache.kafka.clients.producer.ProducerConfig.RETRIES_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.*;
 
 public class DefaultKafkaProducerFactory implements KafkaProducerFactory {
 

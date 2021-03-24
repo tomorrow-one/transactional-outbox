@@ -1,7 +1,7 @@
 package one.tomorrow.transactionaloutbox.reactive.repository;
 
 import io.r2dbc.spi.Row;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +19,7 @@ import static java.time.Instant.now;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxLock.OUTBOX_LOCK_ID;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class OutboxLockRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxLockRepository.class);

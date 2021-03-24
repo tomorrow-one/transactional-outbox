@@ -1,6 +1,6 @@
 package one.tomorrow.transactionaloutbox.reactive.service;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxLockRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class OutboxLockService {
 
 	private static final Logger logger = LoggerFactory.getLogger(OutboxLockService.class);

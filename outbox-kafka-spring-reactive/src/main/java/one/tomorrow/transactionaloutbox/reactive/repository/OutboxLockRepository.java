@@ -111,7 +111,6 @@ public class OutboxLockRepository {
     }
 
     private OutboxLock toOutboxLock(Row row) {
-        logger.info("Found lock for {}", row.get("owner_id", String.class));
         return new OutboxLock(row.get("owner_id", String.class), row.get("valid_until", Instant.class));
     }
 

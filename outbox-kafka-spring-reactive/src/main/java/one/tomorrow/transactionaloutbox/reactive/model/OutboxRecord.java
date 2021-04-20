@@ -22,7 +22,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder(toBuilder = true)
 @Getter
-@ToString
+@ToString(exclude = "value")
 public class OutboxRecord {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

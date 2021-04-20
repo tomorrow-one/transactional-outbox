@@ -24,7 +24,7 @@ import java.util.Map;
 @Builder
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "value")
 public class OutboxRecord {
 
     @Id

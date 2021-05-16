@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.Map;
 
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_VALUE_TYPE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 
 @Service
 @AllArgsConstructor

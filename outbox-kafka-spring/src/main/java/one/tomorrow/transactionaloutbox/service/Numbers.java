@@ -2,6 +2,10 @@ package one.tomorrow.transactionaloutbox.service;
 
 public class Numbers {
 
+	/**
+	 * @deprecated Use {@link one.tomorrow.kafka.core.Longs#toByteArray(long)} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public static byte[] toByteArray(long data) {
 		return new byte[] {
 				(byte) (data >>> 56),
@@ -15,6 +19,10 @@ public class Numbers {
 		};
 	}
 
+	/**
+	 * @deprecated Use {@link one.tomorrow.kafka.core.Longs#toLong(byte[])} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public static long toLong(byte[] data) {
 		if (data == null || data.length != 8) {
 			throw new IllegalArgumentException("Size of data received is not 8");

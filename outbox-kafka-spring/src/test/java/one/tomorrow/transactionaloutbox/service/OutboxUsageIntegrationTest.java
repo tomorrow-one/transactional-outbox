@@ -2,7 +2,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import com.google.protobuf.Message;
 import kafka.server.KafkaConfig$;
-import one.tomorrow.kafka.core.KafkaProtoBufDeserializer;
+import one.tomorrow.kafka.core.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
@@ -33,7 +33,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.time.Duration;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
@@ -122,12 +122,10 @@ public class OutboxUsageIntegrationTest {
 
     private static void setupConsumer() {
         Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("testGroup", "false", embeddedKafka());
-        Map<String, Class<?>> typeMap = new HashMap<>();
-        typeMap.put(SomethingHappened.getDescriptor().getFullName(), SomethingHappened.class);
         DefaultKafkaConsumerFactory<String, Message> cf = new DefaultKafkaConsumerFactory<>(
                 consumerProps,
                 new StringDeserializer(),
-                new KafkaProtoBufDeserializer(typeMap)
+                new KafkaProtobufDeserializer(List.of(SomethingHappened.class), true)
         );
         consumer = cf.createConsumer();
         embeddedKafka().consumeFromAllEmbeddedTopics(consumer);

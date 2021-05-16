@@ -1,5 +1,6 @@
 package one.tomorrow.transactionaloutbox.service;
 
+import one.tomorrow.kafka.core.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
@@ -21,8 +22,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SOURCE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
 
 public class OutboxProcessor {
 
@@ -154,7 +155,7 @@ public class OutboxProcessor {
 		if (outboxRecord.getHeaders() != null) {
 			outboxRecord.getHeaders().forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
 		}
-		producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Numbers.toByteArray(outboxRecord.getId()));
+		producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
 		producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
 		return producerRecord;
 	}

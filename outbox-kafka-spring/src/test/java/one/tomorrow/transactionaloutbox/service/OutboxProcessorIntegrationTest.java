@@ -34,12 +34,12 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 import java.time.Duration;
 import java.util.Map;
 
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SOURCE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
+import static one.tomorrow.kafka.core.Longs.toLong;
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
-import static one.tomorrow.transactionaloutbox.service.Numbers.toLong;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;

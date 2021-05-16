@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Map;
 
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_VALUE_TYPE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord.toJson;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_MANDATORY;
 

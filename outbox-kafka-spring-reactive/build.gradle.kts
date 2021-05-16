@@ -59,7 +59,7 @@ dependencies {
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:$protobufVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.12.2")
-    implementation("one.tomorrow.kafka:kafka-utils:0.5")
+    implementation("one.tomorrow.kafka:kafka-utils:0.8")
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 

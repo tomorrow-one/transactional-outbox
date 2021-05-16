@@ -26,14 +26,14 @@ import java.util.stream.IntStream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
-import static one.tomorrow.kafka.core.KafkaConstants.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.kafka.core.Longs.toLong;
 import static one.tomorrow.transactionaloutbox.reactive.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.bootstrapServers;
 import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.kafkaProxy;
 import static one.tomorrow.transactionaloutbox.reactive.ProxiedPostgreSQLContainer.postgresProxy;
 import static one.tomorrow.transactionaloutbox.reactive.TestUtils.newRecord;
-import static one.tomorrow.transactionaloutbox.reactive.service.Numbers.toLong;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;

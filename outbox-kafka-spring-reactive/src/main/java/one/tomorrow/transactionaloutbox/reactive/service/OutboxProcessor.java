@@ -12,17 +12,20 @@ import reactor.core.publisher.Mono;
 import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.function.Consumer;
 
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
 
+@SuppressWarnings("unused")
 public class OutboxProcessor {
 
 	@FunctionalInterface
@@ -34,6 +37,8 @@ public class OutboxProcessor {
 
 	private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
+	private final List<Consumer<KafkaProducer<String, byte[]>>> producerClosedListeners = new ArrayList<>();
+	private final List<Consumer<KafkaProducer<String, byte[]>>> producerCreatedListeners = new ArrayList<>();
 	private final OutboxLockService lockService;
 	private final String lockOwnerId;
 	private final OutboxRepository repository;
@@ -79,11 +84,33 @@ public class OutboxProcessor {
 		this.eventSource = eventSource.getBytes();
 		this.batchSize = batchSize;
 		this.producerFactory = producerFactory;
-		producer = producerFactory.createKafkaProducer();
+		createProducer(producerFactory);
 
 		executor = Executors.newSingleThreadScheduledExecutor();
 
 		tryLockAcquisition();
+	}
+
+	/** Register a callback that's invoked before a producer is closed. */
+	public OutboxProcessor onBeforeProducerClosed(Consumer<KafkaProducer<String, byte[]>> listener) {
+		producerClosedListeners.add(listener);
+		return this;
+	}
+
+	/** Register a callback that's invoked when a producer got created. */
+	public OutboxProcessor onProducerCreated(Consumer<KafkaProducer<String, byte[]>> listener) {
+		producerCreatedListeners.add(listener);
+		return this;
+	}
+
+	private void createProducer(KafkaProducerFactory producerFactory) {
+		producer = producerFactory.createKafkaProducer();
+		producerCreatedListeners.forEach(listener -> listener.accept(producer));
+	}
+
+	private void closeProducer() {
+		producerClosedListeners.forEach(listener -> listener.accept(producer));
+		producer.close(Duration.ZERO);
 	}
 
 	private void scheduleProcessing() {
@@ -100,7 +127,7 @@ public class OutboxProcessor {
 		if (schedule != null)
 			schedule.cancel(false);
 		executor.shutdown();
-		producer.close(Duration.ZERO);
+		closeProducer();
 		lockService.releaseLock(lockOwnerId).subscribe();
 	}
 
@@ -145,8 +172,8 @@ public class OutboxProcessor {
 				processOutbox()
 						.onErrorResume(e -> {
 							logger.warn("Recreating producer, due to failure while processing outbox.", e);
-							producer.close(Duration.ZERO);
-							producer = producerFactory.createKafkaProducer();
+							closeProducer();
+							createProducer(producerFactory);
 							return Mono.empty();
 						})
 						.then()

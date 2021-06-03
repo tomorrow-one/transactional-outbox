@@ -100,6 +100,11 @@ public class OutboxProcessor {
 	/** Register a callback that's invoked when a producer got created. */
 	public OutboxProcessor onProducerCreated(Consumer<KafkaProducer<String, byte[]>> listener) {
 		producerCreatedListeners.add(listener);
+		
+		// also call this for the already created producer (because this might just have happened during construction)
+		if (producer != null)
+			listener.accept(producer);
+
 		return this;
 	}
 

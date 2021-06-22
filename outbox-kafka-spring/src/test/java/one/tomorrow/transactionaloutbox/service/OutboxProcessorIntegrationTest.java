@@ -20,8 +20,10 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
@@ -33,6 +35,8 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
@@ -41,7 +45,9 @@ import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUT
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -75,6 +81,8 @@ public class OutboxProcessorIntegrationTest {
     private OutboxRepository repository;
     @Autowired
     private TransactionalOutboxRepository transactionalRepository;
+    @Autowired
+    private OutboxLockRepository lockRepository;
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
 
@@ -170,6 +178,128 @@ public class OutboxProcessorIntegrationTest {
         records = getAndCommitRecords();
         assertThat(records.count(), is(1));
         assertConsumedRecord(record2, "h2", eventSource, records.iterator().next());
+    }
+
+    @Test
+    public void should_ContinueProcessingAfterDbConnectionFailureInLockAcquisition() throws InterruptedException {
+        // given
+        Duration processingInterval = Duration.ofMillis(50);
+        String eventSource = "test";
+
+        AtomicBoolean failAcquireOrRefreshLock = new AtomicBoolean(false);
+        CountDownLatch cdl = new CountDownLatch(1);
+
+        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
+                new OutboxLockRepository(sessionFactory) {
+                    @Override
+                    public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
+                        if (failAcquireOrRefreshLock.get()) {
+                            cdl.countDown();
+                            throw new RuntimeException("Simulated exception");
+                        }
+                        return super.acquireOrRefreshLock(ownerId, timeout);
+                    }
+                },
+                "OutboxLockRepository"
+        );
+        AutowireCapableBeanFactory beanFactoryWrapper = new DefaultListableBeanFactory(beanFactory) {
+            @Override
+            @SuppressWarnings({"unchecked", "NullableProblems"})
+            public <T> T getBean(Class<T> requiredType) throws BeansException {
+                if (requiredType == OutboxLockRepository.class)
+                    return (T) failingLockRepository;
+                return beanFactory.getBean(requiredType);
+            }
+            @Override
+            @SuppressWarnings("NullableProblems")
+            public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {
+                return beanFactory.applyBeanPostProcessorsAfterInitialization(existingBean, beanName);
+            }
+        };
+
+        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, beanFactoryWrapper);
+
+        // when
+        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        transactionalRepository.persist(record1);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertThat(records.count(), is(1));
+
+        // and when
+        failAcquireOrRefreshLock.set(true);
+
+        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        transactionalRepository.persist(record2);
+
+        cdl.await();
+        failAcquireOrRefreshLock.set(false);
+
+        // then
+        records = getAndCommitRecords();
+        assertThat(records.count(), is(1));
+    }
+
+    @Test
+    public void should_ContinueProcessingAfterDbConnectionFailureInPreventLockStealing() throws InterruptedException {
+        // given
+        Duration processingInterval = Duration.ofMillis(500);
+        String eventSource = "test";
+
+        AtomicBoolean failPreventLockStealing = new AtomicBoolean(false);
+        CountDownLatch cdl = new CountDownLatch(1);
+
+        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
+                new OutboxLockRepository(sessionFactory) {
+                    @Override
+                    public boolean preventLockStealing(String ownerId) {
+                        if (failPreventLockStealing.get()) {
+                            cdl.countDown();
+                            throw new RuntimeException("Simulated exception");
+                        }
+                        return super.preventLockStealing(ownerId);
+                    }
+                },
+                "OutboxLockRepository"
+        );
+        AutowireCapableBeanFactory beanFactoryWrapper = new DefaultListableBeanFactory(beanFactory) {
+            @Override
+            @SuppressWarnings({"unchecked", "NullableProblems"})
+            public <T> T getBean(Class<T> requiredType) throws BeansException {
+                if (requiredType == OutboxLockRepository.class)
+                    return (T) failingLockRepository;
+                return beanFactory.getBean(requiredType);
+            }
+            @Override
+            @SuppressWarnings("NullableProblems")
+            public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {
+                return beanFactory.applyBeanPostProcessorsAfterInitialization(existingBean, beanName);
+            }
+        };
+
+        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, beanFactoryWrapper);
+
+        // when
+        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        transactionalRepository.persist(record1);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertThat(records.count(), is(1));
+
+        // and when
+        failPreventLockStealing.set(true);
+
+        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        transactionalRepository.persist(record2);
+
+        cdl.await();
+        failPreventLockStealing.set(false);
+
+        // then
+        records = getAndCommitRecords();
+        assertThat(records.count(), is(1));
     }
 
     private void assertConsumedRecord(OutboxRecord outboxRecord, String headerKey, String sourceHeaderValue, ConsumerRecord<String, byte[]> kafkaRecord) {

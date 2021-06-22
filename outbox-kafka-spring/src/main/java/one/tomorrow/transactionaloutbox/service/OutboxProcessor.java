@@ -90,20 +90,25 @@ public class OutboxProcessor {
 	}
 
 	private void tryLockAcquisition() {
-		boolean originalActive = active;
-		logger.debug("{} trying to acquire outbox lock", lockOwnerId);
-		active = lockService.acquireOrRefreshLock(lockOwnerId);
-		lastLockAckquisitionAttempt = now();
-		if (active) {
-			if (originalActive)
-				logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
-			else
-				logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+		try {
+			boolean originalActive = active;
+			logger.debug("{} trying to acquire outbox lock", lockOwnerId);
+			active = lockService.acquireOrRefreshLock(lockOwnerId);
+			lastLockAckquisitionAttempt = now();
+			if (active) {
+				if (originalActive)
+					logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+				else
+					logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
 
-			processOutboxWithLock();
-		}
-		else
+				processOutboxWithLock();
+			}
+			else
+				scheduleTryLockAcquisition();
+		} catch (Exception e) {
+			logger.warn("Failed trying lock acquisition or processing the outbox, trying again in {}", lockService.getLockTimeout(), e);
 			scheduleTryLockAcquisition();
+		}
 	}
 
 	private void processOutboxWithLock() {

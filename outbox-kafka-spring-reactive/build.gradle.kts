@@ -32,7 +32,7 @@ sourceSets {
 }
 
 repositories {
-    maven(url = "https://nexus.live.aws.tomorrow.one/repository/gf") {
+    maven(url = "https://nexus.dev.internal.aws.tomorrow.one/repository/gf") {
         credentials {
             username = System.getenv("NEXUS_USER") ?: project.property("repoUser").toString()
             password = System.getenv("NEXUS_PASSWORD") ?: project.property("repoPassword").toString()
@@ -97,7 +97,7 @@ protobuf {
 sonarqube {
     properties {
         property("sonar.projectName", "transactional-outbox")
-        property("sonar.host.url", "https://sonar.live.aws.tomorrow.one")
+        property("sonar.host.url", "https://sonar.dev.internal.aws.tomorrow.one")
         property("sonar.login", System.getenv("SONAR_LOGIN_ASPEN"))
         property("sonar.projectKey", "one.tomorrow:transactional-outbox")
         property("sonar.branch.name", System.getenv("CI_COMMIT_REF_NAME"))
@@ -140,8 +140,8 @@ publishing {
                 username = System.getenv("NEXUS_USER") ?: project.property("repoUser").toString()
                 password = System.getenv("NEXUS_PASSWORD") ?: project.property("repoPassword").toString()
             }
-            val releasesRepoUrl = "https://nexus.live.aws.tomorrow.one/repository/maven-releases"
-            val snapshotsRepoUrl = "https://nexus.live.aws.tomorrow.one/repository/maven-snapshots"
+            val releasesRepoUrl = "https://nexus.dev.internal.aws.tomorrow.one/repository/maven-releases"
+            val snapshotsRepoUrl = "https://nexus.dev.internal.aws.tomorrow.one/repository/maven-snapshots"
             url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
         }
     }

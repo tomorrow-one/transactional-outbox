@@ -50,7 +50,7 @@ public class OutboxLockRepository {
     }
 
     private Mono<Boolean> handleRowIsLocked(Throwable e, String ownerId) {
-        logger.info("Could not grab lock for owner {} - database row is locked: {}", ownerId, e);
+        logger.info("Could not grab lock for owner {} - database row is locked: {}", ownerId, e.toString());
         return Mono.just(false);
     }
 

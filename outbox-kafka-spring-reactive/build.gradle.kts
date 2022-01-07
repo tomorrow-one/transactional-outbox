@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "one.tomorrow.transactional-outbox"
-version = "1.0.8"
+version = "1.0.9-SNAPSHOT"
 
 java {
     toolchain {

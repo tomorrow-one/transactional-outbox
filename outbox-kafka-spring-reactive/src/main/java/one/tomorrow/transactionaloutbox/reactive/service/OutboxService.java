@@ -1,6 +1,8 @@
 package one.tomorrow.transactionaloutbox.reactive.service;
 
 import com.google.protobuf.Message;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,10 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord.toJson;
@@ -30,16 +35,25 @@ public class OutboxService {
 		mandatoryTxOperator = TransactionalOperator.create(tm, txDefinition);
 	}
 
-	public <T extends Message> Mono<OutboxRecord> saveForPublishing(String topic, String key, T event) {
-		Map<String, String> headers = Map.of(HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+	public <T extends Message> Mono<OutboxRecord> saveForPublishing(String topic, String key, T event, Header...headers) {
+        Header valueType = new Header(HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+		Map<String, String> headerMap = Stream.concat(Stream.of(valueType), Arrays.stream(headers))
+                .collect(Collectors.toMap(Header::getKey, Header::getValue));
 		OutboxRecord record = OutboxRecord.builder()
 				.topic(topic)
 				.key(key)
 				.value(event.toByteArray())
-				.headers(toJson(headers))
+				.headers(toJson(headerMap))
 				.created(Instant.now())
 				.build();
 		return repository.save(record).as(mandatoryTxOperator::transactional);
+	}
+
+	@Getter
+	@RequiredArgsConstructor
+	public static class Header {
+		private final String key;
+		private final String value;
 	}
 
 }

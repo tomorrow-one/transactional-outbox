@@ -15,9 +15,12 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsMapContaining.hasEntry;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})
@@ -66,6 +69,25 @@ class OutboxServiceIntegrationTest extends AbstractIntegrationTest {
 
         OutboxRecord foundRecord = repository.findById(savedRecord.getId()).block();
         assertThat(foundRecord, is(notNullValue()));
+    }
+
+    @Test
+    void should_save_withAdditionalHeader() {
+        // given
+        SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
+        OutboxService.Header additionalHeader = new OutboxService.Header("key", "value");
+
+        // when
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message, additionalHeader)
+                .as(rxtx::transactional);
+
+        // then
+        OutboxRecord savedRecord = result.block();
+        assertThat(savedRecord.getId(), is(notNullValue()));
+
+        OutboxRecord foundRecord = repository.findById(savedRecord.getId()).block();
+        assertThat(foundRecord, is(notNullValue()));
+        assertThat(foundRecord.getHeadersAsMap(), hasEntry(additionalHeader.getKey(), additionalHeader.getValue()));
     }
 
 }

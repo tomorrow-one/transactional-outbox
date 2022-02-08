@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "one.tomorrow.transactional-outbox"
-version = "1.0.9-SNAPSHOT"
+version = "1.0.9"
 
 java {
     toolchain {
@@ -47,7 +47,7 @@ dependencies {
     val springDataVersion = "2.1.4"
     val kafkaVersion = "2.5.0"
     val springKafkaVersion = "2.5.4.RELEASE"
-    val testcontainersVersion = "1.15.2"
+    val testcontainersVersion = "1.16.3"
     val log4jVersion = "2.13.3"
 
     implementation("org.springframework:spring-context:$springVersion")

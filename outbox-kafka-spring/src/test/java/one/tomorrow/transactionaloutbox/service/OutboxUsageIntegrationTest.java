@@ -73,21 +73,19 @@ public class OutboxUsageIntegrationTest {
     @Autowired
     private ApplicationContext applicationContext;
 
-    private OutboxProcessor outboxProcessor;
+    private static OutboxProcessor outboxProcessor;
 
     @Before
     public void setup() {
         // now activate the lazy processor
-        outboxProcessor = applicationContext.getBean(OutboxProcessor.class);
-    }
-
-    @After
-    public void tearDown() {
-        outboxProcessor.close();
+        if (outboxProcessor == null)
+            outboxProcessor = applicationContext.getBean(OutboxProcessor.class);
     }
 
     @AfterClass
     public static void afterClass() {
+        if (outboxProcessor != null)
+            outboxProcessor.close();
         if (consumer != null)
             consumer.close();
     }
@@ -109,6 +107,30 @@ public class OutboxUsageIntegrationTest {
         SomethingHappened value = (SomethingHappened) kafkaRecord.value();
         assertEquals(id, value.getId());
         assertEquals(name, value.getName());
+    }
+
+    @Test
+    public void should_SaveEventForPublishing_withAdditionalHeader() {
+        // given beans in ContextConfiguration and OutboxSetup below
+
+        // when
+        int id = 24;
+        String name = "foo bar baz";
+        OutboxService.Header additionalHeader = new OutboxService.Header("key", "value");
+        sampleService.doSomethingWithAdditionalHeaders(id, name, additionalHeader);
+
+        // then
+        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), 5_000);
+        assertThat(records.count(), is(1));
+        ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
+        assertTrue(kafkaRecord.value() instanceof SomethingHappened);
+
+        SomethingHappened value = (SomethingHappened) kafkaRecord.value();
+        assertEquals(id, value.getId());
+        assertEquals(name, value.getName());
+
+        Header foundHeader = kafkaRecord.headers().lastHeader("key");
+        assertEquals(additionalHeader.getValue(), new String(foundHeader.value()));
     }
 
     private static EmbeddedKafkaBroker embeddedKafka() {

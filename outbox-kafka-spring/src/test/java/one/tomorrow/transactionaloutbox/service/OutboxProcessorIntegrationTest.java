@@ -5,8 +5,10 @@ import kafka.server.KafkaServer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.repository.LegacyOutboxSessionFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.repository.OutboxSessionFactory;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,7 +17,6 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.hibernate.SessionFactory;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,6 +54,7 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
+        LegacyOutboxSessionFactory.class,
         OutboxRepository.class,
         TransactionalOutboxRepository.class,
         OutboxLock.class,
@@ -76,7 +78,7 @@ public class OutboxProcessorIntegrationTest {
     private Consumer<String, byte[]> consumer;
 
     @Autowired
-    private SessionFactory sessionFactory;
+    private OutboxSessionFactory sessionFactory;
     @Autowired
     private OutboxRepository repository;
     @Autowired

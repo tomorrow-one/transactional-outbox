@@ -1,6 +1,6 @@
 import com.google.protobuf.gradle.protobuf
 import com.google.protobuf.gradle.protoc
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat.*
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 plugins {

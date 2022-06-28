@@ -31,6 +31,7 @@ import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
+        LegacyOutboxSessionFactory.class,
         OutboxLockRepository.class,
         OutboxLock.class,
         IntegrationTestConfig.class

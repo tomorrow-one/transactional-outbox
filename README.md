@@ -39,8 +39,10 @@ experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
 * This library assumes and uses Spring (for transaction handling)
-* It comes with a module for usage in classic spring projects using sync/blocking operations (this module uses hibernate), and another module for reactive operations (uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
-* Currently it supports protobuf 3 for messages to publish (could be extended to other serialization libs)
+* It comes with a module for usage in classic spring and spring boot projects using sync/blocking operations (this
+  module uses hibernate), and another module for reactive operations (
+  uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
+* Currently, it supports protobuf 3 for messages to publish (could be extended to other serialization libs)
 * It's tested with postgresql only (verified support for other databases could be contributed)
 
 ## Installation & Configuration
@@ -48,17 +50,54 @@ experience in the team with Debezium or Kafka Connect.
 ### Add Library
 
 Depending on your application add one of the following libraries as dependency to your project:
+
 * classic (sync/blocking): `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
 * reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
 
+### Only for Spring Boot (sync/blocking): Add an OutboxSessionFactory
+
+Add a @Primary OutboxSessionFactory to map the EntityManager's session to Hibernate Session. Here's an example:
+
+```kotlin
+package one.tomorrow.seizure.kafka.publisher.config
+
+import one.tomorrow.transactionaloutbox.repository.OutboxSessionFactory
+import org.hibernate.Session
+import org.hibernate.SessionFactory
+import org.springframework.context.annotation.Primary
+import org.springframework.stereotype.Component
+import javax.persistence.EntityManager
+import javax.persistence.PersistenceContext
+
+@Component
+@Primary
+class SpringBootOutboxSessionFactory(
+
+    @PersistenceContext
+    private val entityManager: EntityManager,
+
+    private val sessionFactory: SessionFactory
+
+) : OutboxSessionFactory {
+
+    override fun getCurrentSession(): Session = entityManager.unwrap(Session::class.java)
+    override fun openSession(): Session = sessionFactory.openSession()
+}
+```
+
 ### Prepare Database
 
-Create the tables using your preferred database migration tool: use the DDLs from [this sql file](outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql) (or for reactive projects [this one](outbox-kafka-spring-reactive/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql)).
+Create the tables using your preferred database migration tool: use the DDLs
+from [this sql file](outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql) (
+or for reactive
+projects [this one](outbox-kafka-spring-reactive/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql))
+.
 
 You should review if the column restrictions for `topic`, `key` and `owner_id` match your use case / context.
 The `owner_id` column (of the `outbox_kafka_lock` table) stores the unique id that you provide for identifying the
-instance obtaining the lock for processing the outbox (you could e.g. use the hostname for this, assuming a unique hostname
-per instance). 
+instance obtaining the lock for processing the outbox (you could e.g. use the hostname for this, assuming a unique
+hostname
+per instance).
 
 ### Setup the `OutboxProcessor`
 
@@ -91,7 +130,6 @@ public class TransactionalOutboxConfig {
                 beanFactory
         );
     }
-
 }
 ```
 

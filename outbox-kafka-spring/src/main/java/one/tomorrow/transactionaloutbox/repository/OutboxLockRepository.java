@@ -1,11 +1,10 @@
 package one.tomorrow.transactionaloutbox.repository;
 
-import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import lombok.AllArgsConstructor;
+import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.dialect.lock.LockingStrategyException;
 import org.hibernate.exception.ConstraintViolationException;
@@ -30,7 +29,7 @@ public class OutboxLockRepository {
     private static final LockOptions PESSIMISTIC_NOWAIT =
             new LockOptions(LockMode.PESSIMISTIC_WRITE).setTimeOut(LockOptions.NO_WAIT);
 
-    private SessionFactory sessionFactory;
+    private OutboxSessionFactory sessionFactory;
 
     public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
 

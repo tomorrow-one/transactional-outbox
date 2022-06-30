@@ -5,7 +5,6 @@ import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.hamcrest.CoreMatchers;
-import org.hibernate.SessionFactory;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +27,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
+        LegacyOutboxSessionFactory.class,
         OutboxRepository.class,
         OutboxRecord.class,
         IntegrationTestConfig.class})
@@ -43,8 +43,6 @@ public class OutboxRepositoryIntegrationTest {
 
     @Autowired
     private OutboxRepository testee;
-    @Autowired
-    private SessionFactory sessionFactory;
 
     @Test
     public void should_FindUnprocessedRecords() {

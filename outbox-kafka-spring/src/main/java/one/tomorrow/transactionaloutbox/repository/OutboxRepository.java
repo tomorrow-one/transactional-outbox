@@ -1,20 +1,17 @@
 package one.tomorrow.transactionaloutbox.repository;
 
+import lombok.AllArgsConstructor;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Repository
+@AllArgsConstructor
 public class OutboxRepository {
 
-    private SessionFactory sessionFactory;
-
-    public OutboxRepository(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
-    }
+    private final OutboxSessionFactory sessionFactory;
 
     public void persist(OutboxRecord record) {
         sessionFactory.getCurrentSession().persist(record);

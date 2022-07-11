@@ -67,12 +67,12 @@ public class OutboxLockRepository {
             logger.info("Acquired or refreshed outbox lock for owner {}, valid until {}", ownerId, lock.getValidUntil());
             return true;
         } catch (LockingStrategyException e) {
-            return handleException(e, ownerId, lock);
+            return handleException(e, ownerId, lock, tx);
         } catch (Throwable e) {
             if (e.getCause() instanceof ConstraintViolationException)
                 return handleException((ConstraintViolationException) e.getCause(), ownerId, tx);
             else if (e.getCause() instanceof LockingStrategyException)
-                return handleException((LockingStrategyException) e.getCause(), ownerId, lock);
+                return handleException((LockingStrategyException) e.getCause(), ownerId, lock, tx);
             else {
                 logger.warn("Outbox lock selection/acquisition for owner {} failed", ownerId, e);
                 if (tx != null) tx.rollback();
@@ -83,9 +83,10 @@ public class OutboxLockRepository {
         }
     }
 
-    private boolean handleException(LockingStrategyException e, String ownerId, OutboxLock lock) {
+    private boolean handleException(LockingStrategyException e, String ownerId, OutboxLock lock, Transaction tx) {
         String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
         logger.info("Could not grab lock {} for owner {} - database row is locked: {}", lock, ownerId, reason);
+        if (tx != null) tx.rollback();
         return false;
     }
 

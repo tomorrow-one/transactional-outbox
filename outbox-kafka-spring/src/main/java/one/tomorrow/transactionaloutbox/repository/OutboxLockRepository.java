@@ -67,15 +67,15 @@ public class OutboxLockRepository {
             logger.info("Acquired or refreshed outbox lock for owner {}, valid until {}", ownerId, lock.getValidUntil());
             return true;
         } catch (LockingStrategyException e) {
-            return handleException(e, ownerId, lock);
+            return handleException(e, ownerId, lock, tx);
         } catch (Throwable e) {
             if (e.getCause() instanceof ConstraintViolationException)
                 return handleException((ConstraintViolationException) e.getCause(), ownerId, tx);
             else if (e.getCause() instanceof LockingStrategyException)
-                return handleException((LockingStrategyException) e.getCause(), ownerId, lock);
+                return handleException((LockingStrategyException) e.getCause(), ownerId, lock, tx);
             else {
                 logger.warn("Outbox lock selection/acquisition for owner {} failed", ownerId, e);
-                if (tx != null) tx.rollback();
+                tryRollback(tx);
                 throw e;
             }
         } finally {
@@ -83,22 +83,33 @@ public class OutboxLockRepository {
         }
     }
 
-    private boolean handleException(LockingStrategyException e, String ownerId, OutboxLock lock) {
+    private boolean handleException(LockingStrategyException e, String ownerId, OutboxLock lock, Transaction tx) {
         String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
         logger.info("Could not grab lock {} for owner {} - database row is locked: {}", lock, ownerId, reason);
+        tryRollback(tx);
         return false;
     }
 
     private boolean handleException(ConstraintViolationException e, String ownerId, Transaction tx) {
         String reason = e.getCause() != null ? e.getCause().toString() : e.toString();
         logger.info("Outbox lock for owner {} could not be created, another one has been created concurrently: {}", ownerId, reason);
-        if (tx != null) tx.rollback();
+        tryRollback(tx);
         return false;
+    }
+
+    private void tryRollback(Transaction tx) {
+        if (tx != null)
+            try {
+                tx.rollback();
+            } catch (Exception ex) {
+                logger.info("Caught exception while rolling back OutBox transaction", ex);
+            }
     }
 
     /**
      * Locks the outbox lock row for the given owner if it exists.
      * Must be executed inside some outer transaction.
+     *
      * @return true if the lock could be acquired, otherwise false.
      */
     public boolean preventLockStealing(String ownerId) {

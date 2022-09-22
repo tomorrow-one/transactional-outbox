@@ -53,6 +53,7 @@ public class OutboxLockRepository {
                 lock.setValidUntil(now().plus(timeout));
             } else if (!ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now())) {
                 logger.debug("Found outbox lock with owner {}, valid until {}", lock.getOwnerId(), lock.getValidUntil());
+                tryRollback(tx);
                 return false;
             } else {
                 logger.info("Found expired outbox lock with owner {}, which was valid until {} - grabbing lock for {}", lock.getOwnerId(), lock.getValidUntil(), ownerId);

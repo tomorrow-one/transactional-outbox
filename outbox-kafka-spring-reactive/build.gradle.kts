@@ -47,7 +47,7 @@ dependencies {
     val springDataVersion = "2.1.4"
     val kafkaVersion = "2.5.0"
     val springKafkaVersion = "2.5.4.RELEASE"
-    val testcontainersVersion = "1.16.3"
+    val testcontainersVersion = "1.17.5"
     val log4jVersion = "2.13.3"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -70,7 +70,7 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.7.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.hamcrest:hamcrest:2.2")
-    testImplementation("org.testcontainers:junit-jupiter:1.15.1")
+    testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:0.8.6.RELEASE")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
@@ -78,9 +78,9 @@ dependencies {
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.8.0")
-    testImplementation("org.postgresql:postgresql:42.2.9")
-    testImplementation("org.flywaydb:flyway-core:5.2.4")
-    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:6.4.0")
+    testImplementation("org.postgresql:postgresql:42.5.0")
+    testImplementation("org.flywaydb:flyway-core:9.7.0")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
     testImplementation("org.awaitility:awaitility:4.0.3")

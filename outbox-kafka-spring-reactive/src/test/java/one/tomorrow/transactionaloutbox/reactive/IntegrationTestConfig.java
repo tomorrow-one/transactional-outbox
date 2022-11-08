@@ -52,6 +52,7 @@ public class IntegrationTestConfig {
 
         configuration.setDataSource(dataSource);
         configuration.setLocationsAsStrings("classpath:/db/migration");
+        configuration.setCleanDisabled(false);
 
         return configuration;
     }

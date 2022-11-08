@@ -23,11 +23,11 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
 
             Network network = Network.newNetwork();
 
-            postgres = new ProxiedPostgreSQLContainer(DockerImageName.parse("postgres:10.8"))
+            postgres = new ProxiedPostgreSQLContainer(DockerImageName.parse("postgres:13.7"))
                     .withExposedPorts(exposedPostgresPort)
                     .withNetwork(network);
 
-            toxiproxy = new ToxiproxyContainer(DockerImageName.parse("shopify/toxiproxy:2.1.0"))
+            toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.5.0"))
                     .withNetwork(network);
 
             toxiproxy.start();

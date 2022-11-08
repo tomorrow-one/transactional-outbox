@@ -50,7 +50,7 @@ public class IntegrationTestConfig {
         BasicDataSource dataSource = new BasicDataSource();
 
         dataSource.setDriverClassName("org.testcontainers.jdbc.ContainerDatabaseDriver");
-        dataSource.setUrl("jdbc:tc:postgresql:10.8://localhost/test");
+        dataSource.setUrl("jdbc:tc:postgresql:13.7://localhost/test");
 
         return dataSource;
     }
@@ -71,6 +71,7 @@ public class IntegrationTestConfig {
 
         configuration.setDataSource(dataSource);
         configuration.setLocationsAsStrings("classpath:/db/migration");
+        configuration.setCleanDisabled(false);
 
         return configuration;
     }

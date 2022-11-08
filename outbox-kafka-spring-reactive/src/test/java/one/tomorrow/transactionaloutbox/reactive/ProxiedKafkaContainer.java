@@ -22,11 +22,11 @@ public class ProxiedKafkaContainer extends KafkaContainer {
 
             Network network = Network.newNetwork();
 
-            kafka = (ProxiedKafkaContainer) new ProxiedKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:5.4.3"))
+            kafka = (ProxiedKafkaContainer) new ProxiedKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.1.2"))
                     .withExposedPorts(exposedKafkaPort)
                     .withNetwork(network);
 
-            toxiproxy = new ToxiproxyContainer(DockerImageName.parse("shopify/toxiproxy:2.1.0"))
+            toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.5.0"))
                     .withNetwork(network);
 
             toxiproxy.start();

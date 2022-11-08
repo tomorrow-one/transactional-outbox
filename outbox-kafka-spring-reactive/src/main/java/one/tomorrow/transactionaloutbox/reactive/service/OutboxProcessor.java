@@ -119,11 +119,17 @@ public class OutboxProcessor {
 	}
 
 	private void scheduleProcessing() {
-		schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
+		if (executor.isShutdown())
+			logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+		else
+			schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
 	}
 
 	private void scheduleTryLockAcquisition() {
-		schedule = executor.schedule(this::tryLockAcquisition, lockTimeout.toMillis(), MILLISECONDS);
+		if (executor.isShutdown())
+			logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+		else
+			schedule = executor.schedule(this::tryLockAcquisition, lockTimeout.toMillis(), MILLISECONDS);
 	}
 
 	@PreDestroy

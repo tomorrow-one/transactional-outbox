@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -47,6 +48,8 @@ public class OutboxProcessor {
 	private boolean active;
 	private Instant lastLockAckquisitionAttempt;
 
+	private ScheduledFuture<?> schedule;
+
 	public OutboxProcessor(
 			OutboxRepository repository,
 			KafkaProducerFactory producerFactory,
@@ -73,16 +76,24 @@ public class OutboxProcessor {
 	}
 
 	private void scheduleProcessing() {
-		executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
+		if (executor.isShutdown())
+			logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+		else
+			schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
 	}
 
 	private void scheduleTryLockAcquisition() {
-		executor.schedule(this::tryLockAcquisition, lockService.getLockTimeout().toMillis(), MILLISECONDS);
+		if (executor.isShutdown())
+			logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+		else
+			schedule = executor.schedule(this::tryLockAcquisition, lockService.getLockTimeout().toMillis(), MILLISECONDS);
 	}
 
 	@PreDestroy
 	public void close() {
 		logger.info("Stopping OutboxProcessor.");
+		if (schedule != null)
+			schedule.cancel(false);
 		executor.shutdown();
 		producer.close();
 		if (active)

@@ -10,6 +10,7 @@ plugins {
     id("maven-publish")
     id("org.sonarqube") version "2.8"
     id("jacoco")
+    id("com.github.hierynomus.license") version "0.16.1"
 }
 
 group = "one.tomorrow.transactional-outbox"
@@ -29,6 +30,11 @@ sourceSets {
             srcDir("${project.buildDir}/generated/source/proto/test/java")
         }
     }
+}
+
+license {
+    header = file("../LICENSE-header.txt")
+    include("**/*.java")
 }
 
 repositories {

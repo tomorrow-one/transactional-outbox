@@ -11,6 +11,7 @@ plugins {
     //id("io.spring.dependency-management") version "1.0.10.RELEASE"
     id("org.sonarqube") version "2.8"
     id("jacoco")
+    id("com.github.hierynomus.license") version "0.16.1"
 }
 
 group = "one.tomorrow.transactional-outbox"
@@ -30,6 +31,11 @@ sourceSets {
             srcDir("${project.buildDir}/generated/source/proto/test/java")
         }
     }
+}
+
+license {
+    header = file("../LICENSE-header.txt")
+    include("**/*.java")
 }
 
 repositories {

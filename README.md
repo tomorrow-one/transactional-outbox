@@ -232,7 +232,7 @@ public Mono<OutboxRecord> doSomething(String name) {
 ## How-To Release
 
 To release a new version follow this step
-1. In your PR with the functional change, bump the version of `outbox-kafka-spring` or `outbox-kafka-spring-reactive` (or both) in the related `build.gradle.kts` to a non-`SNAPSHOT` version.
+1. In your PR with the functional change, bump the version of `commons`, `outbox-kafka-spring` or `outbox-kafka-spring-reactive` in the related `build.gradle.kts` to a non-`SNAPSHOT` version.
    * Try to follow semantic versioning, i.e. bump the major version for binary incompatible changes, the minor version for compatible changes with improvements/new features, and the patch version for bugfixes or non-functional changes like refactorings.
-2. Merge your PR - the related pipeline will publish the new version(s) with the `publish-artifact` job
+2. Merge your PR - the related pipeline will publish the new version(s)
 3. Push the released version to the next SNAPSHOT version (choose the next higher patch version for this) - totally fine to push this to master directly

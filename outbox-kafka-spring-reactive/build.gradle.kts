@@ -1,52 +1,13 @@
 import com.google.protobuf.gradle.protobuf
 import com.google.protobuf.gradle.protoc
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
-plugins {
-    id("java-library")
-    id("io.freefair.lombok") version "5.3.0"
-    id("com.google.protobuf") version "0.8.14"
-    id("maven-publish")
-    id("org.sonarqube") version "2.8"
-    id("jacoco")
-    id("com.github.hierynomus.license") version "0.16.1"
-}
-
-group = "one.tomorrow.transactional-outbox"
 version = "1.0.11-SNAPSHOT"
 
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(11))
     }
-    withSourcesJar()
 }
-
-sourceSets {
-    test {
-        java {
-            // declared here so that the IDE knows this src dir
-            srcDir("${project.buildDir}/generated/source/proto/test/java")
-        }
-    }
-}
-
-license {
-    header = file("../LICENSE-header.txt")
-    include("**/*.java")
-}
-
-repositories {
-    maven(url = "https://nexus.dev.internal.aws.tomorrow.one/repository/gf") {
-        credentials {
-            username = System.getenv("NEXUS_USER") ?: project.property("repoUser").toString()
-            password = System.getenv("NEXUS_PASSWORD") ?: project.property("repoPassword").toString()
-        }
-    }
-}
-
-val protobufVersion = "3.12.2"
 
 dependencies {
     val springVersion = "5.3.3"
@@ -63,9 +24,9 @@ dependencies {
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("io.r2dbc:r2dbc-postgresql:0.8.7.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
-    implementation("com.google.protobuf:protobuf-java:$protobufVersion")
+    implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.12.2")
-    implementation("one.tomorrow.kafka:kafka-utils:0.8")
+    implementation(project(":commons"))
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
@@ -92,63 +53,4 @@ dependencies {
     testImplementation("org.awaitility:awaitility:4.0.3")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion")
-}
-
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:$protobufVersion"
-    }
-}
-
-sonarqube {
-    properties {
-        property("sonar.projectName", "transactional-outbox")
-        property("sonar.host.url", "https://sonar.dev.internal.aws.tomorrow.one")
-        property("sonar.login", System.getenv("SONAR_LOGIN_ASPEN"))
-        property("sonar.projectKey", "one.tomorrow:transactional-outbox")
-        property("sonar.branch.name", System.getenv("CI_COMMIT_REF_NAME"))
-        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco.xml")
-    }
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-
-    testLogging {
-        events(SKIPPED, PASSED, FAILED)
-        showStandardStreams = false // change to true to get log output from tests
-        exceptionFormat = FULL
-    }
-
-    finalizedBy("jacocoTestReport")
-}
-
-tasks.withType<JacocoReport> {
-    reports {
-        xml.apply {
-            isEnabled = true
-            destination = File("build/reports/jacoco.xml")
-        }
-        executionData(tasks.withType<Test>())
-    }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("default") {
-            from(components["java"])
-        }
-    }
-    repositories {
-        mavenLocal()
-        maven {
-            credentials {
-                username = System.getenv("NEXUS_USER") ?: project.property("repoUser").toString()
-                password = System.getenv("NEXUS_PASSWORD") ?: project.property("repoPassword").toString()
-            }
-            val releasesRepoUrl = "https://nexus.dev.internal.aws.tomorrow.one/repository/maven-releases"
-            val snapshotsRepoUrl = "https://nexus.dev.internal.aws.tomorrow.one/repository/maven-snapshots"
-            url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-        }
-    }
 }

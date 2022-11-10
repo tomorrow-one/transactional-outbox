@@ -16,8 +16,7 @@
 package one.tomorrow.transactionaloutbox.reactive;
 
 import com.google.protobuf.Message;
-import one.tomorrow.kafka.core.KafkaProtobufSerializer;
-import one.tomorrow.kafka.core.Longs;
+import one.tomorrow.transactionaloutbox.commons.KafkaProtobufSerializer;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.service.DefaultKafkaProducerFactory;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -39,9 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
-import static one.tomorrow.kafka.core.Longs.toLong;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
 import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.bootstrapServers;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG;

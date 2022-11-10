@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord.toJson;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_MANDATORY;
 

@@ -41,8 +41,8 @@ import java.util.stream.IntStream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.Longs.toLong;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
 import static one.tomorrow.transactionaloutbox.reactive.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.bootstrapServers;

@@ -17,7 +17,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import com.google.protobuf.Message;
 import kafka.server.KafkaConfig$;
-import one.tomorrow.kafka.core.KafkaProtobufDeserializer;
+import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;

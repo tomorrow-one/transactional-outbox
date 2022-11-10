@@ -15,7 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.service;
 
-import one.tomorrow.kafka.core.Longs;
+import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -37,8 +37,8 @@ import java.util.function.Consumer;
 
 import static java.time.Instant.now;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SEQUENCE_NAME;
-import static one.tomorrow.kafka.core.KafkaHeaders.HEADERS_SOURCE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
 
 @SuppressWarnings("unused")
 public class OutboxProcessor {

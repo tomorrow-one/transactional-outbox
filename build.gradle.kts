@@ -33,6 +33,10 @@ subprojects {
         withSourcesJar()
     }
 
+    tasks.withType<Javadoc> {
+        (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
+    }
+
     protobuf {
         protoc {
             artifact = "com.google.protobuf:protoc:$protobufVersion"

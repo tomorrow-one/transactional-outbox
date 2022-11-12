@@ -3,6 +3,10 @@ import com.google.protobuf.gradle.protoc
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
+project(":commons").version = "1.0.0-SNAPSHOT"
+project(":outbox-kafka-spring").version = "1.1.4-SNAPSHOT"
+project(":outbox-kafka-spring-reactive").version = "1.0.11-SNAPSHOT"
+
 plugins {
     id("java-library")
     id("io.freefair.lombok") version "6.5.1"
@@ -58,14 +62,52 @@ subprojects {
         include("**/*.java")
     }
 
+    val subproject = this
+
     publishing {
         publications {
             create<MavenPublication>("maven") {
                 from(components["java"])
+                pom {
+                    name.set("$groupId:$artifactId")
+                    description.set("${subproject.name} module of transactional-outbox library, check README for details.")
+                    url.set("https://github.com/tomorrow-one/transactional-outbox")
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("magro")
+                            name.set("Martin Grotzke")
+                            email.set("martin.grotzke@inoio.de")
+                        }
+                    }
+                    scm {
+                        url.set("https://github.com/tomorrow-one/transactional-outbox/")
+                        connection.set("scm:git:git://github.com/tomorrow-one/transactional-outbox.git")
+                        developerConnection.set("scm:git:ssh://github.com/tomorrow-one/transactional-outbox.git")
+                    }
+                }
+
             }
         }
         repositories {
             mavenLocal()
+            maven {
+                val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+
+                credentials {
+                    val ossrhUsername: String? by project
+                    val ossrhPassword: String? by project
+                    username = ossrhUsername
+                    password = ossrhPassword
+                }
+            }
         }
     }
 

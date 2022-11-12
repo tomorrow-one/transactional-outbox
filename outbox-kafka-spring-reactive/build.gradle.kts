@@ -1,7 +1,5 @@
-import com.google.protobuf.gradle.protobuf
-import com.google.protobuf.gradle.protoc
 
-version = "1.0.11-SNAPSHOT"
+// the version is set in parent/root build.gradle.kts
 
 java {
     toolchain {

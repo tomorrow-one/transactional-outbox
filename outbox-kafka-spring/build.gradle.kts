@@ -1,5 +1,5 @@
 
-version = "1.1.4-SNAPSHOT"
+// the version is set in parent/root build.gradle.kts
 
 java {
     toolchain {

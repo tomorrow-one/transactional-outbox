@@ -12,7 +12,6 @@ plugins {
     id("io.freefair.lombok") version "6.5.1"
     id("com.google.protobuf") version "0.8.14"
     id("maven-publish")
-    id("org.sonarqube") version "2.8"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
     id("signing")
@@ -25,7 +24,6 @@ subprojects {
     apply(plugin = "io.freefair.lombok")
     apply(plugin = "com.google.protobuf")
     apply(plugin = "maven-publish")
-    apply(plugin = "org.sonarqube")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
     apply(plugin = "signing")

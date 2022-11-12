@@ -1,3 +1,5 @@
+[![build](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml)
+
 # Transactional Outbox
 
 This library is an implementation of the [Transactional Outbox Pattern](https://microservices.io/patterns/data/transactional-outbox.html)

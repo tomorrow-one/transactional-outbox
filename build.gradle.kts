@@ -47,8 +47,8 @@ subprojects {
 
     license {
         header = file("../LICENSE-header.txt")
-        exclude("one/tomorrow/kafka/messages/**/*.java") // java sources generated from proto messages
-        include("**/(main|test)/java/**/*.java")
+        exclude("one/tomorrow/kafka/messages/DeserializerMessages.java") // java sources generated from proto messages
+        include("**/*.java")
     }
 
 }

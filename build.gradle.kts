@@ -11,6 +11,7 @@ plugins {
     id("org.sonarqube") version "2.8"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
+    id("signing")
 }
 
 val protobufVersion by extra("3.12.2")
@@ -23,10 +24,12 @@ subprojects {
     apply(plugin = "org.sonarqube")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
+    apply(plugin = "signing")
 
     group = "one.tomorrow.transactional-outbox"
 
     java {
+        withJavadocJar()
         withSourcesJar()
     }
 
@@ -49,6 +52,25 @@ subprojects {
         header = file("../LICENSE-header.txt")
         exclude("one/tomorrow/kafka/messages/DeserializerMessages.java") // java sources generated from proto messages
         include("**/*.java")
+    }
+
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["java"])
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+
+    // 'signing' has to be defined after/below 'publishing' so that it can reference the publication
+    signing {
+        val signingKeyId: String? by project
+        val signingKey: String? by project
+        useInMemoryPgpKeys(signingKeyId, signingKey, "")
+        sign(publishing.publications["maven"])
     }
 
 }

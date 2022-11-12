@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package one.tomorrow.kafka;
+
+option java_package = "one.tomorrow.kafka.messages";
+
+// For messages which are missing required headers, or where parsing the data failed
+message InvalidMessage {
+    string error = 1;
+    bytes data = 2;
+}
+
+// For messages of an unsupported type (according to the "x-value-type" header)
+message UnsupportedMessage {
+    bytes data = 1;
+}

@@ -32,7 +32,7 @@ jobs:
     - name: Validate gradle wrapper
       uses: gradle/wrapper-validation-action@v1
     - name: Build
-      uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+      uses: gradle/gradle-build-action@v2.3.3
       with:
         arguments: build
 
@@ -49,7 +49,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
       - name: Publish
-        uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+        uses: gradle/gradle-build-action@v2.3.3
         env:
           # variables used by build.gradle.kts for signing / publishing (without 'ORG_GRADLE_PROJECT_' prefix)
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.OSSRH_GPG_SECRET_KEY_ID }}

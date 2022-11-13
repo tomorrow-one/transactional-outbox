@@ -1,6 +1,5 @@
 [![ci](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml)
-[![maven: commons](https://maven-badges.herokuapp.com/maven-central/one.tomorrow.transactional-outbox/commons/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22one.tomorrow.transactional-outbox%22%20AND%20a%3Acommons)
-[![maven: outbox-kafka-spring](https://maven-badges.herokuapp.com/maven-central/one.tomorrow.transactional-outbox/outbox-kafka-spring/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22one.tomorrow.transactional-outbox%22%20AND%20a%3Aoutbox-kafka-spring)
+[![maven: outbox-kafka-spring](https://maven-badges.herokuapp.com/maven-central/one.tomorrow.transactional-outbox/outbox-kafka-spring/badge.svg)](https://maven-badges.herokuapp.com/maven-central/one.tomorrow.transactional-outbox/outbox-kafka-spring)
 [![maven: outbox-kafka-spring-reactive](https://maven-badges.herokuapp.com/maven-central/one.tomorrow.transactional-outbox/outbox-kafka-spring-reactive/badge.svg)](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22one.tomorrow.transactional-outbox%22%20AND%20a%3Aoutbox-kafka-spring-reactive)
 
 # Transactional Outbox

@@ -18,7 +18,7 @@ dependencies {
     implementation("org.springframework:spring-orm:$springVersion")
     implementation("org.hibernate:hibernate-core:$hibernateVersion")
     implementation("org.hibernate:hibernate-java8:$hibernateVersion")
-    implementation("com.vladmihalcea:hibernate-types-52:2.10.2")
+    implementation("com.vladmihalcea:hibernate-types-52:2.20.0")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation(project(":commons"))

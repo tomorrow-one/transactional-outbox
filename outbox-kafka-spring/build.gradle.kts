@@ -26,7 +26,7 @@ dependencies {
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing
-    testImplementation("junit:junit:4.13")
+    testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.7.0")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("org.testcontainers:postgresql:1.17.5")

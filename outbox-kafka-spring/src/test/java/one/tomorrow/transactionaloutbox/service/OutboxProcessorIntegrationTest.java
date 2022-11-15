@@ -88,8 +88,7 @@ public class OutboxProcessorIntegrationTest {
     private static final String topic2 = "topicOPIT2";
     @Rule
     public EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic1, topic2)
-            .brokerProperty(KafkaConfig$.MODULE$.HostNameProp(), "127.0.0.1")
-            .kafkaPorts(34568);
+            .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private Consumer<String, byte[]> consumer;
 
     @Autowired

@@ -15,7 +15,7 @@ plugins {
     id("signing")
 }
 
-val protobufVersion by extra("3.12.2")
+val protobufVersion by extra("3.21.9")
 
 subprojects {
     apply(plugin = "java-library")

@@ -1,5 +1,3 @@
-import com.google.protobuf.gradle.protobuf
-import com.google.protobuf.gradle.protoc
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
@@ -10,7 +8,7 @@ project(":outbox-kafka-spring-reactive").version = "1.0.12-SNAPSHOT"
 plugins {
     id("java-library")
     id("io.freefair.lombok") version "6.5.1"
-    id("com.google.protobuf") version "0.8.14"
+    id("com.google.protobuf") version "0.9.1"
     id("maven-publish")
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
@@ -45,18 +43,13 @@ subprojects {
         }
     }
 
-    sourceSets {
-        test {
-            java {
-                // declared here so that the IDE knows this src dir
-                srcDir("${project.buildDir}/generated/source/proto/test/java")
-            }
-        }
-    }
-
     license {
         header = file("../LICENSE-header.txt")
-        exclude("one/tomorrow/kafka/messages/DeserializerMessages.java") // java sources generated from proto messages
+        excludes(setOf(
+                "one/tomorrow/kafka/messages/DeserializerMessages.java",
+                "one/tomorrow/transactionaloutbox/test/Sample.java",
+                "one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
+        )) // java sources generated from proto messages
         include("**/*.java")
     }
 

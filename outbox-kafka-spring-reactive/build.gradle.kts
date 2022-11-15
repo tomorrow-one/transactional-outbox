@@ -13,7 +13,7 @@ dependencies {
     val kafkaVersion = "2.5.0"
     val springKafkaVersion = "2.5.4.RELEASE"
     val testcontainersVersion = "1.17.5"
-    val log4jVersion = "2.13.3"
+    val log4jVersion = "2.19.0"
 
     implementation("org.springframework:spring-context:$springVersion")
 

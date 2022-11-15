@@ -10,8 +10,8 @@ java {
 dependencies {
     val springVersion = "5.3.3"
     val springDataVersion = "2.1.4"
-    val kafkaVersion = "2.5.0"
-    val springKafkaVersion = "2.5.4.RELEASE"
+    val kafkaVersion = "3.3.1"
+    val springKafkaVersion = "2.9.2"
     val testcontainersVersion = "1.17.5"
     val log4jVersion = "2.13.3"
 

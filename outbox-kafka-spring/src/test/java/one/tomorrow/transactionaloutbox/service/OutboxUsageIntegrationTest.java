@@ -84,8 +84,7 @@ public class OutboxUsageIntegrationTest {
 
     @ClassRule
     public static EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic1)
-            .brokerProperty(KafkaConfig$.MODULE$.HostNameProp(), "127.0.0.1")
-            .kafkaPorts(34567);
+            .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private static Consumer<String, Message> consumer;
 
     @Autowired

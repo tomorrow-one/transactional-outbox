@@ -10,8 +10,8 @@ java {
 dependencies {
     val springVersion = "5.3.23"
     val springDataVersion = "2.1.4"
-    val kafkaVersion = "2.5.0"
-    val springKafkaVersion = "2.5.4.RELEASE"
+    val kafkaVersion = "3.3.1"
+    val springKafkaVersion = "2.9.2"
     val testcontainersVersion = "1.17.5"
     val log4jVersion = "2.13.3"
 
@@ -29,7 +29,7 @@ dependencies {
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing
-    testImplementation("org.springframework.boot:spring-boot-autoconfigure:2.4.2")
+    testImplementation("org.springframework.boot:spring-boot-autoconfigure:2.7.5")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.4.3")
     testImplementation(platform("org.junit:junit-bom:5.7.1"))

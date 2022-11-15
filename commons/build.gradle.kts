@@ -3,15 +3,6 @@
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
-sourceSets {
-    main {
-        java {
-            // declared here so that the IDE knows this src dir
-            srcDir("${project.buildDir}/generated/source/proto/main/java")
-        }
-    }
-}
-
 dependencies {
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:2.5.0")

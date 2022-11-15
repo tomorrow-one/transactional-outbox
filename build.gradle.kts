@@ -43,18 +43,13 @@ subprojects {
         }
     }
 
-    sourceSets {
-        test {
-            java {
-                // declared here so that the IDE knows this src dir
-                srcDir("${project.buildDir}/generated/source/proto/test/java")
-            }
-        }
-    }
-
     license {
         header = file("../LICENSE-header.txt")
-        exclude("one/tomorrow/kafka/messages/DeserializerMessages.java") // java sources generated from proto messages
+        excludes(setOf(
+                "one/tomorrow/kafka/messages/DeserializerMessages.java",
+                "one/tomorrow/transactionaloutbox/test/Sample.java",
+                "one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
+        )) // java sources generated from proto messages
         include("**/*.java")
     }
 

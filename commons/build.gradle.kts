@@ -13,7 +13,7 @@ sourceSets {
 }
 
 dependencies {
-    implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
+    implementation("com.google.protobuf:protobuf-java:3.12.2")
     implementation("org.apache.kafka:kafka-clients:2.5.0")
     implementation("org.springframework:spring-core:5.2.6.RELEASE")
     implementation("org.slf4j:slf4j-api:1.7.30")

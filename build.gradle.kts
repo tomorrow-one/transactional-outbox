@@ -17,8 +17,6 @@ plugins {
     id("signing")
 }
 
-val protobufVersion by extra("3.12.2")
-
 subprojects {
     apply(plugin = "java-library")
     apply(plugin = "io.freefair.lombok")
@@ -41,7 +39,7 @@ subprojects {
 
     protobuf {
         protoc {
-            artifact = "com.google.protobuf:protoc:$protobufVersion"
+            artifact = "com.google.protobuf:protoc:3.12.2"
         }
     }
 

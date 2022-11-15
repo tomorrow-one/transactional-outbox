@@ -8,19 +8,14 @@ java {
 }
 
 dependencies {
-    val springVersion = "5.2.8.RELEASE"
-    val hibernateVersion = "5.4.18.Final"
-    val kafkaVersion = "2.5.0"
-    val springKafkaVersion = "2.5.4.RELEASE"
-    val log4jVersion = "2.13.3"
-
-    implementation("org.springframework:spring-context:$springVersion")
-    implementation("org.springframework:spring-orm:$springVersion")
-    implementation("org.hibernate:hibernate-core:$hibernateVersion")
-    implementation("org.hibernate:hibernate-java8:$hibernateVersion")
+    
+    implementation("org.springframework:spring-context:5.2.8.RELEASE")
+    implementation("org.springframework:spring-orm:5.2.8.RELEASE")
+    implementation("org.hibernate:hibernate-core:5.4.18.Final")
+    implementation("org.hibernate:hibernate-java8:5.4.18.Final")
     implementation("com.vladmihalcea:hibernate-types-52:2.10.2")
-    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
-    implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
+    implementation("org.apache.kafka:kafka-clients:2.5.0")
+    implementation("com.google.protobuf:protobuf-java:3.12.2")
     implementation(project(":commons"))
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
@@ -28,15 +23,15 @@ dependencies {
     // testing
     testImplementation("junit:junit:4.13")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.7.0")
-    testImplementation("org.springframework:spring-test:$springVersion")
+    testImplementation("org.springframework:spring-test:5.2.8.RELEASE")
     testImplementation("org.testcontainers:postgresql:1.17.5")
     testImplementation("org.postgresql:postgresql:42.5.0")
     testImplementation("org.flywaydb:flyway-core:9.7.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
-    testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
-    testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
-    testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
-    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion")
+    testImplementation("org.springframework.kafka:spring-kafka:2.5.4.RELEASE")
+    testImplementation("org.springframework.kafka:spring-kafka-test:2.5.4.RELEASE")
+    testImplementation("org.apache.logging.log4j:log4j-core:2.13.3")
+    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:2.13.3")
 }
 
 // conflict of vladmihalcea regarding jackson:

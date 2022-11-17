@@ -29,7 +29,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.1")
     testImplementation("org.springframework:spring-test:$springVersion")
-    testImplementation("org.testcontainers:postgresql:1.17.5")
+    testImplementation("org.testcontainers:postgresql:1.17.6")
     testImplementation("org.postgresql:postgresql:42.5.0")
     testImplementation("org.flywaydb:flyway-core:9.8.1")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")

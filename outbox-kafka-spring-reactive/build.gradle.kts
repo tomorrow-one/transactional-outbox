@@ -9,7 +9,7 @@ java {
 
 dependencies {
     val springVersion = "5.3.23"
-    val springDataVersion = "2.4.5"
+    val springDataVersion = "3.0.0"
     val kafkaVersion = "3.3.1"
     val springKafkaVersion = "2.9.2"
     val testcontainersVersion = "1.17.6"

@@ -36,7 +36,7 @@ dependencies {
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
-    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4jVersion")
+    testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
 }
 
 // conflict of vladmihalcea regarding jackson:

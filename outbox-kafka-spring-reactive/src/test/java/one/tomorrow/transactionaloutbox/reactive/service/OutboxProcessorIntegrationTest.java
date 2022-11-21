@@ -149,14 +149,14 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         int numRecords = 500;
         List<Mono<OutboxRecord>> outboxRecordMonos = IntStream.rangeClosed(1, numRecords).mapToObj(i -> {
             // use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
-            return repository.save(newRecord(topic1, "key", "value" + i)).retry();
+            return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
         }).collect(toList());
 
         // toggle connection as long as there are unprocessed records
         // - wait until the first element is saved, otherwise the first time the first record might not yet be saved
         outboxRecordMonos.stream().findFirst().orElseThrow().doOnNext(savedRecord ->
                 toggleConnectionWhileNonEmpty(repository.getUnprocessedRecords(1), requestTimeout.multipliedBy(3), kafkaProxy)
-        );
+        ).subscribe();
 
         // then
         List<OutboxRecord> outboxRecords = getSortedById(outboxRecordMonos);
@@ -179,14 +179,14 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         int numRecords = 500;
         List<Mono<OutboxRecord>> outboxRecordMonos = IntStream.rangeClosed(1, numRecords).mapToObj(i -> {
             // use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
-            return repository.save(newRecord(topic1, "key", "value" + i)).retry();
+            return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
         }).collect(toList());
 
         // toggle connection as long as there are unprocessed records
         // - wait until the first element is saved, otherwise the first time the first record might not yet be saved
         outboxRecordMonos.stream().findFirst().orElseThrow().doOnNext(savedRecord ->
                 toggleConnectionWhileNonEmpty(repository.getUnprocessedRecords(1), processingInterval, postgresProxy)
-        );
+        ).subscribe();
 
         // then
         List<OutboxRecord> outboxRecords = getSortedById(outboxRecordMonos);
@@ -252,7 +252,6 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
 
     private Map<String, Object> producerPropsWithShortTimeouts(Duration requestTimeout) {
         Map<String, Object> producerProps = producerProps(bootstrapServers);
-        producerProps.put(RETRIES_CONFIG, 0); // no retries in our test, just to make it faster (otherwise we'd have to sleep longer below)
         producerProps.put(REQUEST_TIMEOUT_MS_CONFIG, (int) requestTimeout.toMillis());
         producerProps.put(MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
         return producerProps;

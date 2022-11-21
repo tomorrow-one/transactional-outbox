@@ -109,7 +109,11 @@ public interface KafkaTestSupport {
     }
 
     static void assertConsumedRecord(OutboxRecord outboxRecord, String sourceHeaderValue, ConsumerRecord<String, byte[]> kafkaRecord) {
-        assertEquals(outboxRecord.getId().longValue(), toLong(kafkaRecord.headers().lastHeader(HEADERS_SEQUENCE_NAME).value()));
+        assertEquals(
+                outboxRecord.getId().longValue(),
+                toLong(kafkaRecord.headers().lastHeader(HEADERS_SEQUENCE_NAME).value()),
+                "OutboxRecord id and " + HEADERS_SEQUENCE_NAME + " headers do not match"
+        );
         assertArrayEquals(sourceHeaderValue.getBytes(), kafkaRecord.headers().lastHeader(HEADERS_SOURCE_NAME).value());
         outboxRecord.getHeadersAsMap().forEach((key, value) ->
                 assertArrayEquals(value.getBytes(), kafkaRecord.headers().lastHeader(key).value())

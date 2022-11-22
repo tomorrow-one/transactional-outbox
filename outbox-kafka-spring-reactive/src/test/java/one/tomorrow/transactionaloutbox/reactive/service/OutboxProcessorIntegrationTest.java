@@ -148,7 +148,8 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         // when
         int numRecords = 500;
         List<Mono<OutboxRecord>> outboxRecordMonos = IntStream.rangeClosed(1, numRecords).mapToObj(i -> {
-            // use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
+            // - use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
+            // - The Mono has to be cached, so that it can be consumed twice
             return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
         }).collect(toList());
 
@@ -178,7 +179,8 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         // when
         int numRecords = 500;
         List<Mono<OutboxRecord>> outboxRecordMonos = IntStream.rangeClosed(1, numRecords).mapToObj(i -> {
-            // use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
+            // - use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
+            // - The Mono has to be cached, so that it can be consumed twice
             return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
         }).collect(toList());
 

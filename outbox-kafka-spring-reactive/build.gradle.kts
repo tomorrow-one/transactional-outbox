@@ -23,7 +23,7 @@ dependencies {
     implementation("io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.1")
     implementation(project(":commons"))
     implementation("org.slf4j:slf4j-api:2.0.4")
     implementation("javax.annotation:javax.annotation-api:1.3.2")

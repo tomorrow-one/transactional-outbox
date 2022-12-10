@@ -8,7 +8,7 @@ java {
 }
 
 dependencies {
-    val springVersion = "5.3.23"
+    val springVersion = "6.0.2"
     val hibernateVersion = "5.6.14.Final"
     val kafkaVersion = "2.5.0"
     val springKafkaVersion = "2.9.2"

@@ -1,8 +1,6 @@
 
 // the version is set in parent/root build.gradle.kts
 
-java.sourceCompatibility = JavaVersion.VERSION_1_8
-
 dependencies {
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:3.3.1")

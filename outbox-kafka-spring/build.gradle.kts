@@ -33,6 +33,7 @@ dependencies {
     testImplementation("org.postgresql:postgresql:42.5.1")
     testImplementation("org.flywaydb:flyway-core:9.8.3")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
+    testImplementation("org.apache.kafka:kafka_2.13:$kafkaVersion") // specify explicitly to prevent conflicts of different server and client versions
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

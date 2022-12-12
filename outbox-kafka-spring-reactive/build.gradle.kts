@@ -18,7 +18,7 @@ dependencies {
     implementation("org.springframework:spring-context:$springVersion")
 
     implementation("org.springframework.data:spring-data-relational:$springDataVersion")
-    implementation("org.springframework.data:spring-data-r2dbc:1.5.5")
+    implementation("org.springframework.data:spring-data-r2dbc:3.0.0")
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")

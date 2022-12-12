@@ -29,6 +29,8 @@ subprojects {
     group = "one.tomorrow.transactional-outbox"
 
     java {
+        sourceCompatibility = JavaVersion.VERSION_17
+
         withJavadocJar()
         withSourcesJar()
     }

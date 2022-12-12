@@ -1,12 +1,6 @@
 
 // the version is set in parent/root build.gradle.kts
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
-    }
-}
-
 dependencies {
     val springVersion = "6.0.2"
     val springDataVersion = "3.0.0"

@@ -22,7 +22,7 @@ dependencies {
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation(project(":commons"))
-    implementation("org.slf4j:slf4j-api:2.0.5")
+    implementation("org.slf4j:slf4j-api:2.0.6")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing

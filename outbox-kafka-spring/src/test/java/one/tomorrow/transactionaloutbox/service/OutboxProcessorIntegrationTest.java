@@ -139,7 +139,7 @@ public class OutboxProcessorIntegrationTest {
     }
 
     private ConsumerRecords<String, byte[]> getAndCommitRecords() {
-        ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), 10_000);
+        ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(10));
         consumer().commitSync();
         return records;
     }

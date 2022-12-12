@@ -119,7 +119,7 @@ public class OutboxUsageIntegrationTest {
         sampleService.doSomething(id, name);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), 5_000);
+        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
         assertThat(records.count(), is(1));
         ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
         assertTrue(kafkaRecord.value() instanceof SomethingHappened);
@@ -139,7 +139,7 @@ public class OutboxUsageIntegrationTest {
         sampleService.doSomethingWithAdditionalHeaders(id, name, additionalHeader);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), 5_000);
+        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
         assertThat(records.count(), is(1));
         ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
         assertTrue(kafkaRecord.value() instanceof SomethingHappened);

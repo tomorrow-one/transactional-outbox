@@ -20,7 +20,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-relational:$springDataVersion")
     implementation("org.springframework.data:spring-data-r2dbc:3.0.0")
     implementation("org.springframework:spring-r2dbc:$springVersion")
-    implementation("io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE")
+    implementation("org.postgresql:r2dbc-postgresql:1.0.0.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.1")

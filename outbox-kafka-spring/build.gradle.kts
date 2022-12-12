@@ -36,12 +36,3 @@ dependencies {
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
 }
-
-// conflict of vladmihalcea regarding jackson:
-//   Caused by: com.fasterxml.jackson.databind.JsonMappingException: Scala module 2.10.2 requires Jackson Databind version >= 2.10.0 and < 2.11.0
-// therefore we exclude the jackson-module-scala_2.12 pulled in by kafka to fix this
-configurations {
-    testImplementation {
-        exclude("com.fasterxml.jackson.module", "jackson-module-scala_2.12")
-    }
-}

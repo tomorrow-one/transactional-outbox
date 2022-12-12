@@ -10,7 +10,7 @@ java {
 dependencies {
     val springVersion = "5.3.23"
     val hibernateVersion = "5.6.14.Final"
-    val kafkaVersion = "2.5.0"
+    val kafkaVersion = "3.3.1"
     val springKafkaVersion = "2.9.2"
     val log4jVersion = "2.19.0"
 
@@ -33,6 +33,7 @@ dependencies {
     testImplementation("org.postgresql:postgresql:42.5.1")
     testImplementation("org.flywaydb:flyway-core:9.10.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
+    testImplementation("org.apache.kafka:kafka_2.13:$kafkaVersion") // specify explicitly to prevent conflicts of different server and client versions
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

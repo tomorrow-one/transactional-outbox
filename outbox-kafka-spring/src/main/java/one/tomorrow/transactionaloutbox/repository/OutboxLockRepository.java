@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.LockModeType;
+import jakarta.persistence.LockModeType;
 import java.time.Duration;
 import java.util.Optional;
 

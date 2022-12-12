@@ -1,9 +1,9 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
-project(":commons").version = "1.0.1-SNAPSHOT"
-project(":outbox-kafka-spring").version = "1.1.5-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "1.0.12-SNAPSHOT"
+project(":commons").version = "1.0.1"
+project(":outbox-kafka-spring").version = "1.1.5"
+project(":outbox-kafka-spring-reactive").version = "1.0.12"
 
 plugins {
     id("java-library")

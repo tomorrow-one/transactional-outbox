@@ -32,6 +32,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -127,7 +128,7 @@ public interface KafkaTestSupport {
     }
 
     default ConsumerRecords<String, byte[]> getAndCommitRecords(int minRecords) {
-        ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), 10_000, minRecords);
+        ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(10), minRecords);
         consumer().commitSync();
         return records;
     }

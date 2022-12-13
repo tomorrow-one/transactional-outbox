@@ -126,7 +126,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
         // then
         List<ConsumerRecord<String, byte[]>> allRecords = new ArrayList<>();
         while(allRecords.size() < outboxRecords.size()) {
-            ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), 5_000);
+            ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
             records.iterator().forEachRemaining(allRecords::add);
         }
 

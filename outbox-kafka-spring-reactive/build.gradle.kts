@@ -26,8 +26,11 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.0.0")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.5.3")
-    testImplementation(platform("org.junit:junit-bom:5.9.1"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+
     testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")

@@ -15,7 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.repository;
 
-import io.r2dbc.spi.Row;
+import io.r2dbc.spi.Readable;
 import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxLock;
 import org.slf4j.Logger;
@@ -125,7 +125,7 @@ public class OutboxLockRepository {
         return !ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now());
     }
 
-    private OutboxLock toOutboxLock(Row row) {
+    private OutboxLock toOutboxLock(Readable row) {
         return new OutboxLock(row.get("owner_id", String.class), row.get("valid_until", Instant.class));
     }
 

@@ -1,5 +1,5 @@
-/**
- * Copyright 2022 Tomorrow GmbH @ https://tomorrow.one
+/*
+ * Copyright 2023 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,21 +91,16 @@ public class OutboxLockServiceIntegrationTest {
 
         CyclicBarrier barrier1 = new CyclicBarrier(2);
         CyclicBarrier barrier2 = new CyclicBarrier(2);
-        CyclicBarrier barrier3 = new CyclicBarrier(2);
 
         // when
-        Future<Boolean> runWithLockResult = executorService.submit(() -> {
+        Future<Boolean> runWithLockResult = executorService.submit(() -> lockService.runWithLock(ownerId1, () -> {
             await(barrier1);
-            return lockService.runWithLock(ownerId1, () -> {
-                await(barrier2);
-                await(barrier3); // exit runWithLock not before owner2 has tried to "acquireOrRefreshLock"
-            });
-        });
+            await(barrier2); // exit runWithLock not before owner2 has tried to "acquireOrRefreshLock"
+        }));
         Future<Boolean> lockStealingAttemptResult = executorService.submit(() -> {
-            await(barrier1);
-            await(barrier2); // start acquireOrRefreshLock not before owner1 is inside "runWithLock"
+            await(barrier1); // start acquireOrRefreshLock not before owner1 is inside "runWithLock"
             boolean result = lockService.acquireOrRefreshLock(ownerId2);
-            await(barrier3);
+            await(barrier2);
             return result;
         });
 

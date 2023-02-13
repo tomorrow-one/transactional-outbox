@@ -242,4 +242,4 @@ To release a new version follow this step
    * Try to follow semantic versioning, i.e. bump the major version for binary incompatible changes, the minor version for compatible changes with improvements/new features, and the patch version for bugfixes or non-functional changes like refactorings.
 2. Merge your PR - the related pipeline will publish the new version(s) to Sonatype's staging repo (SNAPSHOTs are published directly to [their snapshots repo](https://s01.oss.sonatype.org/content/repositories/snapshots/)).
 3. To publish a release, follow https://central.sonatype.org/publish/release/
-4. Push the released version(s) to the next SNAPSHOT version (choose the next higher patch version for this) - totally fine to push this to master directly
+4. Push the released version(s) to the next SNAPSHOT version (choose the next higher patch version for this) - totally fine to push this to main directly

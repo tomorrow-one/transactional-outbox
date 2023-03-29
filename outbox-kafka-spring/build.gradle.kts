@@ -27,7 +27,7 @@ dependencies {
 
     // testing
     testImplementation("junit:junit:4.13.2")
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.1")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.2")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("org.testcontainers:postgresql:1.17.6")
     testImplementation("org.postgresql:postgresql:42.5.1")

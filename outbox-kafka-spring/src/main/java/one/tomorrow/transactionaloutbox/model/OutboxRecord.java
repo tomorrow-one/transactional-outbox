@@ -19,7 +19,6 @@ import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
-import org.hibernate.annotations.TypeDef;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,7 +32,6 @@ import java.util.Map;
 
 @Entity
 @Table(name = "outbox_kafka")
-@TypeDef(name = "jsonb", typeClass = JsonBinaryType.class)
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -61,7 +59,7 @@ public class OutboxRecord {
     @Column(name = "value", nullable = false)
     private byte[] value;
 
-    @Type(type = "jsonb")
+    @Type(JsonBinaryType.class)
     @Column(name = "headers", columnDefinition = "jsonb")
     private Map<String, String> headers;
 

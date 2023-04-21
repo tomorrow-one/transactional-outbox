@@ -1,23 +1,20 @@
-
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
     val springVersion = "6.0.2"
-    val hibernateVersion = "5.6.14.Final"
+    val hibernateVersion = "6.2.1.Final"
     val kafkaVersion = "3.3.1"
     val springKafkaVersion = "3.0.0"
     val log4jVersion = "2.19.0"
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-orm:$springVersion")
-    implementation("org.hibernate:hibernate-core-jakarta:$hibernateVersion")
-    implementation("org.hibernate:hibernate-java8:$hibernateVersion")
-    implementation("com.vladmihalcea:hibernate-types-55:2.20.0")
+    implementation("org.hibernate.orm:hibernate-core:$hibernateVersion")
+    implementation("com.vladmihalcea:hibernate-types-60:2.21.0")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation(project(":commons"))
     implementation("org.slf4j:slf4j-api:2.0.7")
-    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     implementation("jakarta.annotation:jakarta.annotation-api:2.1.1")
 
     // testing

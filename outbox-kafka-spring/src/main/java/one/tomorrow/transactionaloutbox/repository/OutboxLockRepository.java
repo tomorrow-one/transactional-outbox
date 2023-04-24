@@ -84,6 +84,8 @@ public class OutboxLockRepository {
             return true;
         } catch (LockingStrategyException e) {
             return handleException(e, ownerId, lock, tx);
+        } catch (ConstraintViolationException e) {
+            return handleException(e, ownerId, tx);
         } catch (Throwable e) {
             if (e.getCause() instanceof ConstraintViolationException)
                 return handleException((ConstraintViolationException) e.getCause(), ownerId, tx);

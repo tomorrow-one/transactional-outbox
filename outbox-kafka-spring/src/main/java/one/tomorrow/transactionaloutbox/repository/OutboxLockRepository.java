@@ -54,8 +54,7 @@ public class OutboxLockRepository {
         // about invalid session/transaction state.
         Transaction tx = null;
         OutboxLock lock = null;
-        Session session = sessionFactory.openSession();
-        try {
+        try (Session session = sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
             lock = session.get(OutboxLock.class, OutboxLock.OUTBOX_LOCK_ID);
@@ -64,7 +63,7 @@ public class OutboxLockRepository {
                 lock = new OutboxLock(ownerId, now().plus(timeout));
             } else if (ownerId.equals(lock.getOwnerId())) {
                 logger.debug("Found outbox lock with requested owner {}, valid until {} - updating lock", lock.getOwnerId(), lock.getValidUntil());
-                session.buildLockRequest(PESSIMISTIC_NOWAIT).lock(lock);
+                session.lock(lock, PESSIMISTIC_NOWAIT);
                 lock.setValidUntil(now().plus(timeout));
             } else if (!ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now())) {
                 logger.debug("Found outbox lock with owner {}, valid until {}", lock.getOwnerId(), lock.getValidUntil());
@@ -72,7 +71,7 @@ public class OutboxLockRepository {
                 return false;
             } else {
                 logger.info("Found expired outbox lock with owner {}, which was valid until {} - grabbing lock for {}", lock.getOwnerId(), lock.getValidUntil(), ownerId);
-                session.buildLockRequest(PESSIMISTIC_NOWAIT).lock(lock);
+                session.lock(lock, PESSIMISTIC_NOWAIT);
                 lock.setOwnerId(ownerId);
                 lock.setValidUntil(now().plus(timeout));
             }
@@ -96,8 +95,6 @@ public class OutboxLockRepository {
                 tryRollback(tx);
                 throw e;
             }
-        } finally {
-            session.close();
         }
     }
 
@@ -143,7 +140,7 @@ public class OutboxLockRepository {
         queryByOwnerId(session, ownerId)
                 .uniqueResultOptional()
                 .ifPresentOrElse(lock -> {
-                            session.delete(lock);
+                            session.remove(lock);
                             session.flush();
                             logger.info("Released outbox lock for owner {}", ownerId);
                         },

@@ -34,7 +34,7 @@ public class OutboxRepository {
 
     @Transactional
     public void update(OutboxRecord record) {
-        sessionFactory.getCurrentSession().update(record);
+        sessionFactory.getCurrentSession().merge(record);
     }
 
     /**

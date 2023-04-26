@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static one.tomorrow.transactionaloutbox.reactive.TestUtils.newRecord;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -71,7 +72,10 @@ class OutboxRepositoryIntegrationTest extends AbstractIntegrationTest {
         // then
         assertThat(result.size(), is(1));
         OutboxRecord foundRecord = result.get(0);
-        assertThat(foundRecord, samePropertyValuesAs(record2, "headers")); // ignore headers, because Json doesn't implement equals
+        // ignore created, because for the found record it's truncated to micros
+        // ignore headers, because Json doesn't implement equals
+        assertThat(foundRecord, samePropertyValuesAs(record2, "created", "headers"));
+        assertThat(foundRecord.getCreated().truncatedTo(MILLIS), is(equalTo(record2.getCreated().truncatedTo(MILLIS))));
         assertThat(foundRecord.getHeadersAsMap(), is(equalTo(record2.getHeadersAsMap())));
     }
 

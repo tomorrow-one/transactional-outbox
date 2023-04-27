@@ -39,7 +39,7 @@ dependencies {
     testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
-    testRuntimeOnly("com.google.code.gson:gson:2.10")
+    testRuntimeOnly("com.google.code.gson:gson:2.10.1")
     testImplementation("org.postgresql:postgresql:42.5.1")
     testImplementation("org.flywaydb:flyway-core:9.15.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")

@@ -26,15 +26,15 @@ import java.util.List;
 @AllArgsConstructor
 public class OutboxRepository {
 
-    private final OutboxSessionFactory sessionFactory;
+    private final OutboxEntityManager outboxEntityManager;
 
     public void persist(OutboxRecord record) {
-        sessionFactory.getCurrentSession().persist(record);
+        outboxEntityManager.getEntityManager().persist(record);
     }
 
     @Transactional
     public void update(OutboxRecord record) {
-        sessionFactory.getCurrentSession().merge(record);
+        outboxEntityManager.getEntityManager().merge(record);
     }
 
     /**
@@ -45,7 +45,7 @@ public class OutboxRepository {
      */
     @Transactional
     public List<OutboxRecord> getUnprocessedRecords(int limit) {
-        return sessionFactory.getCurrentSession()
+        return outboxEntityManager.getEntityManager()
                 .createQuery("FROM OutboxRecord WHERE processed IS NULL ORDER BY id ASC", OutboxRecord.class)
                 .setMaxResults(limit)
                 .getResultList();

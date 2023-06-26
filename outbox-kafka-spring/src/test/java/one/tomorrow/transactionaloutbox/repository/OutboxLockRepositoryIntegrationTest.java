@@ -15,20 +15,20 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityTransaction;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.time.Duration;
@@ -44,9 +44,9 @@ import static java.util.stream.IntStream.range;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
-        LegacyOutboxSessionFactory.class,
+        DefaultOutboxEntityManager.class,
         OutboxLockRepository.class,
         OutboxLock.class,
         IntegrationTestConfig.class
@@ -56,25 +56,25 @@ import static org.junit.Assert.*;
         FlywayTestExecutionListener.class
 })
 @FlywayTest
-public class OutboxLockRepositoryIntegrationTest {
+class OutboxLockRepositoryIntegrationTest {
 
     @Autowired
     private OutboxLockRepository testee;
     @Autowired
-    private SessionFactory sessionFactory;
+    private EntityManagerFactory entityManagerFactory;
 
-    @After
+    @AfterEach
     public void cleanUp() {
-        try (Session session = sessionFactory.openSession()) {
-            Transaction tx = session.beginTransaction();
-            OutboxLock lock = session.get(OutboxLock.class, OutboxLock.OUTBOX_LOCK_ID);
-            if(lock != null) session.delete(lock);
-            tx.commit();
-        }
+        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        EntityTransaction transaction = entityManager.getTransaction();
+        transaction.begin();
+        OutboxLock lock = entityManager.find(OutboxLock.class, OutboxLock.OUTBOX_LOCK_ID);
+        if (lock != null) entityManager.remove(lock);
+        transaction.commit();
     }
 
     @Test
-    public void should_AcquireSingleLockOnly() throws InterruptedException {
+    void should_AcquireSingleLockOnly() throws InterruptedException {
 
         // given
         List<String> ownerIds = range(0, 10).mapToObj(i -> "owner-" + i).collect(toList());
@@ -110,7 +110,7 @@ public class OutboxLockRepositoryIntegrationTest {
     }
 
     @Test
-    public void should_RefreshLock() throws InterruptedException {
+    void should_RefreshLock() throws InterruptedException {
         // given
         String ownerId1 = "owner-1";
         String ownerId2 = "owner-2";
@@ -131,7 +131,7 @@ public class OutboxLockRepositoryIntegrationTest {
     }
 
     @Test
-    public void should_AcquireForeignLock_AfterTimeout() throws InterruptedException {
+    void should_AcquireForeignLock_AfterTimeout() throws InterruptedException {
         // given
         String ownerId1 = "owner-1";
         String ownerId2 = "owner-2";
@@ -152,7 +152,7 @@ public class OutboxLockRepositoryIntegrationTest {
     }
 
     @Test
-    public void should_ReleaseLock() {
+    void should_ReleaseLock() {
         // given
         String ownerId1 = "owner-1";
         String ownerId2 = "owner-2";

@@ -17,11 +17,10 @@ package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
-import one.tomorrow.transactionaloutbox.repository.LegacyOutboxSessionFactory;
+import one.tomorrow.transactionaloutbox.repository.DefaultOutboxEntityManager;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.hibernate.SessionFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -46,7 +45,7 @@ import static org.junit.Assume.assumeTrue;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxLock.class,
-        LegacyOutboxSessionFactory.class,
+        DefaultOutboxEntityManager.class,
         OutboxLockRepository.class,
         IntegrationTestConfig.class
 })
@@ -60,8 +59,6 @@ public class OutboxLockServiceIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxLockServiceIntegrationTest.class);
 
-    @Autowired
-    private SessionFactory sessionFactory;
     @Autowired
     private OutboxLockRepository lockRepository;
     @Autowired
@@ -114,7 +111,9 @@ public class OutboxLockServiceIntegrationTest {
         assertFalse(lockStealingAttemptResult.get(5, SECONDS));
     }
 
-    /** Awaits the given barrier, turning checked exceptions into unchecked, for easier usage in lambdas. */
+    /**
+     * Awaits the given barrier, turning checked exceptions into unchecked, for easier usage in lambdas.
+     */
     private void await(CyclicBarrier barrier) {
         try {
             barrier.await();
@@ -125,7 +124,7 @@ public class OutboxLockServiceIntegrationTest {
 
     @SuppressWarnings("unchecked")
     private <T> T postProcessBeanForTransactionCapabilities(T bean) {
-        return (T)applicationContext.getAutowireCapableBeanFactory().applyBeanPostProcessorsAfterInitialization(bean, null);
+        return (T) applicationContext.getAutowireCapableBeanFactory().applyBeanPostProcessorsAfterInitialization(bean, null);
     }
 
 }

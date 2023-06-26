@@ -17,11 +17,11 @@ package one.tomorrow.transactionaloutbox.service;
 
 import com.google.protobuf.Message;
 import kafka.server.KafkaConfig$;
-import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
+import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LegacyOutboxSessionFactory;
+import one.tomorrow.transactionaloutbox.repository.DefaultOutboxEntityManager;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
@@ -65,7 +65,7 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
-        LegacyOutboxSessionFactory.class,
+        DefaultOutboxEntityManager.class,
         OutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,
@@ -175,7 +175,9 @@ public class OutboxUsageIntegrationTest {
 
     @Configuration
     public static class OutboxProcessorSetup {
-        @Bean @Lazy // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
+        @Bean
+        @Lazy
+        // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
         public OutboxProcessor outboxProcessor(OutboxRepository repository, AutowireCapableBeanFactory beanFactory) {
             Duration processingInterval = Duration.ofMillis(50);
             String lockOwnerId = "processor";

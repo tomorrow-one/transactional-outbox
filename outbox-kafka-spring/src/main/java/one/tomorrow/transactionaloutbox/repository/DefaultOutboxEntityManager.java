@@ -15,25 +15,19 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import lombok.AllArgsConstructor;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Component;
 
 
 @Component
-@AllArgsConstructor
-public class LegacyOutboxSessionFactory implements OutboxSessionFactory {
+public class DefaultOutboxEntityManager implements OutboxEntityManager {
 
-    private final SessionFactory sessionFactory;
-
-    @Override
-    public Session getCurrentSession() {
-        return sessionFactory.getCurrentSession();
-    }
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
-    public Session openSession() {
-        return sessionFactory.openSession();
+    public EntityManager getEntityManager() {
+        return entityManager;
     }
 }

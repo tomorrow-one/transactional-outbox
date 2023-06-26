@@ -42,7 +42,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
-        LegacyOutboxSessionFactory.class,
+        DefaultOutboxEntityManager.class,
         OutboxRepository.class,
         OutboxRecord.class,
         IntegrationTestConfig.class})
@@ -62,7 +62,7 @@ public class OutboxRepositoryIntegrationTest {
     @Test
     public void should_FindUnprocessedRecords() {
         // given
-        OutboxRecord record1 = newRecord(Instant.now(),"topic1", "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(Instant.now(), "topic1", "key1", "value1", newHeaders("h1", "v1"));
         testee.persist(record1);
 
         OutboxRecord record2 = newRecord("topic2", "key2", "value2", newHeaders("h2", "v2"));

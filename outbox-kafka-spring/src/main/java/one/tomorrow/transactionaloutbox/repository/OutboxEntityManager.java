@@ -15,9 +15,8 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import org.hibernate.Session;
+import jakarta.persistence.EntityManager;
 
-public interface OutboxSessionFactory {
-    Session getCurrentSession();
-    Session openSession();
+public interface OutboxEntityManager {
+    EntityManager getEntityManager();
 }

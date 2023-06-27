@@ -260,7 +260,7 @@ public Mono<OutboxRecord> doSomething(String name){
         })
         .as(rxtx::transactional);
 
-        }
+}
 ```
 
 ## How-To Release

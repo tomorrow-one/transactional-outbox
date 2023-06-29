@@ -12,6 +12,7 @@ spaces_around_operators = true
 
 [*.{java,kt,kts}]
 indent_size = 4
+continuation_indent_size = 8
 
 [*.{js,ts}]
 quote_type = single

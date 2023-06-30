@@ -111,9 +111,7 @@ public class OutboxLockServiceIntegrationTest {
         assertFalse(lockStealingAttemptResult.get(5, SECONDS));
     }
 
-    /**
-     * Awaits the given barrier, turning checked exceptions into unchecked, for easier usage in lambdas.
-     */
+    /** Awaits the given barrier, turning checked exceptions into unchecked, for easier usage in lambdas. */
     private void await(CyclicBarrier barrier) {
         try {
             barrier.await();

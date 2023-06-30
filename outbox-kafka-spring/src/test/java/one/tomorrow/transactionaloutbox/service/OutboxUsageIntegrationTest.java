@@ -175,9 +175,7 @@ public class OutboxUsageIntegrationTest {
 
     @Configuration
     public static class OutboxProcessorSetup {
-        @Bean
-        @Lazy
-        // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
+        @Bean @Lazy // if not lazy, this is loaded before the FlywayTestExecutionListener got activated and created the needed tables
         public OutboxProcessor outboxProcessor(OutboxRepository repository, AutowireCapableBeanFactory beanFactory) {
             Duration processingInterval = Duration.ofMillis(50);
             String lockOwnerId = "processor";

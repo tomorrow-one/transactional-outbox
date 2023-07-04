@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import java.util.*
 
 project(":commons").version = "2.0.0-SNAPSHOT"
 project(":outbox-kafka-spring").version = "2.0.0-SNAPSHOT"
@@ -53,6 +54,8 @@ subprojects {
                 "one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
         )) // java sources generated from proto messages
         include("**/*.java")
+        ext["year"] = Calendar.getInstance().get(Calendar.YEAR)
+        skipExistingHeaders = true
     }
 
     val subproject = this

@@ -14,7 +14,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-relational:$springDataVersion")
     implementation("org.springframework.data:spring-data-r2dbc:3.0.5")
     implementation("org.springframework:spring-r2dbc:$springVersion")
-    implementation("org.postgresql:r2dbc-postgresql:1.0.0.RELEASE")
+    implementation("org.postgresql:r2dbc-postgresql:1.0.1.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.14.1")
@@ -40,7 +40,7 @@ dependencies {
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.10.1")
-    testImplementation("org.postgresql:postgresql:42.5.1")
+    testImplementation("org.postgresql:postgresql:42.6.0")
     testImplementation("org.flywaydb:flyway-core:9.15.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")

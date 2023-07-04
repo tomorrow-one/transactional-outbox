@@ -19,6 +19,8 @@ import one.tomorrow.transactionaloutbox.reactive.service.OutboxProcessor.KafkaPr
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,18 +29,19 @@ import static org.apache.kafka.clients.producer.ProducerConfig.*;
 
 public class DefaultKafkaProducerFactory implements KafkaProducerFactory {
 
+	private static final Logger logger = LoggerFactory.getLogger(DefaultKafkaProducerFactory.class);
+
 	private final HashMap<String, Object> producerProps;
 
 	public DefaultKafkaProducerFactory(Map<String, Object> producerProps) {
 		HashMap<String, Object> props = new HashMap<>(producerProps);
-		// Settings for dealing with broker failures - so that the producer.send returned future eventually fails
-		// due to a timeoutexception and we can recreate it.
-		// For preventing out-of-order messages in case of broker failures and internal producer retries, usually
-		// the first 2 properties should be set to Int.MAX / Long.MAX - which we do not need so far because we're
-		// sending record by record, without batching.
-		setIfNotSet(props, RETRIES_CONFIG, 10);
-		setIfNotSet(props, MAX_BLOCK_MS_CONFIG, 1000);
-		setIfNotSet(props, MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+		// Settings for guaranteed ordering (via enable.idempotence) and dealing with broker failures.
+		// Note that with `enable.idempotence = true` ordering of messages is also checked by the broker.
+		if (Boolean.FALSE.equals(props.get(ENABLE_IDEMPOTENCE_CONFIG)))
+			logger.warn(ENABLE_IDEMPOTENCE_CONFIG + " is set to 'false' - this might lead to out-of-order messages.");
+
+		setIfNotSet(props, ENABLE_IDEMPOTENCE_CONFIG, true);
+
 		// serializer settings
 		props.put(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 		props.put(VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);

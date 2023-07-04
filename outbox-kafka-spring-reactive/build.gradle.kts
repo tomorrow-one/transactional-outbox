@@ -23,7 +23,7 @@ dependencies {
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing
-    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.0.6")
+    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.1.1")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.5.7")
 

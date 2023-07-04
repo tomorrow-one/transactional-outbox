@@ -163,7 +163,7 @@ public class OutboxProcessor {
 
 	}
 
-	private void processOutbox() {
+	void processOutbox() {
 		repository.getUnprocessedRecords(BATCH_SIZE)
 				.stream()
 				.map(outboxRecord -> producer.send(toProducerRecord(outboxRecord), (metadata, exception) -> {

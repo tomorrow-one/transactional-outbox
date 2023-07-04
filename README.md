@@ -1,6 +1,6 @@
 [![ci](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml)
-[![maven: outbox-kafka-spring](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring.svg?label=maven:%20outbox-kafka-spring)](https://search.maven.org/search?q=g:%22one.tomorrow.transactional-outbox%22%20AND%20a:%22outbox-kafka-spring%22)
-[![maven: outbox-kafka-spring-reactive](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring-reactive.svg?label=maven:%20outbox-kafka-spring-reactive)](https://search.maven.org/search?q=g:%22one.tomorrow.transactional-outbox%22%20AND%20a:%22outbox-kafka-spring-reactive%22)
+[![maven: outbox-kafka-spring](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring.svg?label=maven:%20outbox-kafka-spring)](https://central.sonatype.com/search?q=pkg%253Amaven%252Fone.tomorrow.transactional-outbox%252Foutbox-kafka-spring)
+[![maven: outbox-kafka-spring-reactive](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring-reactive.svg?label=maven:%20outbox-kafka-spring-reactive)](https://central.sonatype.com/search?q=pkg%253Amaven%252Fone.tomorrow.transactional-outbox%252Foutbox-kafka-spring-reactive)
 
 # Transactional Outbox
 
@@ -19,8 +19,8 @@ The application stores the serialized message that shall be published (to a cert
 The library continuously processes the outbox and publishes the serialized message together with some headers
 to the specified topic. Messages are published with the following guarantees:
 * *strict ordering*: i.e. messages are published in the order
-they're stored in the outbox. In consequence, if a message could not be published, it will not try to publish the next message. *Note*: for this the kafka producer must have set `max.in.flight.requests.per.connection = 1`, which is set automatically in the default setup as shown below.
-* *at-least-once delivery*: every message from the outbox is published at least once, i.e. in case of errors (e.g. database unavailability or network errors) there may be duplicates. Consumers are responsible for deduplication.
+they're stored in the outbox. *Note*: for this the kafka producer should have set `enable.idempotence = true` to enforce valid related settings according to [enable.idempotence docs](https://kafka.apache.org/documentation/#producerconfigs_enable.idempotence) (which is set automatically in the default setup as shown below). If you need different/custom settings you probably know what you're doing, and consciously choose appropriate settings of e.g. `max.in.flight.requests.per.connection`, `retries` and `acks`.
+* *at-least-once delivery*: every message from the outbox is published at least once, i.e. in case of errors (e.g. database unavailability or network errors or process crashes/restarts) there may be duplicates. Consumers are responsible for deduplication.
 
 Messages are published with the headers `x-value-type`, `x-sequence` and `x-source`:
 * `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace).
@@ -107,9 +107,11 @@ per instance).
 
 The `OutboxProcessor` is the component which processes the outbox and publishes messages/events to Kafka, once it could
  obtain the lock. If it could not obtain the lock on startup, it will continuously monitor the lock and try to obtain
- it (in case the lock-holding instance crashed or could not longer refresh the lock).
+ it (in case the lock-holding instance crashed or could no longer refresh the lock).
 
-*Note*: so that messages are published in-order as expected, the producer must be configured with `max.in.flight.requests.per.connection = 1`. If you're using the `DefaultKafkaProducerFactory` as shown below, the provided `producerProps` should either have *not* set `max.in.flight.requests.per.connection` (then it would be set by `DefaultKafkaProducerFactory`) or it must be set to `1`.
+*Note*: so that messages are published in-order as expected, the producer must be configured with
+`enable.idempotence = true` (to enforce valid related settings according to [enable.idempotence docs](https://kafka.apache.org/documentation/#producerconfigs_enable.idempotence)) or - if you have reasons to not use `enable.idempotence = true` - appropriate settings of at least `max.in.flight.requests.per.connection`, `retries` and `acks`.
+If you're using the `DefaultKafkaProducerFactory` as shown below, it will set `enable.idempotence = true` if the provided `producerProps` do not have set `enable.idempotence` already.
 
 #### Setup the `OutboxProcessor` from `outbox-kafka-spring` (classic projects)
 

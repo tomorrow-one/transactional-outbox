@@ -17,8 +17,10 @@ package one.tomorrow.transactionaloutbox.repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.hibernate.LockOptions;
 import org.hibernate.dialect.lock.LockingStrategyException;
@@ -38,12 +40,14 @@ import java.util.Optional;
 import static java.time.Instant.now;
 
 @Repository
+@NoArgsConstructor
 @AllArgsConstructor
 public class OutboxLockRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxLockRepository.class);
 
-    private OutboxEntityManager outboxEntityManager;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
@@ -51,7 +55,6 @@ public class OutboxLockRepository {
         OutboxLock lock = null;
         Instant now = now();
         try {
-            final var entityManager = outboxEntityManager.getEntityManager();
             lock = entityManager.find(OutboxLock.class, OutboxLock.OUTBOX_LOCK_ID);
             if (lock == null) {
                 logger.debug("No outbox lock found. Creating one for {}", ownerId);
@@ -121,7 +124,7 @@ public class OutboxLockRepository {
      * @return true if the lock could be acquired, otherwise false.
      */
     public boolean preventLockStealing(String ownerId) {
-        Optional<OutboxLock> lock = queryByOwnerId(outboxEntityManager.getEntityManager(), ownerId)
+        Optional<OutboxLock> lock = queryByOwnerId(ownerId)
                 .setLockMode(LockModeType.PESSIMISTIC_READ)
                 .getResultStream()
                 .findFirst();
@@ -130,8 +133,7 @@ public class OutboxLockRepository {
 
     @Transactional
     public void releaseLock(String ownerId) {
-        final var entityManager = outboxEntityManager.getEntityManager();
-        queryByOwnerId(entityManager, ownerId)
+        queryByOwnerId(ownerId)
                 .getResultStream()
                 .findFirst()
                 .ifPresentOrElse(lock -> {
@@ -143,7 +145,7 @@ public class OutboxLockRepository {
                 );
     }
 
-    private TypedQuery<OutboxLock> queryByOwnerId(EntityManager entityManager, String ownerId) {
+    private TypedQuery<OutboxLock> queryByOwnerId(String ownerId) {
         return entityManager
                 .createQuery("FROM OutboxLock WHERE ownerId = :ownerId", OutboxLock.class)
                 .setParameter("ownerId", ownerId);

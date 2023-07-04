@@ -46,7 +46,6 @@ import static org.junit.Assert.*;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
-        DefaultOutboxEntityManager.class,
         OutboxLockRepository.class,
         OutboxLock.class,
         IntegrationTestConfig.class

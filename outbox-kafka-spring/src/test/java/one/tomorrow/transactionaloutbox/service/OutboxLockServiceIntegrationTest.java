@@ -17,7 +17,6 @@ package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
-import one.tomorrow.transactionaloutbox.repository.DefaultOutboxEntityManager;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
@@ -45,7 +44,6 @@ import static org.junit.Assume.assumeTrue;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxLock.class,
-        DefaultOutboxEntityManager.class,
         OutboxLockRepository.class,
         IntegrationTestConfig.class
 })

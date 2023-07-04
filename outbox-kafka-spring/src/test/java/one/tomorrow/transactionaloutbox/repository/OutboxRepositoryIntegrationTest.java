@@ -42,7 +42,6 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
-        DefaultOutboxEntityManager.class,
         OutboxRepository.class,
         OutboxRecord.class,
         IntegrationTestConfig.class})

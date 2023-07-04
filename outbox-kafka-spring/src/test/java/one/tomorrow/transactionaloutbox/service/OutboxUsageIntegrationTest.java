@@ -21,7 +21,6 @@ import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.DefaultOutboxEntityManager;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
@@ -65,7 +64,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
-        DefaultOutboxEntityManager.class,
         OutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,

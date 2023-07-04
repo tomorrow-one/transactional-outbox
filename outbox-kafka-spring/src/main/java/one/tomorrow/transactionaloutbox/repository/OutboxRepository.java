@@ -15,7 +15,8 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import lombok.AllArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,18 +24,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
 public class OutboxRepository {
 
-    private final OutboxEntityManager outboxEntityManager;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public void persist(OutboxRecord record) {
-        outboxEntityManager.getEntityManager().persist(record);
+        entityManager.persist(record);
     }
 
     @Transactional
     public void update(OutboxRecord record) {
-        outboxEntityManager.getEntityManager().merge(record);
+        entityManager.merge(record);
     }
 
     /**
@@ -45,7 +46,7 @@ public class OutboxRepository {
      */
     @Transactional
     public List<OutboxRecord> getUnprocessedRecords(int limit) {
-        return outboxEntityManager.getEntityManager()
+        return entityManager
                 .createQuery("FROM OutboxRecord WHERE processed IS NULL ORDER BY id ASC", OutboxRecord.class)
                 .setMaxResults(limit)
                 .getResultList();

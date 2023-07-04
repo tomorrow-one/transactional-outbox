@@ -26,7 +26,7 @@ dependencies {
     testImplementation("org.testcontainers:postgresql:1.18.0")
     testImplementation("org.postgresql:postgresql:42.6.0")
     testImplementation("org.flywaydb:flyway-core:9.15.2")
-    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
     testImplementation("org.apache.kafka:kafka_2.13:$kafkaVersion") // specify explicitly to prevent conflicts of different server and client versions
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")

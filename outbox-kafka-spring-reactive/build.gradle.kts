@@ -42,7 +42,7 @@ dependencies {
     testRuntimeOnly("com.google.code.gson:gson:2.10.1")
     testImplementation("org.postgresql:postgresql:42.6.0")
     testImplementation("org.flywaydb:flyway-core:9.15.2")
-    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
     testImplementation("org.awaitility:awaitility:4.2.0")

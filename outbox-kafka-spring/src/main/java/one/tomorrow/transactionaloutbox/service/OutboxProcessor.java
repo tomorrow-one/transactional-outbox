@@ -21,7 +21,6 @@ import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -29,7 +28,6 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -165,15 +163,30 @@ public class OutboxProcessor {
 
 	}
 
-	private void processOutbox() throws ExecutionException, InterruptedException {
-		List<OutboxRecord> records = repository.getUnprocessedRecords(BATCH_SIZE);
-		for (OutboxRecord outboxRecord : records) {
-			ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
-			Future<RecordMetadata> result = producer.send(producerRecord);
-			result.get();
-			logger.info("Sent record to kafka: {}", outboxRecord);
-			outboxRecord.setProcessed(now());
-			repository.update(outboxRecord);
+	void processOutbox() {
+		repository.getUnprocessedRecords(BATCH_SIZE)
+				.stream()
+				.map(outboxRecord -> producer.send(toProducerRecord(outboxRecord), (metadata, exception) -> {
+					if (exception != null) {
+						logger.warn("Failed to publish {}", outboxRecord, exception);
+					} else {
+						logger.info("Sent record to kafka: {}", outboxRecord);
+						outboxRecord.setProcessed(now());
+						repository.update(outboxRecord);
+					}
+				}))
+				.toList() // collect to List (so that map is completed for all items before awaiting futures), to use producer internal batching
+				.forEach(OutboxProcessor::await);
+	}
+
+	private static void await(Future<?> future) {
+		try {
+			future.get();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException(e);
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -190,6 +203,5 @@ public class OutboxProcessor {
 		producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
 		return producerRecord;
 	}
-
 
 }

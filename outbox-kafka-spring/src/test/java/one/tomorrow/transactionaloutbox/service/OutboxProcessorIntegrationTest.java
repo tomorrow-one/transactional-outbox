@@ -15,15 +15,15 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import kafka.server.KafkaConfig$;
 import kafka.server.KafkaServer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LegacyOutboxSessionFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import one.tomorrow.transactionaloutbox.repository.OutboxSessionFactory;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -69,7 +69,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
-        LegacyOutboxSessionFactory.class,
         OutboxRepository.class,
         TransactionalOutboxRepository.class,
         OutboxLock.class,
@@ -91,14 +90,12 @@ public class OutboxProcessorIntegrationTest {
             .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private Consumer<String, byte[]> consumer;
 
-    @Autowired
-    private OutboxSessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
     @Autowired
     private OutboxRepository repository;
     @Autowired
     private TransactionalOutboxRepository transactionalRepository;
-    @Autowired
-    private OutboxLockRepository lockRepository;
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
 
@@ -206,7 +203,7 @@ public class OutboxProcessorIntegrationTest {
         CountDownLatch cdl = new CountDownLatch(1);
 
         OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
-                new OutboxLockRepository(sessionFactory) {
+                new OutboxLockRepository(entityManager) {
                     @Override
                     public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
                         if (failAcquireOrRefreshLock.get()) {
@@ -226,6 +223,7 @@ public class OutboxProcessorIntegrationTest {
                     return (T) failingLockRepository;
                 return beanFactory.getBean(requiredType);
             }
+
             @Override
             @SuppressWarnings("NullableProblems")
             public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {
@@ -267,7 +265,7 @@ public class OutboxProcessorIntegrationTest {
         CountDownLatch cdl = new CountDownLatch(1);
 
         OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
-                new OutboxLockRepository(sessionFactory) {
+                new OutboxLockRepository(entityManager) {
                     @Override
                     public boolean preventLockStealing(String ownerId) {
                         if (failPreventLockStealing.get()) {
@@ -287,6 +285,7 @@ public class OutboxProcessorIntegrationTest {
                     return (T) failingLockRepository;
                 return beanFactory.getBean(requiredType);
             }
+
             @Override
             @SuppressWarnings("NullableProblems")
             public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {

@@ -58,37 +58,6 @@ Depending on your application add one of the following libraries as dependency t
 * classic (sync/blocking): `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
 * reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
 
-### Only for Spring Boot (sync/blocking): Add an OutboxSessionFactory
-
-Add a @Primary OutboxSessionFactory to map the EntityManager's session to Hibernate Session. Here's an example:
-
-```kotlin
-package one.tomorrow.seizure.kafka.publisher.config
-
-import one.tomorrow.transactionaloutbox.repository.OutboxSessionFactory
-import org.hibernate.Session
-import org.hibernate.SessionFactory
-import org.springframework.context.annotation.Primary
-import org.springframework.stereotype.Component
-import javax.persistence.EntityManager
-import javax.persistence.PersistenceContext
-
-@Component
-@Primary
-class SpringBootOutboxSessionFactory(
-
-    @PersistenceContext
-    private val entityManager: EntityManager,
-
-    private val sessionFactory: SessionFactory
-
-) : OutboxSessionFactory {
-
-    override fun getCurrentSession(): Session = entityManager.unwrap(Session::class.java)
-    override fun openSession(): Session = sessionFactory.openSession()
-}
-```
-
 ### Prepare Database
 
 Create the tables using your preferred database migration tool: use the DDLs

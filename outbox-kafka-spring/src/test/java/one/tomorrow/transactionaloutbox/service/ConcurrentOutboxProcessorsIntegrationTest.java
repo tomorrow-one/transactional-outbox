@@ -18,7 +18,6 @@ package one.tomorrow.transactionaloutbox.service;
 import kafka.server.KafkaConfig$;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.LegacyOutboxSessionFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -29,7 +28,6 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.hibernate.SessionFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.ClassRule;
@@ -62,7 +60,6 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
-        LegacyOutboxSessionFactory.class,
         OutboxRepository.class,
         OutboxLockRepository.class,
         TransactionalOutboxRepository.class,
@@ -82,8 +79,6 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
             .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private static Consumer<String, byte[]> consumer;
 
-    @Autowired
-    private SessionFactory sessionFactory;
     @Autowired
     private OutboxRepository repository;
     @Autowired
@@ -125,7 +120,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
 
         // then
         List<ConsumerRecord<String, byte[]>> allRecords = new ArrayList<>();
-        while(allRecords.size() < outboxRecords.size()) {
+        while (allRecords.size() < outboxRecords.size()) {
             ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
             records.iterator().forEachRemaining(allRecords::add);
         }

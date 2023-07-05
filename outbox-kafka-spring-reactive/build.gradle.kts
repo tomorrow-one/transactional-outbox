@@ -2,7 +2,7 @@
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
-    val springVersion = "6.0.8"
+    val springVersion = "6.0.10"
     val springDataVersion = "3.0.0"
     val kafkaVersion = "3.4.0"
     val springKafkaVersion = "3.0.8"

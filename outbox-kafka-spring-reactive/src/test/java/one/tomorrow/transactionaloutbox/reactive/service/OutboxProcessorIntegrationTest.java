@@ -146,7 +146,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         testee = new OutboxProcessor(repository, lockService, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, "processor", eventSource, batchSize);
 
         // when
-        int numRecords = 500;
+        int numRecords = 50000;
         List<Mono<OutboxRecord>> outboxRecordMonos = IntStream.rangeClosed(1, numRecords).mapToObj(i -> {
             // - use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
             // - The Mono has to be cached, so that it can be consumed twice

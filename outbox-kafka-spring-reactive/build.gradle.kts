@@ -34,7 +34,7 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest:2.2")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
-    testImplementation("io.r2dbc:r2dbc-pool:1.0.0.RELEASE")
+    testImplementation("io.r2dbc:r2dbc-pool:1.0.1.RELEASE")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
     testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")

@@ -3,7 +3,7 @@
 
 dependencies {
     implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("org.apache.kafka:kafka-clients:3.5.0")
+    implementation("org.apache.kafka:kafka-clients:3.5.1")
     implementation("org.springframework:spring-core:6.0.11")
     implementation("org.slf4j:slf4j-api:2.0.7")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")

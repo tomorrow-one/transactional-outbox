@@ -2,9 +2,9 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import java.util.*
 
-project(":commons").version = "2.0.0-SNAPSHOT"
-project(":outbox-kafka-spring").version = "2.0.0-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "2.0.0-SNAPSHOT"
+project(":commons").version = "2.0.0"
+project(":outbox-kafka-spring").version = "2.0.0"
+project(":outbox-kafka-spring-reactive").version = "2.0.0"
 
 plugins {
     id("java-library")
@@ -48,11 +48,13 @@ subprojects {
 
     license {
         header = file("../LICENSE-header.txt")
-        excludes(setOf(
+        excludes(
+            setOf(
                 "one/tomorrow/kafka/messages/DeserializerMessages.java",
                 "one/tomorrow/transactionaloutbox/test/Sample.java",
                 "one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
-        )) // java sources generated from proto messages
+            )
+        ) // java sources generated from proto messages
         include("**/*.java")
         ext["year"] = Calendar.getInstance().get(Calendar.YEAR)
         skipExistingHeaders = true
@@ -137,10 +139,8 @@ allprojects {
 
     tasks.withType<JacocoReport> {
         reports {
-            xml.apply {
-                isEnabled = true
-                destination = File("build/reports/jacoco.xml")
-            }
+            xml.required.set(true)
+            xml.outputLocation.set(File("build/reports/jacoco.xml"))
             executionData(tasks.withType<Test>())
         }
     }

@@ -8,7 +8,7 @@ project(":outbox-kafka-spring-reactive").version = "2.0.1-SNAPSHOT"
 
 plugins {
     id("java-library")
-    id("io.freefair.lombok") version "8.1.0"
+    id("io.freefair.lombok") version "8.2.1"
     id("com.google.protobuf") version "0.9.4"
     id("maven-publish")
     id("jacoco")

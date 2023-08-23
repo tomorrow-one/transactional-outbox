@@ -24,7 +24,7 @@ dependencies {
     testImplementation("org.mockito:mockito-all:1.10.19")
 
     testImplementation("org.springframework:spring-test:$springVersion")
-    testImplementation("org.testcontainers:postgresql:1.18.3")
+    testImplementation("org.testcontainers:postgresql:1.19.0")
     testImplementation("org.postgresql:postgresql:42.6.0")
     testImplementation("org.flywaydb:flyway-core:9.21.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")

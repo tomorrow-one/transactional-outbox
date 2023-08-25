@@ -13,6 +13,7 @@ dependencies {
     val kafkaVersion = "3.3.1"
     val springKafkaVersion = "2.9.2"
     val log4jVersion = "2.19.0"
+    val testcontainersVersion = "1.18.3"
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-orm:$springVersion")
@@ -29,7 +30,8 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.1")
     testImplementation("org.springframework:spring-test:$springVersion")
-    testImplementation("org.testcontainers:postgresql:1.17.6")
+    testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+    testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
     testImplementation("org.postgresql:postgresql:42.5.1")
     testImplementation("org.flywaydb:flyway-core:9.15.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:7.0.0")

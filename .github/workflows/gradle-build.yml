@@ -34,7 +34,7 @@ jobs:
     - name: Build
       uses: gradle/gradle-build-action@v2.7.1
       with:
-        arguments: build
+        arguments: build -Porg.gradle.jvmargs=-Xmx2048m
 
   publish:
     needs: [ build ]

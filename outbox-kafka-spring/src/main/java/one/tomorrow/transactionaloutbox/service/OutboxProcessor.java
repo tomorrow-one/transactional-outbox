@@ -144,24 +144,34 @@ public class OutboxProcessor {
 			return;
 		}
 
-		boolean couldRunWithLock = lockService.runWithLock(lockOwnerId, () -> {
-			try {
-				processOutbox();
-			} catch (Throwable e) {
-				logger.warn("Recreating producer, due to failure while processing outbox.", e);
-				producer.close();
-				producer = producerFactory.createKafkaProducer();
-			}
-		});
-		if (couldRunWithLock) {
-			scheduleProcessing();
-		} else {
-			logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockService.getLockTimeout().toMillis());
-			active = false;
-			scheduleTryLockAcquisition();
-		}
+        boolean couldRunWithLock = tryProcessOutbox();
+        if (couldRunWithLock) {
+            scheduleProcessing();
+        } else {
+            logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockService.getLockTimeout().toMillis());
+            active = false;
+            scheduleTryLockAcquisition();
+        }
 
-	}
+    }
+
+    private boolean tryProcessOutbox() {
+        boolean couldRunWithLock = false;
+        try {
+            couldRunWithLock = lockService.runWithLock(lockOwnerId, () -> {
+                try {
+                    processOutbox();
+                } catch (Throwable e) {
+                    logger.warn("Recreating producer, due to failure while processing outbox.", e);
+                    producer.close();
+                    producer = producerFactory.createKafkaProducer();
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Caught exception when trying to run with lock.", e);
+        }
+        return couldRunWithLock;
+    }
 
 	void processOutbox() {
 		repository.getUnprocessedRecords(BATCH_SIZE)

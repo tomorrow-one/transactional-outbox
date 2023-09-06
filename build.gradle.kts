@@ -122,6 +122,8 @@ allprojects {
     }
 
     tasks.withType<Test> {
+        jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
+
         useJUnitPlatform()
 
         testLogging {

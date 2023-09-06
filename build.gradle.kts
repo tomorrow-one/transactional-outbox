@@ -126,6 +126,8 @@ allprojects {
     }
 
     tasks.withType<Test> {
+        jvmArgs(listOf("-Xmx2048m", "--add-opens=java.base/java.lang=ALL-UNNAMED"))
+
         useJUnitPlatform()
 
         testLogging {

@@ -36,13 +36,16 @@ import java.util.Properties;
 public class IntegrationTestConfig {
 
     public static final Duration DEFAULT_OUTBOX_LOCK_TIMEOUT = Duration.ofMillis(200);
+    public static ProxiedPostgreSQLContainer postgresqlContainer = ProxiedPostgreSQLContainer.startProxiedPostgres();
 
     @Bean
     public DataSource dataSource() {
         BasicDataSource dataSource = new BasicDataSource();
 
-        dataSource.setDriverClassName("org.testcontainers.jdbc.ContainerDatabaseDriver");
-        dataSource.setUrl("jdbc:tc:postgresql:13.7://localhost/test");
+        dataSource.setDriverClassName(postgresqlContainer.getDriverClassName());
+        dataSource.setUrl(postgresqlContainer.getJdbcUrl());
+        dataSource.setUsername(postgresqlContainer.getUsername());
+        dataSource.setPassword(postgresqlContainer.getPassword());
 
         return dataSource;
     }

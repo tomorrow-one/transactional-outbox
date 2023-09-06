@@ -206,6 +206,19 @@ public Mono<OutboxRecord> doSomething(String name) {
 }
 ```
 
+### How-To re-publish a message
+
+In some cases, you need to re-publish a message. One example is when the consumer had an error on their side and fixed it now, then they still need the missed messages and had also had no DLT in place. For this, you can follow these steps:
+1. Go into your database client and connect to the database of the sender
+2. Find the right message entry in the table `outbox_kafka`
+3. Update the `processed` to `NULL`. For example, with the following query:
+    ```
+    UPDATE outbox_kafka SET processed = NULL WHERE id = {id_from_message_to_be_republished}
+    ```
+4. After a very short moment, the message should be processed and published again.
+
+If you have any questions, feel free to ask in the GitHub Discussions.
+
 ## How-To Release
 
 To release a new version follow this step

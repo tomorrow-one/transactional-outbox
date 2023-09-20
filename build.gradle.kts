@@ -30,6 +30,8 @@ subprojects {
     group = "one.tomorrow.transactional-outbox"
 
     java {
+        sourceCompatibility = JavaVersion.VERSION_17
+
         withJavadocJar()
         withSourcesJar()
     }
@@ -122,6 +124,8 @@ allprojects {
     }
 
     tasks.withType<Test> {
+        jvmArgs(listOf("-Xmx2048m", "--add-opens=java.base/java.lang=ALL-UNNAMED"))
+
         useJUnitPlatform()
 
         testLogging {
@@ -135,10 +139,8 @@ allprojects {
 
     tasks.withType<JacocoReport> {
         reports {
-            xml.apply {
-                isEnabled = true
-                destination = File("build/reports/jacoco.xml")
-            }
+            xml.required.set(true)
+            xml.outputLocation.set(File("build/reports/jacoco.xml"))
             executionData(tasks.withType<Test>())
         }
     }

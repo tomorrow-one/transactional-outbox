@@ -137,10 +137,8 @@ allprojects {
 
     tasks.withType<JacocoReport> {
         reports {
-            xml.apply {
-                isEnabled = true
-                destination = File("build/reports/jacoco.xml")
-            }
+            xml.required.set(true)
+            xml.outputLocation.set(File("build/reports/jacoco.xml"))
             executionData(tasks.withType<Test>())
         }
     }

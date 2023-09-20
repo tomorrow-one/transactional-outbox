@@ -69,6 +69,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -223,7 +224,9 @@ public class OutboxProcessorIntegrationTest {
         timeout.remove();
 
         OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
-        transactionalRepository.persist(record2);
+        await().ignoreExceptions().atMost(Duration.ofSeconds(10)).untilAsserted(
+                () -> transactionalRepository.persist(record2)
+        );
 
         // then
         records = getAndCommitRecords();

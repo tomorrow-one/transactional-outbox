@@ -2,7 +2,7 @@
 
 dependencies {
     val springVersion = "6.0.12"
-    val hibernateVersion = "6.2.7.Final"
+    val hibernateVersion = "6.3.1.Final"
     val kafkaVersion = "3.5.1"
     val springKafkaVersion = "3.0.11"
     val log4jVersion = "2.20.0"

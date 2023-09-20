@@ -71,7 +71,9 @@ class OutboxRepositoryIntegrationTest extends AbstractIntegrationTest {
         // then
         assertThat(result.size(), is(1));
         OutboxRecord foundRecord = result.get(0);
-        assertThat(foundRecord, samePropertyValuesAs(record2, "headers")); // ignore headers, because Json doesn't implement equals
+        // ignore created, because for the found record it's truncated to micros
+        // ignore headers, because Json doesn't implement equals
+        assertThat(foundRecord, samePropertyValuesAs(record2, "created", "headers"));
         assertThat(foundRecord.getHeadersAsMap(), is(equalTo(record2.getHeadersAsMap())));
     }
 

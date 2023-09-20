@@ -43,153 +43,163 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOUR
 
 public class OutboxProcessor {
 
-	@FunctionalInterface
-	public interface KafkaProducerFactory {
-		KafkaProducer<String, byte[]> createKafkaProducer();
-	}
+    @FunctionalInterface
+    public interface KafkaProducerFactory {
+        KafkaProducer<String, byte[]> createKafkaProducer();
+    }
 
-	private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 100;
 
-	private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
-	private final OutboxLockService lockService;
-	private final String lockOwnerId;
-	private final OutboxRepository repository;
-	private final KafkaProducerFactory producerFactory;
-	private final Duration processingInterval;
-	private final ScheduledExecutorService executor;
-	private final byte[] eventSource;
-	private KafkaProducer<String, byte[]> producer;
-	private boolean active;
-	private Instant lastLockAckquisitionAttempt;
+    private final OutboxLockService lockService;
+    private final String lockOwnerId;
+    private final OutboxRepository repository;
+    private final KafkaProducerFactory producerFactory;
+    private final Duration processingInterval;
+    private final ScheduledExecutorService executor;
+    private final byte[] eventSource;
+    private KafkaProducer<String, byte[]> producer;
+    private boolean active;
+    private Instant lastLockAckquisitionAttempt;
 
-	private ScheduledFuture<?> schedule;
+    private ScheduledFuture<?> schedule;
 
-	public OutboxProcessor(
-			OutboxRepository repository,
-			KafkaProducerFactory producerFactory,
-			Duration processingInterval,
-			Duration lockTimeout,
-			String lockOwnerId,
-			String eventSource,
-			AutowireCapableBeanFactory beanFactory) {
-		logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
-				lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
-		this.repository = repository;
-		this.processingInterval = processingInterval;
-		OutboxLockRepository lockRepository = beanFactory.getBean(OutboxLockRepository.class);
-		OutboxLockService rawLockService = new OutboxLockService(lockRepository, lockTimeout);
-		this.lockService = (OutboxLockService) beanFactory.applyBeanPostProcessorsAfterInitialization(rawLockService, "OutboxLockService");
-		this.lockOwnerId = lockOwnerId;
-		this.eventSource = eventSource.getBytes();
-		this.producerFactory = producerFactory;
-		producer = producerFactory.createKafkaProducer();
+    public OutboxProcessor(
+            OutboxRepository repository,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            AutowireCapableBeanFactory beanFactory) {
+        logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
+                lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
+        this.repository = repository;
+        this.processingInterval = processingInterval;
+        OutboxLockRepository lockRepository = beanFactory.getBean(OutboxLockRepository.class);
+        OutboxLockService rawLockService = new OutboxLockService(lockRepository, lockTimeout);
+        this.lockService = (OutboxLockService) beanFactory.applyBeanPostProcessorsAfterInitialization(rawLockService, "OutboxLockService");
+        this.lockOwnerId = lockOwnerId;
+        this.eventSource = eventSource.getBytes();
+        this.producerFactory = producerFactory;
+        producer = producerFactory.createKafkaProducer();
 
-		executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newSingleThreadScheduledExecutor();
 
-		tryLockAcquisition();
-	}
+        tryLockAcquisition();
+    }
 
-	private void scheduleProcessing() {
-		if (executor.isShutdown())
-			logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
-		else
-			schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
-	}
+    private void scheduleProcessing() {
+        if (executor.isShutdown())
+            logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+        else
+            schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
+    }
 
-	private void scheduleTryLockAcquisition() {
-		if (executor.isShutdown())
-			logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
-		else
-			schedule = executor.schedule(this::tryLockAcquisition, lockService.getLockTimeout().toMillis(), MILLISECONDS);
-	}
+    private void scheduleTryLockAcquisition() {
+        if (executor.isShutdown())
+            logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+        else
+            schedule = executor.schedule(this::tryLockAcquisition, lockService.getLockTimeout().toMillis(), MILLISECONDS);
+    }
 
-	@PreDestroy
-	public void close() {
-		logger.info("Stopping OutboxProcessor.");
-		if (schedule != null)
-			schedule.cancel(false);
-		executor.shutdown();
-		producer.close();
-		if (active)
-			lockService.releaseLock(lockOwnerId);
-	}
+    @PreDestroy
+    public void close() {
+        logger.info("Stopping OutboxProcessor.");
+        if (schedule != null)
+            schedule.cancel(false);
+        executor.shutdown();
+        producer.close();
+        if (active)
+            lockService.releaseLock(lockOwnerId);
+    }
 
-	private void tryLockAcquisition() {
-		try {
-			boolean originalActive = active;
-			logger.debug("{} trying to acquire outbox lock", lockOwnerId);
-			active = lockService.acquireOrRefreshLock(lockOwnerId);
-			lastLockAckquisitionAttempt = now();
-			if (active) {
-				if (originalActive)
-					logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
-				else
-					logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+    private void tryLockAcquisition() {
+        try {
+            boolean originalActive = active;
+            logger.debug("{} trying to acquire outbox lock", lockOwnerId);
+            active = lockService.acquireOrRefreshLock(lockOwnerId);
+            lastLockAckquisitionAttempt = now();
+            if (active) {
+                if (originalActive)
+                    logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+                else
+                    logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
 
-				processOutboxWithLock();
-			}
-			else
-				scheduleTryLockAcquisition();
-		} catch (Exception e) {
-			logger.warn("Failed trying lock acquisition or processing the outbox, trying again in {}", lockService.getLockTimeout(), e);
-			scheduleTryLockAcquisition();
-		}
-	}
+                processOutboxWithLock();
+            }
+            else
+                scheduleTryLockAcquisition();
+        } catch (Exception e) {
+            logger.warn("Failed trying lock acquisition or processing the outbox, trying again in {}", lockService.getLockTimeout(), e);
+            scheduleTryLockAcquisition();
+        }
+    }
 
-	private void processOutboxWithLock() {
-		if (!active)
-			throw new IllegalStateException("processOutbox must only be run when in active state");
+    private void processOutboxWithLock() {
+        if (!active)
+            throw new IllegalStateException("processOutbox must only be run when in active state");
 
-		if (now().isAfter(lastLockAckquisitionAttempt.plus(lockService.getLockTimeout().dividedBy(2)))) {
-			tryLockAcquisition();
-			return;
-		}
+        if (now().isAfter(lastLockAckquisitionAttempt.plus(lockService.getLockTimeout().dividedBy(2)))) {
+            tryLockAcquisition();
+            return;
+        }
 
-		boolean couldRunWithLock = lockService.runWithLock(lockOwnerId, () -> {
-			try {
-				processOutbox();
-			} catch (Throwable e) {
-				logger.warn("Recreating producer, due to failure while processing outbox.", e);
-				producer.close();
-				producer = producerFactory.createKafkaProducer();
-			}
-		});
-		if (couldRunWithLock) {
-			scheduleProcessing();
-		} else {
-			logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockService.getLockTimeout().toMillis());
-			active = false;
-			scheduleTryLockAcquisition();
-		}
+        boolean couldRunWithLock = tryProcessOutbox();
+        if (couldRunWithLock) {
+            scheduleProcessing();
+        } else {
+            logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockService.getLockTimeout().toMillis());
+            active = false;
+            scheduleTryLockAcquisition();
+        }
 
-	}
+    }
 
-	private void processOutbox() throws ExecutionException, InterruptedException {
-		List<OutboxRecord> records = repository.getUnprocessedRecords(BATCH_SIZE);
-		for (OutboxRecord outboxRecord : records) {
-			ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
-			Future<RecordMetadata> result = producer.send(producerRecord);
-			result.get();
-			logger.info("Sent record to kafka: {}", outboxRecord);
-			outboxRecord.setProcessed(now());
-			repository.update(outboxRecord);
-		}
-	}
+    private boolean tryProcessOutbox() {
+        boolean couldRunWithLock = false;
+        try {
+            couldRunWithLock = lockService.runWithLock(lockOwnerId, () -> {
+                try {
+                    processOutbox();
+                } catch (Throwable e) {
+                    logger.warn("Recreating producer, due to failure while processing outbox.", e);
+                    producer.close();
+                    producer = producerFactory.createKafkaProducer();
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Caught exception when trying to run with lock.", e);
+        }
+        return couldRunWithLock;
+    }
 
-	private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
-		ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
-				outboxRecord.getTopic(),
-				outboxRecord.getKey(),
-				outboxRecord.getValue()
-		);
-		if (outboxRecord.getHeaders() != null) {
-			outboxRecord.getHeaders().forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
-		}
-		producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
-		producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
-		return producerRecord;
-	}
+    private void processOutbox() throws ExecutionException, InterruptedException {
+        List<OutboxRecord> records = repository.getUnprocessedRecords(BATCH_SIZE);
+        for (OutboxRecord outboxRecord : records) {
+            ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
+            Future<RecordMetadata> result = producer.send(producerRecord);
+            result.get();
+            logger.info("Sent record to kafka: {}", outboxRecord);
+            outboxRecord.setProcessed(now());
+            repository.update(outboxRecord);
+        }
+    }
+
+    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
+        ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
+                outboxRecord.getTopic(),
+                outboxRecord.getKey(),
+                outboxRecord.getValue()
+        );
+        if (outboxRecord.getHeaders() != null) {
+            outboxRecord.getHeaders().forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
+        }
+        producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
+        producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
+        return producerRecord;
+    }
 
 
 }

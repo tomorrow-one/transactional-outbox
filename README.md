@@ -8,7 +8,7 @@ This library is an implementation of the [Transactional Outbox Pattern](https://
 for Kafka.
 
 In short: when a service handles a command and has to change state in the database _and_ publish a message/event to Kafka,
- either both or none shall be done. I.e. if the database transaction fails, the message to Kafka must not be published.
+either both or none shall be done. I.e. if the database transaction fails, the message to Kafka must not be published.
 As solution to this problem, the message(s) that shall be published to Kafka is stored in the database in the same transaction,
 and eventually published to Kafka (after the transaction was successfully committed).
 
@@ -24,10 +24,10 @@ they're stored in the outbox. *Note*: for this the kafka producer should have se
 
 Messages are published with the headers `x-value-type`, `x-sequence` and `x-source`:
 * `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace).
-   Consumers can use this to select the appropriate deserializer / protobuf message type to parse the received data/payload.
+Consumers can use this to select the appropriate deserializer / protobuf message type to parse the received data/payload.
 * `x-sequence` is set to the database sequence/id of the message in the outbox table. It can be used by consumers to deduplicate or check ordering.
 * `x-source` shall help consumers to distinguish between different producers of a message, which is useful in
-  migration scenarios. You'll specify which value for `x-source` shall be used.
+migration scenarios. You'll specify which value for `x-source` shall be used.
 
 To allow operation in a service running with multiple instances, a lock is managed using the database, so that only one of the instances
 processes the outbox and publishes messages. All instances monitor that lock, and one of the instances will take over the lock when
@@ -75,8 +75,8 @@ per instance).
 ### Setup the `OutboxProcessor`
 
 The `OutboxProcessor` is the component which processes the outbox and publishes messages/events to Kafka, once it could
- obtain the lock. If it could not obtain the lock on startup, it will continuously monitor the lock and try to obtain
- it (in case the lock-holding instance crashed or could no longer refresh the lock).
+obtain the lock. If it could not obtain the lock on startup, it will continuously monitor the lock and try to obtain
+it (in case the lock-holding instance crashed or could no longer refresh the lock).
 
 *Note*: so that messages are published in-order as expected, the producer must be configured with
 `enable.idempotence = true` (to enforce valid related settings according to [enable.idempotence docs](https://kafka.apache.org/documentation/#producerconfigs_enable.idempotence)) or - if you have reasons to not use `enable.idempotence = true` - appropriate settings of at least `max.in.flight.requests.per.connection`, `retries` and `acks`.
@@ -90,13 +90,15 @@ If you're using the `DefaultKafkaProducerFactory` as shown below, it will set `e
 public class TransactionalOutboxConfig {
 
     @Bean
-    public OutboxProcessor outboxProcessor(OutboxRepository repository,
-                                           Duration processingInterval,
-                                           Duration outboxLockTimeout,
-                                           String lockOwnerId,
-                                           String eventSource,
-                                           Map<String, Object> producerProps,
-                                           AutowireCapableBeanFactory beanFactory) {
+    public OutboxProcessor outboxProcessor(
+            OutboxRepository repository,
+            Duration processingInterval,
+            Duration outboxLockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            Map<String, Object> producerProps,
+            AutowireCapableBeanFactory beanFactory
+    ) {
         return new OutboxProcessor(
                 repository,
                 new DefaultKafkaProducerFactory(producerProps),
@@ -137,13 +139,15 @@ Only slightly different looks the setup of the `OutboxProcessor` for reactive ap
 public class TransactionalOutboxConfig {
 
     @Bean
-    public OutboxProcessor outboxProcessor(OutboxRepository repository,
-                                           OutboxLockService lockService,
-                                           Duration processingInterval,
-                                           Duration outboxLockTimeout,
-                                           String lockOwnerId,
-                                           String eventSource,
-                                           Map<String, Object> producerProps) {
+    public OutboxProcessor outboxProcessor(
+            OutboxRepository repository,
+            OutboxLockService lockService,
+            Duration processingInterval,
+            Duration outboxLockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            Map<String, Object> producerProps
+    ) {
         return new OutboxProcessor(
                 repository,
                 lockService,
@@ -205,6 +209,19 @@ public Mono<OutboxRecord> doSomething(String name) {
 
 }
 ```
+
+### How-To re-publish a message
+
+In some cases, you need to re-publish a message. One example is when the consumer had an error on their side and fixed it now, then they still need the missed messages and had also had no DLT in place. For this, you can follow these steps:
+1. Go into your database client and connect to the database of the sender
+2. Find the right message entry in the table `outbox_kafka`
+3. Update the `processed` to `NULL`. For example, with the following query:
+    ```
+    UPDATE outbox_kafka SET processed = NULL WHERE id = {id_from_message_to_be_republished}
+    ```
+4. After a very short moment, the message should be processed and published again.
+
+If you have any questions, feel free to ask in the GitHub Discussions.
 
 ## How-To Release
 

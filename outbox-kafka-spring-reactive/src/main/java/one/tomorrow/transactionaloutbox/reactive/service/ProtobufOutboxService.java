@@ -32,28 +32,28 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALU
 @Service
 public class ProtobufOutboxService {
 
-	private final OutboxService outboxService;
+    private final OutboxService outboxService;
 
-	public ProtobufOutboxService(OutboxService outboxService) {
-		this.outboxService = outboxService;
-	}
+    public ProtobufOutboxService(OutboxService outboxService) {
+        this.outboxService = outboxService;
+    }
 
     /**
      * Save the message/event (as byte array), setting the {@link one.tomorrow.transactionaloutbox.commons.KafkaHeaders#HEADERS_VALUE_TYPE_NAME}
      * to the fully qualified name of the message descriptor.
      */
-	public <T extends Message> Mono<OutboxRecord> saveForPublishing(String topic, String key, T event, Header...headers) {
+    public <T extends Message> Mono<OutboxRecord> saveForPublishing(String topic, String key, T event, Header...headers) {
         Header valueType = new Header(HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
-		Map<String, String> headerMap = Stream.concat(Stream.of(valueType), Arrays.stream(headers))
+        Map<String, String> headerMap = Stream.concat(Stream.of(valueType), Arrays.stream(headers))
                 .collect(Collectors.toMap(Header::getKey, Header::getValue));
         return outboxService.saveForPublishing(topic, key, event.toByteArray(), headerMap);
-	}
+    }
 
-	@Getter
-	@RequiredArgsConstructor
-	public static class Header {
-		private final String key;
-		private final String value;
-	}
+    @Getter
+    @RequiredArgsConstructor
+    public static class Header {
+        private final String key;
+        private final String value;
+    }
 
 }

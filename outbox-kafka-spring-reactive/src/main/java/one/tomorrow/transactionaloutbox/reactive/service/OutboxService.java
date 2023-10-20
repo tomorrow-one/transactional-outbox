@@ -32,30 +32,30 @@ import static org.springframework.transaction.TransactionDefinition.PROPAGATION_
 @Service
 public class OutboxService {
 
-	private final OutboxRepository repository;
-	private final TransactionalOperator mandatoryTxOperator;
+    private final OutboxRepository repository;
+    private final TransactionalOperator mandatoryTxOperator;
 
-	public OutboxService(OutboxRepository repository, ReactiveTransactionManager tm) {
-		this.repository = repository;
+    public OutboxService(OutboxRepository repository, ReactiveTransactionManager tm) {
+        this.repository = repository;
 
-		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
-		txDefinition.setPropagationBehavior(PROPAGATION_MANDATORY);
-		mandatoryTxOperator = TransactionalOperator.create(tm, txDefinition);
-	}
+        DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
+        txDefinition.setPropagationBehavior(PROPAGATION_MANDATORY);
+        mandatoryTxOperator = TransactionalOperator.create(tm, txDefinition);
+    }
 
     public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event) {
         return saveForPublishing(topic, key, event, null);
     }
 
-	public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event, Map<String, String> headerMap) {
-		OutboxRecord record = OutboxRecord.builder()
-				.topic(topic)
-				.key(key)
-				.value(event)
-				.headers(toJson(headerMap))
-				.created(Instant.now())
-				.build();
-		return repository.save(record).as(mandatoryTxOperator::transactional);
-	}
+    public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event, Map<String, String> headerMap) {
+        OutboxRecord record = OutboxRecord.builder()
+                .topic(topic)
+                .key(key)
+                .value(event)
+                .headers(toJson(headerMap))
+                .created(Instant.now())
+                .build();
+        return repository.save(record).as(mandatoryTxOperator::transactional);
+    }
 
 }

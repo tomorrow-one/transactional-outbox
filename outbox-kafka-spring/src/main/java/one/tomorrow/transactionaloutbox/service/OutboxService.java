@@ -26,21 +26,21 @@ import java.util.Map;
 @AllArgsConstructor
 public class OutboxService {
 
-	private OutboxRepository repository;
+    private OutboxRepository repository;
 
     public OutboxRecord saveForPublishing(String topic, String key, byte[] value) {
         return saveForPublishing(topic, key, value, null);
     }
 
-	public OutboxRecord saveForPublishing(String topic, String key, byte[] value, Map<String, String> headerMap) {
-		OutboxRecord record = OutboxRecord.builder()
-				.topic(topic)
-				.key(key)
-				.value(value)
-				.headers(headerMap)
-				.build();
-		repository.persist(record);
-		return record;
-	}
+    public OutboxRecord saveForPublishing(String topic, String key, byte[] value, Map<String, String> headerMap) {
+        OutboxRecord record = OutboxRecord.builder()
+                .topic(topic)
+                .key(key)
+                .value(value)
+                .headers(headerMap)
+                .build();
+        repository.persist(record);
+        return record;
+    }
 
 }

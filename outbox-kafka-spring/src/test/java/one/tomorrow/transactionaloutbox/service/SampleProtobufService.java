@@ -30,36 +30,36 @@ import static one.tomorrow.transactionaloutbox.service.SampleProtobufService.Top
 @AllArgsConstructor
 public class SampleProtobufService {
 
-	private static final Logger logger = LoggerFactory.getLogger(SampleProtobufService.class);
+    private static final Logger logger = LoggerFactory.getLogger(SampleProtobufService.class);
 
-	private ProtobufOutboxService outboxService;
+    private ProtobufOutboxService outboxService;
 
-	@Transactional
-	public void doSomething(int id, String name) {
-		// Here s.th. else would be done within the transaction, e.g. some entity created.
-		// We record this fact with the event that shall be published to interested parties / consumers.
-		SomethingHappened event = SomethingHappened.newBuilder()
-				.setId(id)
-				.setName(name)
-				.build();
-		OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), event);
-		logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", event, record.getId(), record.getKey(), record.getHeaders());
-	}
+    @Transactional
+    public void doSomething(int id, String name) {
+        // Here s.th. else would be done within the transaction, e.g. some entity created.
+        // We record this fact with the event that shall be published to interested parties / consumers.
+        SomethingHappened event = SomethingHappened.newBuilder()
+                .setId(id)
+                .setName(name)
+                .build();
+        OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), event);
+        logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", event, record.getId(), record.getKey(), record.getHeaders());
+    }
 
-	@Transactional
-	public void doSomethingWithAdditionalHeaders(int id, String name, Header...headers) {
-		// Here s.th. else would be done within the transaction, e.g. some entity created.
-		// We record this fact with the event that shall be published to interested parties / consumers.
-		SomethingHappened event = SomethingHappened.newBuilder()
-				.setId(id)
-				.setName(name)
-				.build();
-		OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), event, headers);
-		logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", event, record.getId(), record.getKey(), record.getHeaders());
-	}
+    @Transactional
+    public void doSomethingWithAdditionalHeaders(int id, String name, Header...headers) {
+        // Here s.th. else would be done within the transaction, e.g. some entity created.
+        // We record this fact with the event that shall be published to interested parties / consumers.
+        SomethingHappened event = SomethingHappened.newBuilder()
+                .setId(id)
+                .setName(name)
+                .build();
+        OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), event, headers);
+        logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", event, record.getId(), record.getKey(), record.getHeaders());
+    }
 
-	abstract static class Topics {
-		public static final String topic1 = "sampleProtobufTopic";
-	}
+    abstract static class Topics {
+        public static final String topic1 = "sampleProtobufTopic";
+    }
 
 }

@@ -36,7 +36,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         OutboxLockRepository.class,
         OutboxLock.class,
         OutboxLockService.class,
-        ProtobufOutboxService.class,
         IntegrationTestConfig.class
 })
 @Testcontainers

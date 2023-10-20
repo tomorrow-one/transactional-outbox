@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2023 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import one.tomorrow.transactionaloutbox.reactive.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
-import one.tomorrow.transactionaloutbox.reactive.test.Sample.SomethingHappened;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -34,28 +33,28 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
-import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 @ContextConfiguration(classes = {
         OutboxLockRepository.class,
         OutboxLock.class,
         OutboxLockService.class,
         OutboxService.class,
-        ProtobufOutboxService.class,
         IntegrationTestConfig.class
 })
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})
-class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
+class OutboxServiceIntegrationTest extends AbstractIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProtobufOutboxServiceIntegrationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(OutboxServiceIntegrationTest.class);
 
     @Autowired
-    private ProtobufOutboxService testee;
+    private OutboxService testee;
     @Autowired
     private OutboxRepository repository;
     @Autowired
@@ -69,10 +68,10 @@ class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void should_failOnMissingTransaction() {
         // given
-        SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
+        String message = "foo";
 
         // when
-        Mono<OutboxRecord> result = testee.saveForPublishing("protobuf_topic", "key", message);
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message.getBytes());
 
         // then
         StepVerifier.create(result)
@@ -83,10 +82,10 @@ class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void should_save_withExistingTransaction() {
         // given
-        SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
+        String message = "foo";
 
         // when
-        Mono<OutboxRecord> result = testee.saveForPublishing("protobuf_topic", "key", message)
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message.getBytes())
                 .as(rxtx::transactional);
 
         // then
@@ -100,11 +99,11 @@ class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void should_save_withAdditionalHeader() {
         // given
-        SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
-        ProtobufOutboxService.Header additionalHeader = new ProtobufOutboxService.Header("key", "value");
+        String message = "foo";
+        Map<String, String> additionalHeader = Map.of("key", "value");
 
         // when
-        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message, additionalHeader)
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message.getBytes(), additionalHeader)
                 .as(rxtx::transactional);
 
         // then
@@ -113,7 +112,8 @@ class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
 
         OutboxRecord foundRecord = repository.findById(savedRecord.getId()).block();
         assertThat(foundRecord, is(notNullValue()));
-        assertThat(foundRecord.getHeadersAsMap(), hasEntry(additionalHeader.getKey(), additionalHeader.getValue()));
+        Map.Entry<String, String> entry = additionalHeader.entrySet().iterator().next();
+        assertThat(foundRecord.getHeadersAsMap(), hasEntry(entry.getKey(), entry.getValue()));
     }
 
 }

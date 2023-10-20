@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2023 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,12 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
-import com.google.protobuf.Message;
 import kafka.server.KafkaConfig$;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
-import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -52,13 +49,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
-import static one.tomorrow.transactionaloutbox.service.SampleProtobufService.Topics.topic1;
+import static one.tomorrow.transactionaloutbox.service.SampleService.Topics.topic1;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -68,10 +65,9 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         OutboxLock.class,
         OutboxLockRepository.class,
         OutboxService.class,
-        ProtobufOutboxService.class,
-        SampleProtobufService.class,
+        SampleService.class,
         IntegrationTestConfig.class,
-        ProtobufOutboxUsageIntegrationTest.OutboxProcessorSetup.class
+        OutboxUsageIntegrationTest.OutboxProcessorSetup.class
 })
 @TestExecutionListeners({
         DependencyInjectionTestExecutionListener.class,
@@ -79,15 +75,15 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class ProtobufOutboxUsageIntegrationTest {
+public class OutboxUsageIntegrationTest {
 
     @ClassRule
     public static EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic1)
             .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
-    private static Consumer<String, Message> consumer;
+    private static Consumer<String, String> consumer;
 
     @Autowired
-    private SampleProtobufService sampleService;
+    private SampleService sampleService;
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -118,13 +114,11 @@ public class ProtobufOutboxUsageIntegrationTest {
         sampleService.doSomething(id, name);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
         assertThat(records.count(), is(1));
-        ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
-        assertTrue(kafkaRecord.value() instanceof SomethingHappened);
-        SomethingHappened value = (SomethingHappened) kafkaRecord.value();
-        assertEquals(id, value.getId());
-        assertEquals(name, value.getName());
+        ConsumerRecord<String, String> kafkaRecord = records.iterator().next();
+        assertEquals(id, Integer.parseInt(kafkaRecord.key()));
+        assertEquals(name, kafkaRecord.value());
     }
 
     @Test
@@ -134,18 +128,16 @@ public class ProtobufOutboxUsageIntegrationTest {
         // when
         int id = 24;
         String name = "foo bar baz";
-        ProtobufOutboxService.Header additionalHeader = new ProtobufOutboxService.Header("key", "value");
+        SampleService.Header additionalHeader = new SampleService.Header("key", "value");
         sampleService.doSomethingWithAdditionalHeaders(id, name, additionalHeader);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
+        ConsumerRecords<String, String> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
         assertThat(records.count(), is(1));
-        ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
-        assertTrue(kafkaRecord.value() instanceof SomethingHappened);
+        ConsumerRecord<String, String> kafkaRecord = records.iterator().next();
 
-        SomethingHappened value = (SomethingHappened) kafkaRecord.value();
-        assertEquals(id, value.getId());
-        assertEquals(name, value.getName());
+        assertEquals(id, Integer.parseInt(kafkaRecord.key()));
+        assertEquals(name, kafkaRecord.value());
 
         Header foundHeader = kafkaRecord.headers().lastHeader("key");
         assertEquals(additionalHeader.getValue(), new String(foundHeader.value()));
@@ -155,7 +147,7 @@ public class ProtobufOutboxUsageIntegrationTest {
         return kafkaRule.getEmbeddedKafka();
     }
 
-    private static Consumer<String, Message> consumer() {
+    private static Consumer<String, String> consumer() {
         if (consumer == null)
             setupConsumer();
         return consumer;
@@ -163,10 +155,10 @@ public class ProtobufOutboxUsageIntegrationTest {
 
     private static void setupConsumer() {
         Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("testGroup", "false", embeddedKafka());
-        DefaultKafkaConsumerFactory<String, Message> cf = new DefaultKafkaConsumerFactory<>(
+        DefaultKafkaConsumerFactory<String, String> cf = new DefaultKafkaConsumerFactory<>(
                 consumerProps,
                 new StringDeserializer(),
-                new KafkaProtobufDeserializer(List.of(SomethingHappened.class), true)
+                new StringDeserializer()
         );
         consumer = cf.createConsumer();
         embeddedKafka().consumeFromAllEmbeddedTopics(consumer);

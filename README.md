@@ -22,12 +22,12 @@ to the specified topic. Messages are published with the following guarantees:
 they're stored in the outbox. *Note*: for this the kafka producer should have set `enable.idempotence = true` to enforce valid related settings according to [enable.idempotence docs](https://kafka.apache.org/documentation/#producerconfigs_enable.idempotence) (which is set automatically in the default setup as shown below). If you need different/custom settings you probably know what you're doing, and consciously choose appropriate settings of e.g. `max.in.flight.requests.per.connection`, `retries` and `acks`.
 * *at-least-once delivery*: every message from the outbox is published at least once, i.e. in case of errors (e.g. database unavailability or network errors or process crashes/restarts) there may be duplicates. Consumers are responsible for deduplication.
 
-Messages are published with the headers `x-value-type`, `x-sequence` and `x-source`:
-* `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace).
-Consumers can use this to select the appropriate deserializer / protobuf message type to parse the received data/payload.
+Messages are published with the headers `x-sequence`, `x-source` and maybe `x-value-type`:
 * `x-sequence` is set to the database sequence/id of the message in the outbox table. It can be used by consumers to deduplicate or check ordering.
 * `x-source` shall help consumers to distinguish between different producers of a message, which is useful in
 migration scenarios. You'll specify which value for `x-source` shall be used.
+* `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace) if the `ProtobufOutboxService` is used.
+  Consumers can use this header to select the appropriate deserializer / protobuf message type to parse the received data/payload.
 
 To allow operation in a service running with multiple instances, a lock is managed using the database, so that only one of the instances
 processes the outbox and publishes messages. All instances monitor that lock, and one of the instances will take over the lock when
@@ -46,7 +46,6 @@ experience in the team with Debezium or Kafka Connect.
 * It comes with a module for usage in classic spring and spring boot projects using sync/blocking operations (this
   module uses hibernate), and another module for reactive operations (
   uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
-* Currently, it supports protobuf 3 for messages to publish (could be extended to other serialization libs)
 * It's tested with postgresql only (verified support for other databases could be contributed)
 
 ## Installation & Configuration
@@ -182,9 +181,12 @@ public void doSomething(String id, String name) {
             .setId(id)
             .setName(name)
             .build();
-    outboxService.saveForPublishing("some-topic", id, event);
+    Map<String, String> headers = Map.of(KafkaHeaders.HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+    outboxService.saveForPublishing("some-topic", id, event.toByteArray(), headers);
 }
 ```
+
+If you're in fact using protobuf for message serialization, you can use the `ProtobufOutboxService` as a shortcut.
 
 In a **reactive application** it would look like this (you could also use `@Transactional` if you'd prefer this rather than using the `TransactionalOperator`):
 
@@ -203,7 +205,8 @@ public Mono<OutboxRecord> doSomething(String name) {
                 .setId(someThing.getId())
                 .setName(someThing.getName())
                 .build();
-            return outboxService.saveForPublishing("some-topic", someThing.getId(), event);
+            Map<String, String> headers = Map.of(KafkaHeaders.HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+            return outboxService.saveForPublishing("some-topic", someThing.getId(), event.toByteArray(), headers);
         })
         .as(rxtx::transactional);
 

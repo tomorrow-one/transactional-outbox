@@ -59,7 +59,7 @@ public class SampleProtobufService {
 	}
 
 	abstract static class Topics {
-		public static final String topic1 = "sampleTopic";
+		public static final String topic1 = "sampleProtobufTopic";
 	}
 
 }

@@ -15,12 +15,11 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
+import com.google.protobuf.Message;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import com.google.protobuf.Message;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -34,21 +33,18 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALU
 @AllArgsConstructor
 public class ProtobufOutboxService {
 
-	private OutboxRepository repository;
+	private OutboxService outboxService;
 
+    /**
+     * Save the message/event (as byte array), setting the {@link one.tomorrow.transactionaloutbox.commons.KafkaHeaders#HEADERS_VALUE_TYPE_NAME}
+     * to the fully qualified name of the message descriptor.
+     */
 	public <T extends Message> OutboxRecord saveForPublishing(String topic, String key, T event, Header...headers) {
 		byte[] value = event.toByteArray();
 		Header valueType = new Header(HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
 		Map<String, String> headerMap = Stream.concat(Stream.of(valueType), Arrays.stream(headers))
 				.collect(Collectors.toMap(Header::getKey, Header::getValue));
-		OutboxRecord record = OutboxRecord.builder()
-				.topic(topic)
-				.key(key)
-				.value(value)
-				.headers(headerMap)
-				.build();
-		repository.persist(record);
-		return record;
+		return outboxService.saveForPublishing(topic, key, value, headerMap);
 	}
 
 	@Getter

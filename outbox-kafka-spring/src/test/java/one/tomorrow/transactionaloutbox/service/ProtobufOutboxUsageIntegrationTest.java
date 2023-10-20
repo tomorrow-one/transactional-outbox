@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
-import static one.tomorrow.transactionaloutbox.service.SampleService.Topics.topic1;
+import static one.tomorrow.transactionaloutbox.service.SampleProtobufService.Topics.topic1;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
@@ -67,10 +67,10 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
         OutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,
-        OutboxService.class,
-        SampleService.class,
+        ProtobufOutboxService.class,
+        SampleProtobufService.class,
         IntegrationTestConfig.class,
-        OutboxUsageIntegrationTest.OutboxProcessorSetup.class
+        ProtobufOutboxUsageIntegrationTest.OutboxProcessorSetup.class
 })
 @TestExecutionListeners({
         DependencyInjectionTestExecutionListener.class,
@@ -78,7 +78,7 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class OutboxUsageIntegrationTest {
+public class ProtobufOutboxUsageIntegrationTest {
 
     @ClassRule
     public static EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic1)
@@ -86,7 +86,7 @@ public class OutboxUsageIntegrationTest {
     private static Consumer<String, Message> consumer;
 
     @Autowired
-    private SampleService sampleService;
+    private SampleProtobufService sampleService;
     @Autowired
     private ApplicationContext applicationContext;
 
@@ -133,7 +133,7 @@ public class OutboxUsageIntegrationTest {
         // when
         int id = 24;
         String name = "foo bar baz";
-        OutboxService.Header additionalHeader = new OutboxService.Header("key", "value");
+        ProtobufOutboxService.Header additionalHeader = new ProtobufOutboxService.Header("key", "value");
         sampleService.doSomethingWithAdditionalHeaders(id, name, additionalHeader);
 
         // then

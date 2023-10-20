@@ -30,7 +30,6 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,12 +38,12 @@ import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})
-class OutboxServiceIntegrationTest extends AbstractIntegrationTest {
+class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(OutboxServiceIntegrationTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProtobufOutboxServiceIntegrationTest.class);
 
     @Autowired
-    private OutboxService testee;
+    private ProtobufOutboxService testee;
     @Autowired
     private OutboxRepository repository;
     @Autowired
@@ -90,7 +89,7 @@ class OutboxServiceIntegrationTest extends AbstractIntegrationTest {
     void should_save_withAdditionalHeader() {
         // given
         SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
-        OutboxService.Header additionalHeader = new OutboxService.Header("key", "value");
+        ProtobufOutboxService.Header additionalHeader = new ProtobufOutboxService.Header("key", "value");
 
         // when
         Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", message, additionalHeader)

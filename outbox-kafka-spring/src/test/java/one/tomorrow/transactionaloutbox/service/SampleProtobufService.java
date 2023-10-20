@@ -17,22 +17,22 @@ package one.tomorrow.transactionaloutbox.service;
 
 import lombok.AllArgsConstructor;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.service.OutboxService.Header;
+import one.tomorrow.transactionaloutbox.service.ProtobufOutboxService.Header;
 import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static one.tomorrow.transactionaloutbox.service.SampleService.Topics.topic1;
+import static one.tomorrow.transactionaloutbox.service.SampleProtobufService.Topics.topic1;
 
 @Service
 @AllArgsConstructor
-public class SampleService {
+public class SampleProtobufService {
 
-	private static final Logger logger = LoggerFactory.getLogger(SampleService.class);
+	private static final Logger logger = LoggerFactory.getLogger(SampleProtobufService.class);
 
-	private OutboxService outboxService;
+	private ProtobufOutboxService outboxService;
 
 	@Transactional
 	public void doSomething(int id, String name) {

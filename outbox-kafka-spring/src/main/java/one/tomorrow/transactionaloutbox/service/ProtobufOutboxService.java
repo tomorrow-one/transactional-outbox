@@ -32,7 +32,7 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALU
 
 @Service
 @AllArgsConstructor
-public class OutboxService {
+public class ProtobufOutboxService {
 
 	private OutboxRepository repository;
 

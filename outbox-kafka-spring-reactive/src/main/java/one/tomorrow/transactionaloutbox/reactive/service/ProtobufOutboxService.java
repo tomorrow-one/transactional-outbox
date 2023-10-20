@@ -37,12 +37,12 @@ import static one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord.toJso
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_MANDATORY;
 
 @Service
-public class OutboxService {
+public class ProtobufOutboxService {
 
 	private final OutboxRepository repository;
 	private final TransactionalOperator mandatoryTxOperator;
 
-	public OutboxService(OutboxRepository repository, ReactiveTransactionManager tm) {
+	public ProtobufOutboxService(OutboxRepository repository, ReactiveTransactionManager tm) {
 		this.repository = repository;
 
 		DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();

@@ -16,7 +16,7 @@ dependencies {
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("org.postgresql:r2dbc-postgresql:1.0.2.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
-    implementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
+    "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.3")
     implementation(project(":commons"))
     implementation("org.slf4j:slf4j-api:2.0.9")

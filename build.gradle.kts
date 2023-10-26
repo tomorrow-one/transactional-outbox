@@ -34,6 +34,10 @@ subprojects {
 
         withJavadocJar()
         withSourcesJar()
+
+        registerFeature("protobufSupport") {
+            usingSourceSet(sourceSets["main"])
+        }
     }
 
     tasks.withType<Javadoc> {

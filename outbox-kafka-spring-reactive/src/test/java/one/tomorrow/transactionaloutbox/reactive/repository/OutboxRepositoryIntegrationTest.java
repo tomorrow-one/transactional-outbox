@@ -21,7 +21,9 @@ import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +79,36 @@ class OutboxRepositoryIntegrationTest extends AbstractIntegrationTest {
         assertThat(foundRecord, samePropertyValuesAs(record2, "created", "headers"));
         assertThat(foundRecord.getCreated().truncatedTo(MILLIS), is(equalTo(record2.getCreated().truncatedTo(MILLIS))));
         assertThat(foundRecord.getHeadersAsMap(), is(equalTo(record2.getHeadersAsMap())));
+    }
+
+    @Test
+    void shouldDeleteOlderProcessedRecords() {
+        // given
+        OutboxRecord shouldBeKeptAsNotProcessed = testee.save(
+                        newRecord(null, "topic1", "key1", "value1", Collections.emptyMap())
+                )
+                .block();
+
+        OutboxRecord shouldBeKeptAsNotInDeletionPeriod = testee.save(
+                        newRecord(Instant.now().minus(Duration.ofDays(1)), "topic1", "key1", "value3", Collections.emptyMap())
+                )
+                .block();
+
+        OutboxRecord shouldBeDeleted1 = testee.save(newRecord(Instant.now().minus(Duration.ofDays(16)), "topic1", "key1", "value1", Collections.emptyMap()))
+                .block();
+
+        OutboxRecord shouldBeDeleted2 = testee.save(newRecord(Instant.now().minus(Duration.ofDays(18)), "topic1", "key1", "value2", Collections.emptyMap()))
+                .block();
+
+        // when
+        Long deletedRows = testee.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(15))).block();
+
+        // then
+        assertThat(deletedRows, is(2L));
+        assertThat(testee.existsById(shouldBeKeptAsNotProcessed.getId()).block(), is(true));
+        assertThat(testee.existsById(shouldBeKeptAsNotInDeletionPeriod.getId()).block(), is(true));
+        assertThat(testee.existsById(shouldBeDeleted1.getId()).block(), is(false));
+        assertThat(testee.existsById(shouldBeDeleted2.getId()).block(), is(false));
     }
 
 }

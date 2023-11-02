@@ -32,7 +32,9 @@ import org.springframework.test.context.support.DirtiesContextTestExecutionListe
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
@@ -74,6 +76,30 @@ public class OutboxRepositoryIntegrationTest {
         assertThat(result.size(), CoreMatchers.is(1));
         OutboxRecord foundRecord = result.get(0);
         assertEquals(record2, foundRecord);
+    }
+
+    @Test
+    public void should_DeleteProcessedRecordsAfterRetentionTime() {
+        // given
+        OutboxRecord shouldBeKeptAsNotProcessed = newRecord(null, "topic1", "key1", "value1", Collections.emptyMap());
+        testee.persist(shouldBeKeptAsNotProcessed);
+
+        OutboxRecord shouldBeKeptAsNotInDeletionPeriod = newRecord(Instant.now().minus(Duration.ofDays(1)), "topic1", "key1", "value3", Collections.emptyMap());
+        testee.persist(shouldBeKeptAsNotInDeletionPeriod);
+
+        OutboxRecord shouldBeDeleted1 = newRecord(Instant.now().minus(Duration.ofDays(16)), "topic1", "key1", "value1", Collections.emptyMap());
+        testee.persist(shouldBeDeleted1);
+
+        OutboxRecord shouldBeDeleted2 = newRecord(Instant.now().minus(Duration.ofDays(18)), "topic1", "key1", "value2", Collections.emptyMap());
+        testee.persist(shouldBeDeleted2);
+        OutboxRecord shouldNotBeDeleted3 = newRecord(Instant.now().minus(Duration.ofDays(150)), "topic1", "key1", "value2", Collections.emptyMap());
+        testee.persist(shouldNotBeDeleted3);
+
+        // when
+        Integer result = testee.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(15)));
+
+        // then
+        assertThat(result, CoreMatchers.is(3));
     }
 
 }

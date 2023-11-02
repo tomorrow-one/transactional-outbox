@@ -226,6 +226,27 @@ In some cases, you need to re-publish a message. One example is when the consume
 
 If you have any questions, feel free to ask in the GitHub Discussions.
 
+
+### How to house keep your outbox table
+
+As the outbox table might contain data that you want to delete in regular intervals we provide a convenience cleanup method in the outbox repositories to delete messages processed before a certain point in time. Make sure you have created an index on your outbox tables before using these cleanup methods:
+```sql
+CREATE INDEX idx_outbox_kafka_processed ON outbox_kafka (processed);
+```
+
+You could run regular scheduled jobs in your application that can trigger the cleanup methods in an interval suitable for your use case:
+
+```java
+public class Cleaner {
+    @Autowired
+    private OutboxRepository outboxRepository;
+
+    private void cleanupOlderThanADay() {
+        outboxRepository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(1)));
+    }
+}
+```
+
 ## How-To Release
 
 To release a new version follow this step

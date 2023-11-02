@@ -20,6 +20,7 @@ import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -49,6 +50,20 @@ public class OutboxRepository {
                 .createQuery("FROM OutboxRecord WHERE processed IS NULL ORDER BY id ASC", OutboxRecord.class)
                 .setMaxResults(limit)
                 .getResultList();
+    }
+
+
+    /**
+     * Delete processed records older than defined point in time
+     *
+     * @param deleteOlderThan the point in time until the processed entities shall be kept
+     * @return amount of deleted rows
+     */
+    public int deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan) {
+        return entityManager
+                .createQuery("DELETE FROM OutboxRecord or WHERE or.processed IS NOT NULL AND or.processed < :deleteOlderThan")
+                .setParameter("deleteOlderThan", deleteOlderThan)
+                .executeUpdate();
     }
 
 }

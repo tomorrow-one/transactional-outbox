@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
+
 @Repository
 public interface OutboxRepository extends ReactiveCrudRepository<OutboxRecord, Long> {
 
@@ -40,5 +42,7 @@ public interface OutboxRepository extends ReactiveCrudRepository<OutboxRecord, L
      */
     @Query("select * from outbox_kafka where processed is null order by id asc limit :limit")
     Flux<OutboxRecord> getUnprocessedRecords(int limit);
+
+    Mono<Long> deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan);
 
 }

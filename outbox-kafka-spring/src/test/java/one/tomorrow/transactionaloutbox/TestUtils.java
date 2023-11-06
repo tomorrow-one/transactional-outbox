@@ -16,15 +16,11 @@
 package one.tomorrow.transactionaloutbox;
 
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 public class TestUtils {
 
@@ -55,12 +51,6 @@ public class TestUtils {
                 value.getBytes(),
                 headers
         );
-    }
-
-    public static void assertConsumedRecord(OutboxRecord outboxRecord, String headerKey, ConsumerRecord<String, byte[]> kafkaRecord) {
-        assertEquals(outboxRecord.getKey(), kafkaRecord.key());
-        assertEquals(new String(outboxRecord.getValue()), new String(kafkaRecord.value()));
-        assertArrayEquals(outboxRecord.getHeaders().get(headerKey).getBytes(), kafkaRecord.headers().lastHeader(headerKey).value());
     }
 
 }

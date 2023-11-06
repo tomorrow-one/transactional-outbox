@@ -25,12 +25,15 @@ dependencies {
 
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+    testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
     testImplementation("org.flywaydb:flyway-database-postgresql:10.1.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
     testImplementation("org.apache.kafka:kafka_2.13:$kafkaVersion") // specify explicitly to prevent conflicts of different server and client versions
     testImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
-    testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
+    testImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion") {
+        exclude("org.apache.kafka:kafka_2.13", "junit")
+    }
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
     testImplementation("org.apache.commons:commons-dbcp2:2.11.0")

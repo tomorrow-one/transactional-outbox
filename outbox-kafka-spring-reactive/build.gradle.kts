@@ -48,5 +48,5 @@ dependencies {
     testImplementation("org.awaitility:awaitility:4.2.0")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
-    testImplementation("org.apache.commons:commons-dbcp2:2.10.0")
+    testImplementation("org.apache.commons:commons-dbcp2:2.11.0")
 }

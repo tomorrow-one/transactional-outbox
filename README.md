@@ -262,9 +262,22 @@ public class Cleaner {
     @Autowired
     private OutboxRepository outboxRepository;
 
-    private void cleanupOlderThanADay() {
-        outboxRepository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(1)));
+    private void cleanupOlderThanThirtyDays() {
+        outboxRepository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(30)));
     }
+}
+```
+
+or for reactive context:
+
+```java
+public class Cleaner {
+  @Autowired
+  private OutboxRepository outboxRepository;
+
+  private void cleanupOlderThanThirtyDaysReactive() {
+    outboxRepository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(30))).block();
+  }
 }
 ```
 

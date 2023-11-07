@@ -18,6 +18,7 @@ package one.tomorrow.transactionaloutbox.reactive.service;
 import com.google.protobuf.Message;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import one.tomorrow.transactionaloutbox.commons.spring.ConditionalOnClass;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -30,6 +31,7 @@ import java.util.stream.Stream;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 
 @Service
+@ConditionalOnClass(Message.class)
 public class ProtobufOutboxService {
 
     private final OutboxService outboxService;

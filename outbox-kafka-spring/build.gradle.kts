@@ -2,16 +2,15 @@
 
 dependencies {
     val springVersion = "6.0.13"
-    val hibernateVersion = "6.3.1.Final"
     val kafkaVersion = "3.5.1"
     val springKafkaVersion = "3.0.12"
     val log4jVersion = "2.22.0"
     val testcontainersVersion = "1.19.3"
 
     implementation("org.springframework:spring-context:$springVersion")
-    implementation("org.springframework:spring-orm:$springVersion")
-    implementation("org.hibernate.orm:hibernate-core:$hibernateVersion")
-    implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
+    implementation("org.springframework:spring-jdbc:$springVersion")
+    implementation("org.postgresql:postgresql:42.7.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.3")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation(project(":commons"))
@@ -27,7 +26,6 @@ dependencies {
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
     testImplementation("org.testcontainers:toxiproxy:$testcontainersVersion")
-    testImplementation("org.postgresql:postgresql:42.7.0")
     testImplementation("org.flywaydb:flyway-database-postgresql:10.1.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
     testImplementation("org.apache.kafka:kafka_2.13:$kafkaVersion") // specify explicitly to prevent conflicts of different server and client versions

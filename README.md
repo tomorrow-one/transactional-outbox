@@ -44,8 +44,7 @@ experience in the team with Debezium or Kafka Connect.
 ### Current Limitations
 * This library assumes and uses Spring (for transaction handling)
 * It comes with a module for usage in classic spring and spring boot projects using sync/blocking operations (this
-  module uses hibernate), and another module for reactive operations (
-  uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
+  module uses spring-jdbc), and another module for reactive operations (uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
 * It's tested with postgresql only (verified support for other databases could be contributed)
 
 ## Installation & Configuration
@@ -111,7 +110,7 @@ public class TransactionalOutboxConfig {
 }
 ```
 
-* `OutboxRepository`: can be instantiated by Spring, only asking for a Hibernate `SessionFactory`
+* `OutboxRepository`: can be instantiated by Spring, only asking for a `JdbcTemplate`
 * `Duration processingInterval`: the interval to wait after the outbox was processed completely before it's processed
   again. This value should be significantly smaller than `outboxLockTimeout` (described next). If it's higher, this is still not an issue,
   then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process

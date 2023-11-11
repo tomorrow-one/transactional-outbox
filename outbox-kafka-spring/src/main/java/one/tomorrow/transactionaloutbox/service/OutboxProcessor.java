@@ -181,8 +181,7 @@ public class OutboxProcessor {
                         logger.warn("Failed to publish {}", outboxRecord, exception);
                     } else {
                         logger.info("Sent record to kafka: {}", outboxRecord);
-                        outboxRecord.setProcessed(now());
-                        repository.update(outboxRecord);
+                        repository.updateProcessed(outboxRecord.getId(), now());
                     }
                 }))
                 .toList() // collect to List (so that map is completed for all items before awaiting futures), to use producer internal batching

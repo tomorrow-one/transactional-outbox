@@ -80,7 +80,9 @@ public class OutboxProcessorTest {
                 "eventSource",
                 beanFactory);
 
+        when(record1.getId()).thenReturn(1L);
         when(record1.getKey()).thenReturn("r1");
+        when(record2.getId()).thenReturn(2L);
         when(record2.getKey()).thenReturn("r2");
     }
 
@@ -134,11 +136,8 @@ public class OutboxProcessorTest {
 
         processor.processOutbox();
 
-        verify(record1, never()).setProcessed(any());
-        verify(repository, never()).update(record1);
-
-        verify(record2).setProcessed(any());
-        verify(repository).update(record2);
+        verify(repository, never()).updateProcessed(eq(record1.getId()), any());
+        verify(repository).updateProcessed(eq(record2.getId()), any());
     }
 
     @NotNull

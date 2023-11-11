@@ -15,8 +15,6 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.flywaydb.test.FlywayTestExecutionListener;
@@ -25,6 +23,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener;
@@ -64,8 +63,8 @@ public class OutboxRepositoryIntegrationTest {
     @Autowired
     private OutboxRepository testee;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     public void should_FindUnprocessedRecords() {
@@ -115,10 +114,12 @@ public class OutboxRepositoryIntegrationTest {
     }
 
     private boolean outboxRecordExists(Long id) {
-        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord or where or.id=:id")
-                .setParameter("id", id)
-                .getSingleResult();
-        return result > 0;
+        Long result = jdbcTemplate.query(
+                "select count(*) from outbox_kafka where id = ?",
+                rs -> rs.next() ? rs.getLong(1) : null,
+                id
+        );
+        return result != null && result > 0;
     }
 
 }

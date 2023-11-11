@@ -15,9 +15,6 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.EntityTransaction;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import org.flywaydb.test.FlywayTestExecutionListener;
@@ -26,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -41,8 +39,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
@@ -60,16 +58,11 @@ class OutboxLockRepositoryIntegrationTest {
     @Autowired
     private OutboxLockRepository testee;
     @Autowired
-    private EntityManagerFactory entityManagerFactory;
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     public void cleanUp() {
-        EntityManager entityManager = entityManagerFactory.createEntityManager();
-        EntityTransaction transaction = entityManager.getTransaction();
-        transaction.begin();
-        OutboxLock lock = entityManager.find(OutboxLock.class, OutboxLock.OUTBOX_LOCK_ID);
-        if (lock != null) entityManager.remove(lock);
-        transaction.commit();
+        jdbcTemplate.execute("delete from outbox_kafka_lock");
     }
 
     @Test
@@ -97,14 +90,14 @@ class OutboxLockRepositoryIntegrationTest {
         resultFutures.forEach(resultFuture -> {
             try {
                 Boolean lockResult = resultFuture.get();
-                assertThat(locked.get() && lockResult, is(false));
+                assertFalse(locked.get() && lockResult);
                 if (!locked.get())
                     locked.set(lockResult);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
-        assertThat(locked.get(), is(true));
+        assertTrue(locked.get());
 
     }
 

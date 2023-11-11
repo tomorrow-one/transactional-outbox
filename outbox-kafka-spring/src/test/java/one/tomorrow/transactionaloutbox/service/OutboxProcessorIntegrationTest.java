@@ -16,8 +16,6 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import eu.rekawek.toxiproxy.model.toxic.Timeout;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import kafka.server.KafkaConfig$;
 import kafka.server.KafkaServer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
@@ -41,6 +39,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
@@ -49,6 +48,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -94,8 +95,10 @@ public class OutboxProcessorIntegrationTest {
             .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private Consumer<String, byte[]> consumer;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
     @Autowired
     private OutboxRepository repository;
     @Autowired
@@ -238,7 +241,7 @@ public class OutboxProcessorIntegrationTest {
         CountDownLatch cdl = new CountDownLatch(1);
 
         OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
-                new OutboxLockRepository(entityManager) {
+                new OutboxLockRepository(jdbcTemplate, transactionManager) {
                     @Override
                     public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
                         if (failAcquireOrRefreshLock.get()) {
@@ -300,7 +303,7 @@ public class OutboxProcessorIntegrationTest {
         CountDownLatch cdl = new CountDownLatch(1);
 
         OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
-                new OutboxLockRepository(entityManager) {
+                new OutboxLockRepository(jdbcTemplate, transactionManager) {
                     @Override
                     public boolean preventLockStealing(String ownerId) {
                         if (failPreventLockStealing.get()) {

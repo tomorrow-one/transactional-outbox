@@ -130,7 +130,8 @@ allprojects {
     }
 
     tasks.withType<Test> {
-        jvmArgs(listOf("-Xmx2048m", "--add-opens=java.base/java.lang=ALL-UNNAMED"))
+        jvmArgs(listOf("--add-opens=java.base/java.lang=ALL-UNNAMED"))
+        maxHeapSize = "2048m"
 
         useJUnitPlatform()
 

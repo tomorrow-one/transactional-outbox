@@ -130,7 +130,7 @@ allprojects {
     }
 
     tasks.withType<Test> {
-        jvmArgs(listOf("-Xmx2048m", "--add-opens=java.base/java.lang=ALL-UNNAMED"))
+        jvmArgs(listOf("-Xmx4g", "--add-opens=java.base/java.lang=ALL-UNNAMED"))
 
         useJUnitPlatform()
 

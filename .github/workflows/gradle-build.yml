@@ -34,6 +34,7 @@ jobs:
     - name: Build
       uses: gradle/gradle-build-action@v2.8.0
       with:
+        gradle-version: 8.4
         arguments: build -Dorg.gradle.jvmargs=-Xmx2g
 
   publish:

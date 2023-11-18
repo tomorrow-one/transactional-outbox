@@ -25,7 +25,7 @@ dependencies {
     // testing
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.1.5")
     testImplementation("org.springframework:spring-test:$springVersion")
-    testImplementation("io.projectreactor:reactor-test:3.5.11")
+    testImplementation("io.projectreactor:reactor-test:3.6.0")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

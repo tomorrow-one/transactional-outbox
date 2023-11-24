@@ -15,8 +15,6 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.flywaydb.test.FlywayTestExecutionListener;
@@ -34,6 +32,8 @@ import org.springframework.test.context.support.DirtiesContextTestExecutionListe
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -116,7 +116,7 @@ public class OutboxRepositoryIntegrationTest {
     }
 
     private boolean outboxRecordExists(Long id) {
-        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord or where or.id=:id")
+        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord where id=:id")
                 .setParameter("id", id)
                 .getSingleResult();
         return result > 0;

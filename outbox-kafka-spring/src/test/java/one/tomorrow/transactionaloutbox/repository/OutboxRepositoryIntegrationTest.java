@@ -15,6 +15,8 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.flywaydb.test.FlywayTestExecutionListener;
@@ -32,13 +34,17 @@ import org.springframework.test.context.support.DirtiesContextTestExecutionListe
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -58,6 +64,9 @@ public class OutboxRepositoryIntegrationTest {
     @Autowired
     private OutboxRepository testee;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Test
     public void should_FindUnprocessedRecords() {
         // given
@@ -74,6 +83,42 @@ public class OutboxRepositoryIntegrationTest {
         assertThat(result.size(), CoreMatchers.is(1));
         OutboxRecord foundRecord = result.get(0);
         assertEquals(record2, foundRecord);
+    }
+
+    @Test
+    public void should_DeleteProcessedRecordsAfterRetentionTime() {
+        // given
+        OutboxRecord shouldBeKeptAsNotProcessed = newRecord(null, "topic1", "key1", "value1", Collections.emptyMap());
+        testee.persist(shouldBeKeptAsNotProcessed);
+
+        OutboxRecord shouldBeKeptAsNotInDeletionPeriod = newRecord(Instant.now().minus(Duration.ofDays(1)), "topic1", "key1", "value3", Collections.emptyMap());
+        testee.persist(shouldBeKeptAsNotInDeletionPeriod);
+
+        OutboxRecord shouldBeDeleted1 = newRecord(Instant.now().minus(Duration.ofDays(16)), "topic1", "key1", "value1", Collections.emptyMap());
+        testee.persist(shouldBeDeleted1);
+
+        OutboxRecord shouldBeDeleted2 = newRecord(Instant.now().minus(Duration.ofDays(18)), "topic1", "key1", "value2", Collections.emptyMap());
+        testee.persist(shouldBeDeleted2);
+        OutboxRecord shouldBeDeleted3 = newRecord(Instant.now().minus(Duration.ofDays(150)), "topic1", "key1", "value2", Collections.emptyMap());
+        testee.persist(shouldBeDeleted3);
+
+        // when
+        Integer result = testee.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now().minus(Duration.ofDays(15)));
+
+        // then
+        assertThat(result, CoreMatchers.is(3));
+        assertFalse(outboxRecordExists(shouldBeDeleted1.getId()));
+        assertFalse(outboxRecordExists(shouldBeDeleted2.getId()));
+        assertFalse(outboxRecordExists(shouldBeDeleted3.getId()));
+        assertTrue(outboxRecordExists(shouldBeKeptAsNotInDeletionPeriod.getId()));
+        assertTrue(outboxRecordExists(shouldBeKeptAsNotProcessed.getId()));
+    }
+
+    private boolean outboxRecordExists(Long id) {
+        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord or where or.id=:id")
+                .setParameter("id", id)
+                .getSingleResult();
+        return result > 0;
     }
 
 }

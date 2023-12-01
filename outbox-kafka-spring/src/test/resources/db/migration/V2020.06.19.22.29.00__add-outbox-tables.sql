@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS outbox_kafka (
 );
 
 CREATE INDEX idx_outbox_kafka_not_processed ON outbox_kafka (id) WHERE processed IS NULL;
+CREATE INDEX idx_outbox_kafka_processed ON outbox_kafka (processed);
 
 CREATE TABLE IF NOT EXISTS outbox_kafka_lock (
     id              CHARACTER VARYING(32) PRIMARY KEY,

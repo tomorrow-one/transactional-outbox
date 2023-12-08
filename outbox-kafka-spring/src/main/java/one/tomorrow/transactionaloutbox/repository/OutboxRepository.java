@@ -15,28 +15,73 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import org.postgresql.util.PGobject;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class OutboxRepository {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    public void persist(OutboxRecord record) {
-        entityManager.persist(record);
+    private static final RowMapper<OutboxRecord> ROW_MAPPER = (rs, rowNum) -> {
+        Timestamp processed = rs.getTimestamp("processed");
+        return new OutboxRecord(
+                rs.getLong("id"),
+                rs.getTimestamp("created"),
+                processed == null ? null : processed.toInstant(),
+                rs.getString("topic"),
+                rs.getString("key"),
+                rs.getBytes("value"),
+                fromJson(rs.getString("headers"))
+        );
+    };
+
+    private final JdbcTemplate jdbcTemplate;
+
+    private final SimpleJdbcInsert jdbcInsert;
+
+    public OutboxRepository(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
+                .withTableName("outbox_kafka")
+                .usingGeneratedKeyColumns("id");
     }
 
-    @Transactional
-    public void update(OutboxRecord record) {
-        entityManager.merge(record);
+    public void persist(OutboxRecord record) {
+        record.setCreated(new Timestamp(System.currentTimeMillis()));
+        Long id = (Long) jdbcInsert.executeAndReturnKey(argsFor(record));
+        record.setId(id);
+    }
+
+    private static Map<String, Object> argsFor(OutboxRecord record) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("created", record.getCreated());
+        if (record.getProcessed() != null)
+            args.put("processed", Timestamp.from(record.getProcessed()));
+        args.put("topic", record.getTopic());
+        if (record.getKey() != null)
+            args.put("key", record.getKey());
+        args.put("value", record.getValue());
+        args.put("headers", toJson(record.getHeaders()));
+        return args;
+    }
+
+    public void updateProcessed(Long id, Instant processed) {
+        jdbcTemplate.update("update outbox_kafka set processed = ? where id = ?", Timestamp.from(processed), id);
     }
 
     /**
@@ -45,12 +90,29 @@ public class OutboxRepository {
      * @param limit the max number of records to return
      * @return the requested records, sorted by id ascending
      */
-    @Transactional
     public List<OutboxRecord> getUnprocessedRecords(int limit) {
-        return entityManager
-                .createQuery("FROM OutboxRecord WHERE processed IS NULL ORDER BY id ASC", OutboxRecord.class)
-                .setMaxResults(limit)
-                .getResultList();
+        return jdbcTemplate.query("select * from outbox_kafka where processed is null order by id asc limit " + limit, ROW_MAPPER);
+    }
+
+    private static Map<String, String> fromJson(String data) {
+        try {
+            return data == null ? null : OBJECT_MAPPER.readValue(data, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static PGobject toJson(Map<String, String> headers) {
+        if (headers == null)
+            return null;
+        try {
+            final PGobject holder = new PGobject();
+            holder.setType("jsonb");
+            holder.setValue(OBJECT_MAPPER.writeValueAsString(headers));
+            return holder;
+        } catch (JsonProcessingException | SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -61,10 +123,10 @@ public class OutboxRepository {
      * @return amount of deleted rows
      */
     public int deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan) {
-        return entityManager
-                .createQuery("DELETE FROM OutboxRecord or WHERE or.processed IS NOT NULL AND or.processed < :deleteOlderThan")
-                .setParameter("deleteOlderThan", deleteOlderThan)
-                .executeUpdate();
+        return jdbcTemplate.update(
+                "DELETE FROM outbox_kafka WHERE processed IS NOT NULL AND processed < ?",
+                Timestamp.from(deleteOlderThan)
+        );
     }
 
 }

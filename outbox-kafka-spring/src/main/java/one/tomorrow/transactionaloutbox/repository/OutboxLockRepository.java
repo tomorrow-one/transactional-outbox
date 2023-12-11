@@ -89,7 +89,7 @@ public class OutboxLockRepository {
             }
 
             txStatus.flush();
-            logger.info("Acquired or refreshed outbox lock for owner {}, valid until {}", ownerId, validUntil);
+            logger.debug("Acquired or refreshed outbox lock for owner {}, valid until {}", ownerId, validUntil);
             return true;
         } catch (UncategorizedSQLException e) {
             return handleException(e, ownerId);

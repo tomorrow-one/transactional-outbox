@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,6 +65,7 @@ import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
+import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -164,7 +166,11 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         // when
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
-        testee = new OutboxProcessor(repository, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, beanFactory);
+        Map<String, Object> producerProps = producerProps(bootstrapServers);
+        producerProps.put(REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        producerProps.put(DELIVERY_TIMEOUT_MS_CONFIG, 5000);
+        producerProps.put(MAX_BLOCK_MS_CONFIG, 5000);
+        testee = new OutboxProcessor(repository, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, beanFactory);
 
         Thread.sleep(processingInterval.plusMillis(200).toMillis());
         kafkaProxy.setConnectionCut(false);

@@ -15,47 +15,38 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
-import kafka.server.KafkaConfig$;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
+import one.tomorrow.transactionaloutbox.KafkaTestSupport;
+import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.stream.IntStream.range;
-import static one.tomorrow.transactionaloutbox.TestUtils.*;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
+import static one.tomorrow.transactionaloutbox.KafkaTestSupport.*;
+import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
+import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -71,12 +62,10 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class ConcurrentOutboxProcessorsIntegrationTest {
+public class ConcurrentOutboxProcessorsIntegrationTest implements KafkaTestSupport<byte[]> {
 
+    public static final ProxiedKafkaContainer kafkaContainer = ProxiedKafkaContainer.startProxiedKafka();
     private static final String topic = "topicConcurrentTest";
-    @ClassRule
-    public static EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic)
-            .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
     private static Consumer<String, byte[]> consumer;
 
     @Autowired
@@ -90,6 +79,11 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
 
     private OutboxProcessor testee1;
     private OutboxProcessor testee2;
+
+    @BeforeAll
+    public static void beforeAll() {
+        createTopic(bootstrapServers, topic);
+    }
 
     @AfterClass
     public static void afterClass() {
@@ -108,49 +102,30 @@ public class ConcurrentOutboxProcessorsIntegrationTest {
         // given
         Duration lockTimeout = Duration.ofMillis(20); // very aggressive lock stealing
         Duration processingInterval = Duration.ZERO;
-        DefaultKafkaProducerFactory producerFactory = new DefaultKafkaProducerFactory(producerProps(embeddedKafka()));
-        testee1 = new OutboxProcessor(repository, producerFactory, processingInterval, lockTimeout, "processor1", "test", beanFactory);
-        testee2 = new OutboxProcessor(repository, producerFactory, processingInterval, lockTimeout, "processor2", "test", beanFactory);
+        String eventSource = "test";
+        testee1 = new OutboxProcessor(repository, producerFactory(), processingInterval, lockTimeout, "processor1", eventSource, beanFactory);
+        testee2 = new OutboxProcessor(repository, producerFactory(), processingInterval, lockTimeout, "processor2", eventSource, beanFactory);
 
         // when
         List<OutboxRecord> outboxRecords = range(0, 1000).mapToObj(
                 i -> newRecord(topic, "key1", "value" + i, newHeaders("h", "v" + i))
-        ).collect(Collectors.toList());
+        ).toList();
         outboxRecords.forEach(transactionalRepository::persist);
 
         // then
-        List<ConsumerRecord<String, byte[]>> allRecords = new ArrayList<>();
-        while (allRecords.size() < outboxRecords.size()) {
-            ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
-            records.iterator().forEachRemaining(allRecords::add);
+        Iterator<ConsumerRecord<String, byte[]>> kafkaRecords = getAndCommitRecords(outboxRecords.size()).iterator();
+        outboxRecords.forEach(outboxRecord ->
+                assertConsumedRecord(outboxRecord, eventSource, kafkaRecords.next())
+        );
+    }
+
+    @Override
+    public Consumer<String, byte[]> consumer() {
+        if (consumer == null) {
+            consumer = createConsumer(bootstrapServers);
+            consumer.subscribe(List.of(topic));
         }
-
-        assertThat(allRecords.size(), is(outboxRecords.size()));
-        Iterator<ConsumerRecord<String, byte[]>> iter = allRecords.iterator();
-        outboxRecords.forEach(outboxRecord -> {
-            ConsumerRecord<String, byte[]> kafkaRecord = iter.next();
-            assertConsumedRecord(outboxRecord, "h", kafkaRecord);
-        });
-    }
-
-    private static EmbeddedKafkaBroker embeddedKafka() {
-        return kafkaRule.getEmbeddedKafka();
-    }
-
-    private static Consumer<String, byte[]> consumer() {
-        if (consumer == null)
-            setupConsumer();
         return consumer;
-    }
-
-    private static void setupConsumer() {
-        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("testGroup", "false", embeddedKafka());
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
-        DefaultKafkaConsumerFactory<String, byte[]> cf = new DefaultKafkaConsumerFactory<>(consumerProps);
-        // use unique groupId, so that a new consumer does not get into conflicts with some previous one, which might not yet be fully shutdown
-        consumer = cf.createConsumer("testConsumer-" + System.currentTimeMillis(), "someClientIdSuffix");
-        embeddedKafka().consumeFromAllEmbeddedTopics(consumer);
     }
 
 }

@@ -16,8 +16,9 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import com.google.protobuf.Message;
-import kafka.server.KafkaConfig$;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
+import one.tomorrow.transactionaloutbox.KafkaTestSupport;
+import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
@@ -28,12 +29,10 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,10 +41,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.rule.EmbeddedKafkaRule;
-import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -53,13 +48,12 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
-import static one.tomorrow.transactionaloutbox.service.SampleProtobufService.Topics.topic1;
-import static org.hamcrest.CoreMatchers.is;
+import static one.tomorrow.transactionaloutbox.KafkaTestSupport.createConsumer;
+import static one.tomorrow.transactionaloutbox.KafkaTestSupport.producerProps;
+import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
 import static org.junit.Assert.*;
-import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {
@@ -79,11 +73,9 @@ import static org.springframework.kafka.test.utils.KafkaTestUtils.producerProps;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class ProtobufOutboxUsageIntegrationTest {
+public class ProtobufOutboxUsageIntegrationTest implements KafkaTestSupport<Message> {
 
-    @ClassRule
-    public static EmbeddedKafkaRule kafkaRule = new EmbeddedKafkaRule(1, true, 5, topic1)
-            .brokerProperty(KafkaConfig$.MODULE$.ListenersProp(), "PLAINTEXT://127.0.0.1:34567");
+    public static final ProxiedKafkaContainer kafkaContainer = ProxiedKafkaContainer.startProxiedKafka();
     private static Consumer<String, Message> consumer;
 
     @Autowired
@@ -118,8 +110,8 @@ public class ProtobufOutboxUsageIntegrationTest {
         sampleService.doSomething(id, name);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
-        assertThat(records.count(), is(1));
+        ConsumerRecords<String, Message> records = getAndCommitRecords();
+        assertEquals(1, records.count());
         ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
         assertTrue(kafkaRecord.value() instanceof SomethingHappened);
         SomethingHappened value = (SomethingHappened) kafkaRecord.value();
@@ -138,8 +130,8 @@ public class ProtobufOutboxUsageIntegrationTest {
         sampleService.doSomethingWithAdditionalHeaders(id, name, additionalHeader);
 
         // then
-        ConsumerRecords<String, Message> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
-        assertThat(records.count(), is(1));
+        ConsumerRecords<String, Message> records = getAndCommitRecords();
+        assertEquals(1, records.count());
         ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
         assertTrue(kafkaRecord.value() instanceof SomethingHappened);
 
@@ -151,25 +143,19 @@ public class ProtobufOutboxUsageIntegrationTest {
         assertEquals(additionalHeader.getValue(), new String(foundHeader.value()));
     }
 
-    private static EmbeddedKafkaBroker embeddedKafka() {
-        return kafkaRule.getEmbeddedKafka();
-    }
-
-    private static Consumer<String, Message> consumer() {
-        if (consumer == null)
-            setupConsumer();
+    @Override
+    public Consumer<String, Message> consumer() {
+        if (consumer == null) {
+            consumer = createConsumer(bootstrapServers, SomethingHappenedProtobufDeserializer.class);
+            consumer.subscribe(List.of(SampleProtobufService.Topics.topic1));
+        }
         return consumer;
     }
 
-    private static void setupConsumer() {
-        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps("testGroup", "false", embeddedKafka());
-        DefaultKafkaConsumerFactory<String, Message> cf = new DefaultKafkaConsumerFactory<>(
-                consumerProps,
-                new StringDeserializer(),
-                new KafkaProtobufDeserializer(List.of(SomethingHappened.class), true)
-        );
-        consumer = cf.createConsumer();
-        embeddedKafka().consumeFromAllEmbeddedTopics(consumer);
+    public static class SomethingHappenedProtobufDeserializer extends KafkaProtobufDeserializer {
+        public SomethingHappenedProtobufDeserializer() {
+            super(List.of(SomethingHappened.class), true);
+        }
     }
 
     @Configuration
@@ -181,7 +167,7 @@ public class ProtobufOutboxUsageIntegrationTest {
             String eventSource = "test";
             return new OutboxProcessor(
                     repository,
-                    new DefaultKafkaProducerFactory(producerProps(embeddedKafka())),
+                    new DefaultKafkaProducerFactory(producerProps(bootstrapServers)),
                     processingInterval,
                     DEFAULT_OUTBOX_LOCK_TIMEOUT,
                     lockOwnerId,

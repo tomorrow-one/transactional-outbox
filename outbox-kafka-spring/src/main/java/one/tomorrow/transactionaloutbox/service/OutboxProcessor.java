@@ -104,7 +104,7 @@ public class OutboxProcessor {
 
     @PreDestroy
     public void close() {
-        logger.info("Stopping OutboxProcessor.");
+        logger.info("Stopping OutboxProcessor with lockOwnerId {}.", lockOwnerId);
         if (schedule != null)
             schedule.cancel(false);
         executor.shutdown();

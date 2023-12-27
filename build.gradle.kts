@@ -40,6 +40,10 @@ subprojects {
         }
     }
 
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.addAll(listOf("-Xlint:deprecation"))
+    }
+
     tasks.withType<Javadoc> {
         (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
     }

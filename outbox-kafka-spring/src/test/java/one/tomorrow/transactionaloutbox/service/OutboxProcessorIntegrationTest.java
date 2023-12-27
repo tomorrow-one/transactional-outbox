@@ -58,7 +58,6 @@ import static eu.rekawek.toxiproxy.model.ToxicDirection.DOWNSTREAM;
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.KafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
-import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.kafkaProxy;
 import static one.tomorrow.transactionaloutbox.commons.ProxiedPostgreSQLContainer.postgresProxy;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
@@ -252,7 +251,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         AtomicBoolean failAcquireOrRefreshLock = new AtomicBoolean(false);
         CountDownLatch cdl = new CountDownLatch(1);
 
-        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
+        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.initializeBean(
                 new OutboxLockRepository(jdbcTemplate, transactionManager) {
                     @Override
                     public boolean acquireOrRefreshLock(String ownerId, Duration timeout) {
@@ -276,8 +275,8 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
 
             @Override
             @SuppressWarnings("NullableProblems")
-            public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {
-                return beanFactory.applyBeanPostProcessorsAfterInitialization(existingBean, beanName);
+            public Object initializeBean(Object existingBean, String beanName) throws BeansException {
+                return beanFactory.initializeBean(existingBean, beanName);
             }
         };
 
@@ -314,7 +313,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         AtomicBoolean failPreventLockStealing = new AtomicBoolean(false);
         CountDownLatch cdl = new CountDownLatch(1);
 
-        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.applyBeanPostProcessorsAfterInitialization(
+        OutboxLockRepository failingLockRepository = (OutboxLockRepository) beanFactory.initializeBean(
                 new OutboxLockRepository(jdbcTemplate, transactionManager) {
                     @Override
                     public boolean preventLockStealing(String ownerId) {
@@ -338,8 +337,8 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
 
             @Override
             @SuppressWarnings("NullableProblems")
-            public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName) throws BeansException {
-                return beanFactory.applyBeanPostProcessorsAfterInitialization(existingBean, beanName);
+            public Object initializeBean(Object existingBean, String beanName) throws BeansException {
+                return beanFactory.initializeBean(existingBean, beanName);
             }
         };
 

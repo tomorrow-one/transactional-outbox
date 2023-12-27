@@ -120,7 +120,7 @@ public class OutboxLockServiceIntegrationTest {
 
     @SuppressWarnings("unchecked")
     private <T> T postProcessBeanForTransactionCapabilities(T bean) {
-        return (T) applicationContext.getAutowireCapableBeanFactory().applyBeanPostProcessorsAfterInitialization(bean, null);
+        return (T) applicationContext.getAutowireCapableBeanFactory().initializeBean(bean, null);
     }
 
 }

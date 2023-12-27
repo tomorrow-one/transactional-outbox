@@ -15,17 +15,22 @@
  */
 package one.tomorrow.transactionaloutbox.reactive;
 
+import eu.rekawek.toxiproxy.Proxy;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostgreSQLContainer> {
+import static one.tomorrow.transactionaloutbox.reactive.ProxiedContainerPorts.findPort;
+import static one.tomorrow.transactionaloutbox.reactive.ProxiedContainerSupport.createProxy;
+
+public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostgreSQLContainer> implements ProxiedContainerSupport {
 
     private static ProxiedPostgreSQLContainer postgres;
     private static ToxiproxyContainer toxiproxy;
-    public static ToxiproxyContainer.ContainerProxy postgresProxy;
+    public static Proxy postgresProxy;
     private static String jdbcUrl;
 
     public ProxiedPostgreSQLContainer(DockerImageName dockerImageName) {
@@ -40,20 +45,25 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
 
             postgres = new ProxiedPostgreSQLContainer(DockerImageName.parse("postgres:13.7"))
                     .withExposedPorts(exposedPostgresPort)
-                    .withNetwork(network);
+                    .withNetwork(network)
+                    .withNetworkAliases("postgres");
 
             toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.5.0"))
                     .withNetwork(network);
-
             toxiproxy.start();
-            postgresProxy = toxiproxy.getProxy(postgres, exposedPostgresPort);
 
-            jdbcUrl = "jdbc:postgresql://" + postgresProxy.getContainerIpAddress() +
-                    ":" + postgresProxy.getProxyPort() + "/" + postgres.getDatabaseName();
+            postgresProxy = createProxy("postgres", toxiproxy, exposedPostgresPort);
+
+            jdbcUrl = "jdbc:postgresql://" + getHostAndPort() + "/" + postgres.getDatabaseName();
 
             postgres.start();
         }
         return postgres;
+    }
+
+    @NotNull
+    private static String getHostAndPort() {
+        return toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(findPort("postgres"));
     }
 
     public static void stopProxiedPostgres() {
@@ -67,8 +77,7 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
         if (postgres == null)
             startProxiedPostgres();
 
-        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + postgresProxy.getContainerIpAddress() +
-                ":" + postgresProxy.getProxyPort() + "/" + postgres.getDatabaseName());
+        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + getHostAndPort() + "/" + postgres.getDatabaseName());
         registry.add("spring.r2dbc.username", () -> postgres.getUsername());
         registry.add("spring.r2dbc.password", () -> postgres.getPassword());
     }
@@ -76,6 +85,11 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
     @Override
     public String getJdbcUrl() {
         return jdbcUrl;
+    }
+
+    @Override
+    public Proxy getProxy() {
+        return postgresProxy;
     }
 
 }

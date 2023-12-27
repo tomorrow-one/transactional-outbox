@@ -1,6 +1,10 @@
 
 // the version is set in parent/root build.gradle.kts
 
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-parameters"))
+}
+
 dependencies {
     val springVersion = "6.1.2"
     val springDataVersion = "3.2.1"

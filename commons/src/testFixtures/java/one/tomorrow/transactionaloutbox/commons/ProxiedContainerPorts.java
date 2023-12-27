@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package one.tomorrow.transactionaloutbox.reactive;
+package one.tomorrow.transactionaloutbox.commons;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,7 @@ public class ProxiedContainerPorts {
     private static final Map<String, Integer> PORT_BY_SERVICE = new HashMap<>();
 
 
-    static int findPort(String service) {
+    public static int findPort(String service) {
         Integer result = PORT_BY_SERVICE.get(service);
         if (result != null)
             return result;

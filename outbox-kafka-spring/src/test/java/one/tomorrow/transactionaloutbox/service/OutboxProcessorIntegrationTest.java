@@ -18,7 +18,7 @@ package one.tomorrow.transactionaloutbox.service;
 import eu.rekawek.toxiproxy.model.toxic.Timeout;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.KafkaTestSupport;
-import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
+import one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
@@ -57,11 +57,12 @@ import java.util.stream.StreamSupport;
 import static eu.rekawek.toxiproxy.model.ToxicDirection.DOWNSTREAM;
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.KafkaTestSupport.*;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.kafkaProxy;
-import static one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer.postgresProxy;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.kafkaProxy;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedPostgreSQLContainer.postgresProxy;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
+import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
@@ -161,7 +162,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         // given
         OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
-        kafkaProxy.setConnectionCut(true);
+        kafkaContainer.setConnectionCut(true);
 
         // when
         Duration processingInterval = Duration.ofMillis(50);
@@ -173,7 +174,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         testee = new OutboxProcessor(repository, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, beanFactory);
 
         Thread.sleep(processingInterval.plusMillis(200).toMillis());
-        kafkaProxy.setConnectionCut(false);
+        kafkaContainer.setConnectionCut(false);
 
         // then
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
@@ -197,13 +198,13 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         assertEquals(1, records.count());
 
         // and when
-        kafkaProxy.setConnectionCut(true);
+        kafkaContainer.setConnectionCut(true);
 
         OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persist(record2);
 
         Thread.sleep(processingInterval.plusMillis(200).toMillis());
-        kafkaProxy.setConnectionCut(false);
+        kafkaContainer.setConnectionCut(false);
 
         // then
         records = getAndCommitRecords();

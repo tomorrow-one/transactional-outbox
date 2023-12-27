@@ -17,7 +17,7 @@ package one.tomorrow.transactionaloutbox.reactive.service;
 
 import one.tomorrow.transactionaloutbox.reactive.AbstractIntegrationTest;
 import one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport;
-import one.tomorrow.transactionaloutbox.reactive.ProxiedContainerSupport;
+import one.tomorrow.transactionaloutbox.commons.ProxiedContainerSupport;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -42,11 +42,12 @@ import java.util.stream.IntStream;
 
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
+import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
 import static one.tomorrow.transactionaloutbox.reactive.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport.*;
-import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
 import static one.tomorrow.transactionaloutbox.reactive.TestUtils.newRecord;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
@@ -105,7 +106,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         // when
         List<OutboxRecord> outboxRecords = IntStream.range(1, 100).mapToObj(i ->
                 repository.save(newRecord(topic1, "key", "value" + i)).block()
-        ).collect(toList());
+        ).toList();
 
         logger.info("Test created records");
 

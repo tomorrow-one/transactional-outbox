@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2022 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package one.tomorrow.transactionaloutbox;
+package one.tomorrow.transactionaloutbox.commons;
 
+import eu.rekawek.toxiproxy.Proxy;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostgreSQLContainer> {
+import static one.tomorrow.transactionaloutbox.commons.ProxiedContainerPorts.findPort;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedContainerSupport.createProxy;
+
+public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostgreSQLContainer> implements ProxiedContainerSupport {
 
     private static ProxiedPostgreSQLContainer postgres;
-    public static ToxiproxyContainer toxiproxy;
-    public static ToxiproxyContainer.ContainerProxy postgresProxy;
+    private static ToxiproxyContainer toxiproxy;
+    public static Proxy postgresProxy;
     private static String jdbcUrl;
 
     public ProxiedPostgreSQLContainer(DockerImageName dockerImageName) {
@@ -39,20 +45,25 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
 
             postgres = new ProxiedPostgreSQLContainer(DockerImageName.parse("postgres:13.7"))
                     .withExposedPorts(exposedPostgresPort)
-                    .withNetwork(network);
+                    .withNetwork(network)
+                    .withNetworkAliases("postgres");
 
             toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.5.0"))
                     .withNetwork(network);
-
             toxiproxy.start();
-            postgresProxy = toxiproxy.getProxy(postgres, exposedPostgresPort);
 
-            jdbcUrl = "jdbc:postgresql://" + postgresProxy.getContainerIpAddress() +
-                    ":" + postgresProxy.getProxyPort() + "/" + postgres.getDatabaseName();
+            postgresProxy = createProxy("postgres", toxiproxy, exposedPostgresPort);
+
+            jdbcUrl = "jdbc:postgresql://" + getHostAndPort() + "/" + postgres.getDatabaseName();
 
             postgres.start();
         }
         return postgres;
+    }
+
+    @NotNull
+    private static String getHostAndPort() {
+        return toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(findPort("postgres"));
     }
 
     public static void stopProxiedPostgres() {
@@ -62,9 +73,23 @@ public class ProxiedPostgreSQLContainer extends PostgreSQLContainer<ProxiedPostg
             postgres.stop();
     }
 
+    public static void setConnectionProperties(DynamicPropertyRegistry registry) {
+        if (postgres == null)
+            startProxiedPostgres();
+
+        registry.add("spring.r2dbc.url", () -> "r2dbc:postgresql://" + getHostAndPort() + "/" + postgres.getDatabaseName());
+        registry.add("spring.r2dbc.username", () -> postgres.getUsername());
+        registry.add("spring.r2dbc.password", () -> postgres.getPassword());
+    }
+
     @Override
     public String getJdbcUrl() {
         return jdbcUrl;
+    }
+
+    @Override
+    public Proxy getProxy() {
+        return postgresProxy;
     }
 
 }

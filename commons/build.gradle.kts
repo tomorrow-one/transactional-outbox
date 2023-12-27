@@ -3,14 +3,32 @@
 
 dependencies {
     val springVersion = "6.1.2"
+    val kafkaVersion = "3.6.1"
+    val springKafkaVersion = "3.0.12"
+    val sl4jVersion = "2.0.9"
+    val junitVersion = "5.10.1"
+    val testcontainersVersion = "1.19.3"
 
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("org.apache.kafka:kafka-clients:3.6.1")
+    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("org.springframework:spring-core:$springVersion")
     implementation("org.springframework:spring-context:$springVersion")
-    implementation("org.slf4j:slf4j-api:2.0.9")
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.1")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.1")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.1")
-    testRuntimeOnly("org.slf4j:slf4j-simple:2.0.9")
+    implementation("org.slf4j:slf4j-api:$sl4jVersion")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
+    testRuntimeOnly("org.slf4j:slf4j-simple:$sl4jVersion")
+
+    testFixturesImplementation("org.springframework:spring-test:$springVersion")
+    testFixturesImplementation("org.apache.kafka:kafka-clients:$kafkaVersion")
+    testFixturesImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
+    testFixturesImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
+    testFixturesImplementation("org.slf4j:slf4j-api:$sl4jVersion")
+    testFixturesImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
+    testFixturesApi("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:kafka:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:toxiproxy:$testcontainersVersion")
+
 }

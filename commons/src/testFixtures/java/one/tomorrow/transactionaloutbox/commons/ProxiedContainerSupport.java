@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package one.tomorrow.transactionaloutbox.reactive;
+package one.tomorrow.transactionaloutbox.commons;
 
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
@@ -23,7 +23,7 @@ import org.testcontainers.containers.ToxiproxyContainer;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static one.tomorrow.transactionaloutbox.reactive.ProxiedContainerPorts.findPort;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedContainerPorts.findPort;
 
 public interface ProxiedContainerSupport {
 

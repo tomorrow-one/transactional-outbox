@@ -1,9 +1,13 @@
 
 // the version is set in parent/root build.gradle.kts
 
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-parameters"))
+}
+
 dependencies {
-    val springVersion = "6.0.13"
-    val springDataVersion = "3.1.5"
+    val springVersion = "6.1.2"
+    val springDataVersion = "3.2.1"
     val kafkaVersion = "3.6.1"
     val springKafkaVersion = "3.0.12"
     val testcontainersVersion = "1.19.3"
@@ -12,7 +16,7 @@ dependencies {
     implementation("org.springframework:spring-context:$springVersion")
 
     implementation("org.springframework.data:spring-data-relational:$springDataVersion")
-    implementation("org.springframework.data:spring-data-r2dbc:3.1.5")
+    implementation("org.springframework.data:spring-data-r2dbc:3.2.1")
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("org.postgresql:r2dbc-postgresql:1.0.3.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
@@ -23,7 +27,7 @@ dependencies {
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 
     // testing
-    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.1.5")
+    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.2.1")
     testImplementation("org.springframework:spring-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.6.1")
 

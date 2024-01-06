@@ -4,7 +4,7 @@ dependencies {
     val springVersion = "6.1.2"
     val kafkaVersion = "3.6.1"
     val springKafkaVersion = "3.0.12"
-    val log4jVersion = "2.22.0"
+    val log4jVersion = "2.22.1"
     val testcontainersVersion = "1.19.3"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -13,7 +13,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("org.slf4j:slf4j-api:2.0.9")
+    implementation("org.slf4j:slf4j-api:2.0.10")
     implementation("jakarta.annotation:jakarta.annotation-api:2.1.1")
     implementation(project(":commons"))
 

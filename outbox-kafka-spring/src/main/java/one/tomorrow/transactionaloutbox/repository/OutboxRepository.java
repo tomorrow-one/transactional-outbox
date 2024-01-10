@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -80,6 +81,7 @@ public class OutboxRepository {
         return args;
     }
 
+    @Transactional
     public void updateProcessed(Long id, Instant processed) {
         jdbcTemplate.update("update outbox_kafka set processed = ? where id = ?", Timestamp.from(processed), id);
     }

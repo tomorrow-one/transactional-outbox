@@ -44,6 +44,7 @@ public class IntegrationTestConfig {
         dataSource.setUrl(postgresqlContainer.getJdbcUrl());
         dataSource.setUsername(postgresqlContainer.getUsername());
         dataSource.setPassword(postgresqlContainer.getPassword());
+        dataSource.setDefaultAutoCommit(false);
 
         return dataSource;
     }

@@ -28,6 +28,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Duration;
 import java.util.List;
@@ -59,10 +61,14 @@ class OutboxLockRepositoryIntegrationTest {
     private OutboxLockRepository testee;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @AfterEach
     public void cleanUp() {
-        jdbcTemplate.execute("delete from outbox_kafka_lock");
+        new TransactionTemplate(transactionManager).executeWithoutResult(status ->
+                jdbcTemplate.execute("delete from outbox_kafka_lock")
+        );
     }
 
     @Test

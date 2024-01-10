@@ -9,9 +9,9 @@ name: ci
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main_spring-6.1" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main_spring-6.1" ]
 
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
 
   publish:
     needs: [ build ]
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main_spring-6.1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

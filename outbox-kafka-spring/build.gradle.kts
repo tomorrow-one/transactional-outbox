@@ -7,6 +7,7 @@ dependencies {
     val log4jVersion = "2.22.0"
     val testcontainersVersion = "1.19.3"
 
+    implementation("one.tomorrow.transactional-outbox:commons:2.2.1")
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-jdbc:$springVersion")
     implementation("org.postgresql:postgresql:42.7.1")

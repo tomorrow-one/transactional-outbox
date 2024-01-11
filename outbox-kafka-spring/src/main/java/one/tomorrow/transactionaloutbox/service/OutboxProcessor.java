@@ -77,7 +77,7 @@ public class OutboxProcessor {
         this.processingInterval = processingInterval;
         OutboxLockRepository lockRepository = beanFactory.getBean(OutboxLockRepository.class);
         OutboxLockService rawLockService = new OutboxLockService(lockRepository, lockTimeout);
-        this.lockService = (OutboxLockService) beanFactory.applyBeanPostProcessorsAfterInitialization(rawLockService, "OutboxLockService");
+        this.lockService = (OutboxLockService) beanFactory.initializeBean(rawLockService, "OutboxLockService");
         this.lockOwnerId = lockOwnerId;
         this.eventSource = eventSource.getBytes();
         this.producerFactory = producerFactory;

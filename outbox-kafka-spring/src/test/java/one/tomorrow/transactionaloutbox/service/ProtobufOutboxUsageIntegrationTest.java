@@ -18,7 +18,7 @@ package one.tomorrow.transactionaloutbox.service;
 import com.google.protobuf.Message;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.KafkaTestSupport;
-import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
+import one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.commons.KafkaProtobufDeserializer;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
@@ -50,9 +50,8 @@ import java.time.Duration;
 import java.util.List;
 
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
-import static one.tomorrow.transactionaloutbox.KafkaTestSupport.createConsumer;
-import static one.tomorrow.transactionaloutbox.KafkaTestSupport.producerProps;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
 import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)

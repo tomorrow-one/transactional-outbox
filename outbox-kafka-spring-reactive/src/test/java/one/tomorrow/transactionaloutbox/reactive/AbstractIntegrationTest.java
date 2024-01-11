@@ -15,10 +15,11 @@
  */
 package one.tomorrow.transactionaloutbox.reactive;
 
+import one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer;
+import one.tomorrow.transactionaloutbox.commons.ProxiedPostgreSQLContainer;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.reactive.service.OutboxLockService;
-import one.tomorrow.transactionaloutbox.reactive.service.ProtobufOutboxService;
 import org.flywaydb.test.junit5.annotation.FlywayTestExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;

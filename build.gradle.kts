@@ -8,6 +8,7 @@ project(":outbox-kafka-spring-reactive").version = "3.2.1-SNAPSHOT"
 
 plugins {
     id("java-library")
+    id("java-test-fixtures")
     id("io.freefair.lombok") version "8.4"
     id("com.google.protobuf") version "0.9.4"
     id("maven-publish")
@@ -20,6 +21,7 @@ val protobufVersion by extra("3.21.9")
 
 subprojects {
     apply(plugin = "java-library")
+    apply(plugin = "java-test-fixtures")
     apply(plugin = "io.freefair.lombok")
     apply(plugin = "com.google.protobuf")
     apply(plugin = "maven-publish")
@@ -38,6 +40,10 @@ subprojects {
         registerFeature("protobufSupport") {
             usingSourceSet(sourceSets["main"])
         }
+    }
+
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.addAll(listOf("-Xlint:deprecation"))
     }
 
     tasks.withType<Javadoc> {

@@ -69,7 +69,7 @@ public class OutboxProcessorTest {
 
         OutboxLockService lockService = mock(OutboxLockService.class);
         when(lockService.getLockTimeout()).thenReturn(Duration.ZERO);
-        when(beanFactory.applyBeanPostProcessorsAfterInitialization(any(), anyString())).thenReturn(lockService);
+        when(beanFactory.initializeBean(any(), anyString())).thenReturn(lockService);
 
         processor = new OutboxProcessor(
                 repository,

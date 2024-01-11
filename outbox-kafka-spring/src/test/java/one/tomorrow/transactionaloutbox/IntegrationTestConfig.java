@@ -15,6 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox;
 
+import one.tomorrow.transactionaloutbox.commons.ProxiedPostgreSQLContainer;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.configuration.ClassicConfiguration;

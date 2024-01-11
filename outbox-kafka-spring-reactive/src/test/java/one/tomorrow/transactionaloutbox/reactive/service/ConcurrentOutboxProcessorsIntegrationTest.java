@@ -32,11 +32,11 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.util.stream.IntStream.range;
+import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport.*;
-import static one.tomorrow.transactionaloutbox.reactive.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
 import static one.tomorrow.transactionaloutbox.reactive.TestUtils.newRecord;
 
 @FlywayTest
@@ -83,7 +83,7 @@ class ConcurrentOutboxProcessorsIntegrationTest extends AbstractIntegrationTest 
         // when
         List<OutboxRecord> outboxRecords = range(0, 1000).mapToObj(i ->
                 repository.save(newRecord(topic, "key1", "value" + i, Map.of("h", "v" + i))).block()
-        ).collect(Collectors.toList());
+        ).toList();
 
         // then
         Iterator<ConsumerRecord<String, byte[]>> kafkaRecords = getAndCommitRecords(outboxRecords.size()).iterator();

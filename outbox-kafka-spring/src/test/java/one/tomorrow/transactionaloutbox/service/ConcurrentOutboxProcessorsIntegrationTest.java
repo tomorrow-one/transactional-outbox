@@ -17,7 +17,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.KafkaTestSupport;
-import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
+import one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
@@ -40,11 +40,11 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static java.util.stream.IntStream.range;
+import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.KafkaTestSupport.*;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2022 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package one.tomorrow.transactionaloutbox;
+package one.tomorrow.transactionaloutbox.commons;
 
+import eu.rekawek.toxiproxy.Proxy;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public class ProxiedKafkaContainer extends KafkaContainer {
+import static one.tomorrow.transactionaloutbox.commons.ProxiedContainerPorts.findPort;
+import static one.tomorrow.transactionaloutbox.commons.ProxiedContainerSupport.createProxy;
+
+public class ProxiedKafkaContainer extends KafkaContainer implements ProxiedContainerSupport {
 
     private static ProxiedKafkaContainer kafka;
     private static ToxiproxyContainer toxiproxy;
-    public static ToxiproxyContainer.ContainerProxy kafkaProxy;
+    public static Proxy kafkaProxy;
     public static String bootstrapServers;
 
     public ProxiedKafkaContainer(DockerImageName dockerImageName) {
@@ -39,14 +43,15 @@ public class ProxiedKafkaContainer extends KafkaContainer {
 
             kafka = (ProxiedKafkaContainer) new ProxiedKafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.1.2"))
                     .withExposedPorts(exposedKafkaPort)
-                    .withNetwork(network);
+                    .withNetwork(network)
+                    .withNetworkAliases("kafka");
 
             toxiproxy = new ToxiproxyContainer(DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.5.0"))
                     .withNetwork(network);
-
             toxiproxy.start();
-            kafkaProxy = toxiproxy.getProxy(kafka, exposedKafkaPort);
-            bootstrapServers = "PLAINTEXT://" + kafkaProxy.getContainerIpAddress() + ":" + kafkaProxy.getProxyPort();
+
+            kafkaProxy = createProxy("kafka", toxiproxy, exposedKafkaPort);
+            bootstrapServers = "PLAINTEXT://" + toxiproxy.getHost() + ":" + toxiproxy.getMappedPort(findPort("kafka"));
 
             kafka.start();
         }
@@ -65,4 +70,8 @@ public class ProxiedKafkaContainer extends KafkaContainer {
         return bootstrapServers;
     }
 
+    @Override
+    public Proxy getProxy() {
+        return kafkaProxy;
+    }
 }

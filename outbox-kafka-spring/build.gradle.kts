@@ -24,7 +24,7 @@ dependencies {
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
     testImplementation("org.mockito:mockito-all:1.10.19")
 
-    testImplementation("org.flywaydb:flyway-database-postgresql:10.4.1")
+    testImplementation("org.flywaydb:flyway-database-postgresql:10.5.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
 
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

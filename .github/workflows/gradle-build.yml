@@ -50,6 +50,8 @@ jobs:
       with:
         fail-on-severity: high
         allow-ghsas: GHSA-h3qr-39j9-4r5v
+        base-ref: ${{ github.event.pull_request.base.sha || 'main' }}
+        head-ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
   publish:
     needs: [ build ]

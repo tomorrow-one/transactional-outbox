@@ -14,7 +14,8 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
+  # Note that this permission will not be available if the PR is from a forked repository
 
 jobs:
   build:
@@ -31,10 +32,24 @@ jobs:
         cache: 'gradle'
     - name: Validate gradle wrapper
       uses: gradle/wrapper-validation-action@v1
+    - name: Setup Gradle to generate and submit dependency graphs
+      uses: gradle/gradle-build-action@v2
+      with:
+        dependency-graph: generate-and-submit
     - name: Build
-      uses: gradle/gradle-build-action@v2.8.0
+      uses: gradle/gradle-build-action@v2
       with:
         arguments: build
+
+  dependency-review:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Perform dependency review
+      uses: actions/dependency-review-action@v3
+      with:
+        fail-on-severity: high
+        allow-ghsas: GHSA-h3qr-39j9-4r5v
 
   publish:
     needs: [ build ]
@@ -49,7 +64,7 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
       - name: Publish
-        uses: gradle/gradle-build-action@v2.8.0
+        uses: gradle/gradle-build-action@v2
         env:
           # variables used by build.gradle.kts for signing / publishing (without 'ORG_GRADLE_PROJECT_' prefix)
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.OSSRH_GPG_SECRET_KEY_ID }}

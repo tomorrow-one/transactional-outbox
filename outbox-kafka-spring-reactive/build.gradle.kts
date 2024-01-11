@@ -17,18 +17,18 @@ dependencies {
     implementation("org.springframework.data:spring-data-relational:$springDataVersion")
     implementation("org.springframework.data:spring-data-r2dbc:3.2.1")
     implementation("org.springframework:spring-r2dbc:$springVersion")
-    implementation("org.postgresql:r2dbc-postgresql:1.0.3.RELEASE")
+    implementation("org.postgresql:r2dbc-postgresql:1.0.4.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
-    implementation("org.slf4j:slf4j-api:2.0.10")
+    implementation("org.slf4j:slf4j-api:2.0.11")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
     implementation(project(":commons"))
 
     // testing
     testImplementation(testFixtures(project(":commons")))
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.2.1")
-    testImplementation("io.projectreactor:reactor-test:3.6.1")
+    testImplementation("io.projectreactor:reactor-test:3.6.2")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

@@ -13,7 +13,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("org.slf4j:slf4j-api:2.0.10")
+    implementation("org.slf4j:slf4j-api:2.0.11")
     implementation("jakarta.annotation:jakarta.annotation-api:2.1.1")
     implementation(project(":commons"))
 

@@ -168,6 +168,11 @@ public class TransactionalOutboxConfig {
 }
 ```
 
+#### Housekeeping
+
+Note that by default the `OutboxProcessor` will not delete processed messages from the outbox table.
+To address this, see the section [How to house keep your outbox table](#how-to-house-keep-your-outbox-table).
+
 ## Usage
 
 In a service that changes the database (inside a transaction), create and serialize the message/event that should

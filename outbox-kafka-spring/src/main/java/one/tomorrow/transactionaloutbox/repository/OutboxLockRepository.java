@@ -68,7 +68,7 @@ public class OutboxLockRepository {
         try {
             OutboxLock lock = jdbcTemplate.query("select * from outbox_kafka_lock where id = '" + OUTBOX_LOCK_ID + "'", resultSetExtractor);
             if (lock == null) {
-                logger.debug("No outbox lock found. Creating one for {}", ownerId);
+                logger.info("No outbox lock found. Creating one for {}", ownerId);
                 validUntil = now.plus(timeout);
                 jdbcTemplate.update("insert into outbox_kafka_lock (id, owner_id, valid_until) values (?, ?, ?)", OUTBOX_LOCK_ID, ownerId, Timestamp.from(validUntil));
             } else if (ownerId.equals(lock.getOwnerId())) {

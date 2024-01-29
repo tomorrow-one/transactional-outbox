@@ -42,7 +42,7 @@ dependencies {
     testRuntimeOnly("com.google.code.gson:gson:2.10.1")
     testImplementation("org.postgresql:postgresql:42.7.1")
     testImplementation("org.flywaydb:flyway-database-postgresql:10.6.0")
-    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.2.0")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")

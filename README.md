@@ -56,6 +56,14 @@ Depending on your application add one of the following libraries as dependency t
 * classic (sync/blocking): `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
 * reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
 
+#### Compatibility Matrix
+
+| Spring Version | Spring Boot Version | outbox-kafka-spring Version | outbox-kafka-spring-reactive Version |
+|----------------|---------------------|-----------------------------|--------------------------------------|
+| 6.1.x          | 3.2.x               | 3.3.x                       | 3.2.x                                |
+| 6.0.x          | 3.1.x               | 2.0.x - 3.2.x               | 2.0.x - 3.1.x                        |
+| 5.x.x          | 2.x.x               | 1.2.x                       | 1.1.x                                |
+
 ### Prepare Database
 
 Create the tables using your preferred database migration tool: use the DDLs
@@ -92,7 +100,6 @@ public class TransactionalOutboxConfig {
             OutboxRepository repository,
             Duration processingInterval,
             Duration outboxLockTimeout,
-            String lockOwnerId,
             String eventSource,
             Map<String, Object> producerProps,
             AutowireCapableBeanFactory beanFactory
@@ -102,11 +109,17 @@ public class TransactionalOutboxConfig {
                 new DefaultKafkaProducerFactory(producerProps),
                 processingInterval,
                 outboxLockTimeout,
-                lockOwnerId,
+                lockOwnerId(),
                 eventSource,
                 beanFactory
         );
     }
+
+    private static String lockOwnerId() {
+        try { return InetAddress.getLocalHost().getHostName(); }
+        catch (UnknownHostException e) { throw new RuntimeException(e); }
+    }
+
 }
 ```
 
@@ -115,13 +128,14 @@ public class TransactionalOutboxConfig {
   again. This value should be significantly smaller than `outboxLockTimeout` (described next). If it's higher, this is still not an issue,
   then another instance might take over the lock in the meantime (after `outboxLockTimeout` has been exceeded) and process
   the outbox.
+    * Proposed value: 200ms
 * `Duration outboxLockTimeout`: the time after that a lock should be considered to be timed out
     * a lock can be taken over by another instance only after that time had passed without a lock refresh by the lock owner
     * the chosen value should be higher than the 99%ile of gc pauses; but even if you'd use a smaller value (and lock would
       often get lost due to gc pauses) the library would still work correctly
     * the chosen value should be smaller than the max message publishing delay that you'd like to see (e.g. in deployment scenarios)
-* `String lockOwnerId`: used to identify the instance trying to obtain the lock, must be unique per instance (you could e.g.
-  use the hostname)
+    * Proposed value: 5s
+* `String lockOwnerId`: used to identify the instance trying to obtain the lock, **must be unique** per instance (!) (you could e.g. use the hostname)
 * `String eventSource`: used as value for the `x-source` header set for a message published to Kafka
 * `Map<String, Object> producerProps`: the properties used to create the `KafkaProducer` (contains e.g. `bootstrap.servers` etc)
 * `AutowireCapableBeanFactory beanFactory`: used to create the lock service (`OutboxLockService`)
@@ -142,7 +156,6 @@ public class TransactionalOutboxConfig {
             OutboxLockService lockService,
             Duration processingInterval,
             Duration outboxLockTimeout,
-            String lockOwnerId,
             String eventSource,
             Map<String, Object> producerProps
     ) {
@@ -152,13 +165,23 @@ public class TransactionalOutboxConfig {
                 new DefaultKafkaProducerFactory(producerProps),
                 processingInterval,
                 outboxLockTimeout,
-                lockOwnerId,
+                lockOwnerId(),
                 eventSource
         );
     }
 
+    private static String lockOwnerId() {
+        try { return InetAddress.getLocalHost().getHostName(); }
+        catch (UnknownHostException e) { throw new RuntimeException(e); }
+    }
+
 }
 ```
+
+#### Housekeeping
+
+Note that by default the `OutboxProcessor` will not delete processed messages from the outbox table.
+To address this, see the section [How to house keep your outbox table](#how-to-house-keep-your-outbox-table).
 
 ## Usage
 

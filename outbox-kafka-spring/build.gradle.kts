@@ -1,7 +1,7 @@
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
-    val springVersion = "6.1.2"
+    val springVersion = "6.1.3"
     val kafkaVersion = "3.6.1"
     val springKafkaVersion = "3.0.12"
     val log4jVersion = "2.22.1"
@@ -13,7 +13,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.16.1")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("org.slf4j:slf4j-api:2.0.11")
+    implementation("org.slf4j:slf4j-api:2.0.12")
     implementation("jakarta.annotation:jakarta.annotation-api:2.1.1")
     implementation(project(":commons"))
 
@@ -24,8 +24,8 @@ dependencies {
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
     testImplementation("org.mockito:mockito-all:1.10.19")
 
-    testImplementation("org.flywaydb:flyway-database-postgresql:10.4.1")
-    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:9.5.0")
+    testImplementation("org.flywaydb:flyway-database-postgresql:10.7.2")
+    testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
 
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")

@@ -15,6 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
+import lombok.Getter;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
@@ -58,6 +59,7 @@ public class OutboxProcessor {
     private final ScheduledExecutorService executor;
     private final byte[] eventSource;
     private KafkaProducer<String, byte[]> producer;
+    @Getter
     private boolean active;
     private Instant lastLockAckquisitionAttempt;
 

@@ -282,6 +282,8 @@ public class Cleaner {
 }
 ```
 
+**Note:** if you don't use a clustered job scheduling so that all instances would run this (maybe concurrently) you can also check `OutboxProcessor.isActive()` as a guard for performing the cleanup.
+
 ## How-To Release
 
 To release a new version follow this step

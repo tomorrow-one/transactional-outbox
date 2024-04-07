@@ -47,9 +47,9 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOUR
 public class OutboxProcessor {
 
     @FunctionalInterface
-	public interface KafkaProducerFactory {
-		KafkaProducer<String, byte[]> createKafkaProducer();
-	}
+    public interface KafkaProducerFactory {
+        KafkaProducer<String, byte[]> createKafkaProducer();
+    }
 
     /** If provided, the outbox will be cleaned up in the given interval, i.e. outbox records will be
      * deleted if they were processed before `ǹow - retention`. */
@@ -60,40 +60,40 @@ public class OutboxProcessor {
         Duration retention;
     }
 
-	private static final int DEFAULT_BATCH_SIZE = 100;
+    private static final int DEFAULT_BATCH_SIZE = 100;
 
-	private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
-	private final List<Consumer<KafkaProducer<String, byte[]>>> producerClosedListeners = new ArrayList<>();
-	private final List<Consumer<KafkaProducer<String, byte[]>>> producerCreatedListeners = new ArrayList<>();
-	private final OutboxLockService lockService;
-	private final String lockOwnerId;
-	private final OutboxRepository repository;
-	private final KafkaProducerFactory producerFactory;
-	private final Duration processingInterval;
-	private final Duration lockTimeout;
-	private final ScheduledExecutorService executor;
+    private final List<Consumer<KafkaProducer<String, byte[]>>> producerClosedListeners = new ArrayList<>();
+    private final List<Consumer<KafkaProducer<String, byte[]>>> producerCreatedListeners = new ArrayList<>();
+    private final OutboxLockService lockService;
+    private final String lockOwnerId;
+    private final OutboxRepository repository;
+    private final KafkaProducerFactory producerFactory;
+    private final Duration processingInterval;
+    private final Duration lockTimeout;
+    private final ScheduledExecutorService executor;
     private final ScheduledExecutorService cleanupExecutor;
-	private final byte[] eventSource;
-	private final int batchSize;
-	private KafkaProducer<String, byte[]> producer;
+    private final byte[] eventSource;
+    private final int batchSize;
+    private KafkaProducer<String, byte[]> producer;
     @Getter
-	private boolean active;
-	private Instant lastLockAckquisitionAttempt;
+    private boolean active;
+    private Instant lastLockAckquisitionAttempt;
 
-	private ScheduledFuture<?> schedule;
+    private ScheduledFuture<?> schedule;
     private ScheduledFuture<?> cleanupSchedule;
 
-	public OutboxProcessor(
-			OutboxRepository repository,
-			OutboxLockService lockService,
-			KafkaProducerFactory producerFactory,
-			Duration processingInterval,
-			Duration lockTimeout,
-			String lockOwnerId,
-			String eventSource) {
-		this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, null);
-	}
+    public OutboxProcessor(
+            OutboxRepository repository,
+            OutboxLockService lockService,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource) {
+        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, null);
+    }
 
     public OutboxProcessor(
             OutboxRepository repository,
@@ -107,61 +107,61 @@ public class OutboxProcessor {
         this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, cleanupSettings);
     }
 
-	public OutboxProcessor(
-			OutboxRepository repository,
-			OutboxLockService lockService,
-			KafkaProducerFactory producerFactory,
-			Duration processingInterval,
-			Duration lockTimeout,
-			String lockOwnerId,
-			String eventSource,
-			int batchSize,
+    public OutboxProcessor(
+            OutboxRepository repository,
+            OutboxLockService lockService,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            int batchSize,
             CleanupSettings cleanupSettings) {
-		logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
-				lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
-		this.repository = repository;
-		this.processingInterval = processingInterval;
-		this.lockTimeout = lockTimeout;
-		this.lockService = lockService;
-		this.lockOwnerId = lockOwnerId;
-		this.eventSource = eventSource.getBytes();
-		this.batchSize = batchSize;
-		this.producerFactory = producerFactory;
-		createProducer(producerFactory);
+        logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
+                lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
+        this.repository = repository;
+        this.processingInterval = processingInterval;
+        this.lockTimeout = lockTimeout;
+        this.lockService = lockService;
+        this.lockOwnerId = lockOwnerId;
+        this.eventSource = eventSource.getBytes();
+        this.batchSize = batchSize;
+        this.producerFactory = producerFactory;
+        createProducer(producerFactory);
 
-		executor = Executors.newSingleThreadScheduledExecutor();
+        executor = Executors.newSingleThreadScheduledExecutor();
 
-		tryLockAcquisition();
+        tryLockAcquisition();
 
         cleanupExecutor = cleanupSettings != null ? setupCleanupSchedule(repository, cleanupSettings) : null;
-	}
+    }
 
-	/** Register a callback that's invoked before a producer is closed. */
-	public OutboxProcessor onBeforeProducerClosed(Consumer<KafkaProducer<String, byte[]>> listener) {
-		producerClosedListeners.add(listener);
-		return this;
-	}
+    /** Register a callback that's invoked before a producer is closed. */
+    public OutboxProcessor onBeforeProducerClosed(Consumer<KafkaProducer<String, byte[]>> listener) {
+        producerClosedListeners.add(listener);
+        return this;
+    }
 
-	/** Register a callback that's invoked when a producer got created. */
-	public OutboxProcessor onProducerCreated(Consumer<KafkaProducer<String, byte[]>> listener) {
-		producerCreatedListeners.add(listener);
+    /** Register a callback that's invoked when a producer got created. */
+    public OutboxProcessor onProducerCreated(Consumer<KafkaProducer<String, byte[]>> listener) {
+        producerCreatedListeners.add(listener);
 
-		// also call this for the already created producer (because this might just have happened during construction)
-		if (producer != null)
-			listener.accept(producer);
+        // also call this for the already created producer (because this might just have happened during construction)
+        if (producer != null)
+            listener.accept(producer);
 
-		return this;
-	}
+        return this;
+    }
 
-	private void createProducer(KafkaProducerFactory producerFactory) {
-		producer = producerFactory.createKafkaProducer();
-		producerCreatedListeners.forEach(listener -> listener.accept(producer));
-	}
+    private void createProducer(KafkaProducerFactory producerFactory) {
+        producer = producerFactory.createKafkaProducer();
+        producerCreatedListeners.forEach(listener -> listener.accept(producer));
+    }
 
-	private void closeProducer() {
-		producerClosedListeners.forEach(listener -> listener.accept(producer));
-		producer.close(Duration.ZERO);
-	}
+    private void closeProducer() {
+        producerClosedListeners.forEach(listener -> listener.accept(producer));
+        producer.close(Duration.ZERO);
+    }
 
     private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, CleanupSettings cleanupSettings) {
         final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
@@ -175,137 +175,137 @@ public class OutboxProcessor {
         return es;
     }
 
-	private void scheduleProcessing() {
-		if (executor.isShutdown())
-			logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
-		else
-			schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
-	}
+    private void scheduleProcessing() {
+        if (executor.isShutdown())
+            logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+        else
+            schedule = executor.schedule(this::processOutboxWithLock, processingInterval.toMillis(), MILLISECONDS);
+    }
 
-	private void scheduleTryLockAcquisition() {
-		if (executor.isShutdown())
-			logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
-		else
-			schedule = executor.schedule(this::tryLockAcquisition, lockTimeout.toMillis(), MILLISECONDS);
-	}
+    private void scheduleTryLockAcquisition() {
+        if (executor.isShutdown())
+            logger.info("Not scheduling acquisition of outbox lock for lockOwnerId {} (executor is shutdown)", lockOwnerId);
+        else
+            schedule = executor.schedule(this::tryLockAcquisition, lockTimeout.toMillis(), MILLISECONDS);
+    }
 
-	@PreDestroy
-	public void close() {
-		logger.info("Stopping OutboxProcessor.");
-		if (schedule != null)
-			schedule.cancel(false);
-		executor.shutdown();
+    @PreDestroy
+    public void close() {
+        logger.info("Stopping OutboxProcessor.");
+        if (schedule != null)
+            schedule.cancel(false);
+        executor.shutdown();
 
         if (cleanupSchedule != null)
             cleanupSchedule.cancel(false);
         if (cleanupExecutor != null)
             cleanupExecutor.shutdown();
 
-		closeProducer();
-		lockService.releaseLock(lockOwnerId).subscribe();
-	}
+        closeProducer();
+        lockService.releaseLock(lockOwnerId).subscribe();
+    }
 
-	private void tryLockAcquisition() {
-		boolean originalActive = active;
-		logger.debug("{} trying to acquire outbox lock", lockOwnerId);
+    private void tryLockAcquisition() {
+        boolean originalActive = active;
+        logger.debug("{} trying to acquire outbox lock", lockOwnerId);
 
-		lockService.acquireOrRefreshLock(lockOwnerId, lockTimeout, active)
-				.doOnNext(acquiredOrRefreshedLock -> {
-					this.active = acquiredOrRefreshedLock;
-					lastLockAckquisitionAttempt = now();
-					if (acquiredOrRefreshedLock) {
-						if (originalActive)
-							logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
-						else
-							logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+        lockService.acquireOrRefreshLock(lockOwnerId, lockTimeout, active)
+                .doOnNext(acquiredOrRefreshedLock -> {
+                    this.active = acquiredOrRefreshedLock;
+                    lastLockAckquisitionAttempt = now();
+                    if (acquiredOrRefreshedLock) {
+                        if (originalActive)
+                            logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
+                        else
+                            logger.info("{} acquired outbox lock, starting to process outbox", lockOwnerId);
 
-						processOutboxWithLock();
-					}
-					else {
-						scheduleTryLockAcquisition();
-					}
-				}).doOnError(e -> {
-					logger.warn("Failed trying to acquire outbox lock, trying again in {}", lockTimeout, e);
-					scheduleTryLockAcquisition();
-				}).subscribe();
-	}
+                        processOutboxWithLock();
+                    }
+                    else {
+                        scheduleTryLockAcquisition();
+                    }
+                }).doOnError(e -> {
+                    logger.warn("Failed trying to acquire outbox lock, trying again in {}", lockTimeout, e);
+                    scheduleTryLockAcquisition();
+                }).subscribe();
+    }
 
-	private void processOutboxWithLock() {
-		if (!active) {
-			logger.warn("processOutbox must only be run when in active state");
-			scheduleTryLockAcquisition();
-			return;
-		}
+    private void processOutboxWithLock() {
+        if (!active) {
+            logger.warn("processOutbox must only be run when in active state");
+            scheduleTryLockAcquisition();
+            return;
+        }
 
-		if (now().isAfter(lastLockAckquisitionAttempt.plus(lockTimeout.dividedBy(2)))) {
-			tryLockAcquisition();
-			return;
-		}
+        if (now().isAfter(lastLockAckquisitionAttempt.plus(lockTimeout.dividedBy(2)))) {
+            tryLockAcquisition();
+            return;
+        }
 
-		lockService.runWithLock(lockOwnerId, Mono.defer(() ->
-				processOutbox()
-						.onErrorResume(e -> {
-							logger.warn("Recreating producer, due to failure while processing outbox.", e);
-							closeProducer();
-							createProducer(producerFactory);
-							return Mono.empty();
-						})
-						.then()
-				))
-				.onErrorResume(e -> {
-					logger.warn("Failed to run with lock, trying to acquire lock in {} ms", lockTimeout.toMillis(), e);
-					active = false;
-					scheduleTryLockAcquisition();
-					return Mono.empty();
-				})
-				.doOnNext(couldRunWithLock -> {
-					if (couldRunWithLock) {
-						scheduleProcessing();
-					} else {
-						logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockTimeout.toMillis());
-						active = false;
-						scheduleTryLockAcquisition();
-					}
-				}).subscribe();
-	}
+        lockService.runWithLock(lockOwnerId, Mono.defer(() ->
+                processOutbox()
+                        .onErrorResume(e -> {
+                            logger.warn("Recreating producer, due to failure while processing outbox.", e);
+                            closeProducer();
+                            createProducer(producerFactory);
+                            return Mono.empty();
+                        })
+                        .then()
+                ))
+                .onErrorResume(e -> {
+                    logger.warn("Failed to run with lock, trying to acquire lock in {} ms", lockTimeout.toMillis(), e);
+                    active = false;
+                    scheduleTryLockAcquisition();
+                    return Mono.empty();
+                })
+                .doOnNext(couldRunWithLock -> {
+                    if (couldRunWithLock) {
+                        scheduleProcessing();
+                    } else {
+                        logger.info("Lock was lost, changing to inactive, now trying to acquire lock in {} ms", lockTimeout.toMillis());
+                        active = false;
+                        scheduleTryLockAcquisition();
+                    }
+                }).subscribe();
+    }
 
-	private Mono<List<OutboxRecord>> processOutbox() {
-		return repository.getUnprocessedRecords(batchSize)
-				.flatMap(this::publish)
-				.concatMap(outboxRecord -> repository.saveInNewTransaction(
-						outboxRecord.toBuilder().processed(now()).build()
-				))
-				.collectList();
-	}
+    private Mono<List<OutboxRecord>> processOutbox() {
+        return repository.getUnprocessedRecords(batchSize)
+                .flatMap(this::publish)
+                .concatMap(outboxRecord -> repository.saveInNewTransaction(
+                        outboxRecord.toBuilder().processed(now()).build()
+                ))
+                .collectList();
+    }
 
-	private Mono<OutboxRecord> publish(OutboxRecord outboxRecord) {
-		return Mono.create(monoSink -> {
-			ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
-			producer.send(producerRecord, (metadata, exception) -> {
-				if (exception != null) {
-					monoSink.error(exception);
-				} else {
-					logger.info("Sent record to kafka: {} (got metadata: {})", outboxRecord, metadata);
-					monoSink.success(outboxRecord);
-				}
-			});
-		});
-	}
+    private Mono<OutboxRecord> publish(OutboxRecord outboxRecord) {
+        return Mono.create(monoSink -> {
+            ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
+            producer.send(producerRecord, (metadata, exception) -> {
+                if (exception != null) {
+                    monoSink.error(exception);
+                } else {
+                    logger.info("Sent record to kafka: {} (got metadata: {})", outboxRecord, metadata);
+                    monoSink.success(outboxRecord);
+                }
+            });
+        });
+    }
 
-	private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
-		ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
-				outboxRecord.getTopic(),
-				outboxRecord.getKey(),
-				outboxRecord.getValue()
-		);
-		Map<String, String> headers = outboxRecord.getHeadersAsMap();
-		if (headers != null) {
-			headers.forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
-		}
-		producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
-		producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
-		return producerRecord;
-	}
+    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
+        ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
+                outboxRecord.getTopic(),
+                outboxRecord.getKey(),
+                outboxRecord.getValue()
+        );
+        Map<String, String> headers = outboxRecord.getHeadersAsMap();
+        if (headers != null) {
+            headers.forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
+        }
+        producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
+        producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
+        return producerRecord;
+    }
 
 
 }

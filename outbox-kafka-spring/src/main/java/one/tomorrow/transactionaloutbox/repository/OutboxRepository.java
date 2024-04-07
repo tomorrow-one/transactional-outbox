@@ -124,6 +124,7 @@ public class OutboxRepository {
      * @param deleteOlderThan the point in time until the processed entities shall be kept
      * @return amount of deleted rows
      */
+    @Transactional
     public int deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan) {
         return jdbcTemplate.update(
                 "DELETE FROM outbox_kafka WHERE processed IS NOT NULL AND processed < ?",

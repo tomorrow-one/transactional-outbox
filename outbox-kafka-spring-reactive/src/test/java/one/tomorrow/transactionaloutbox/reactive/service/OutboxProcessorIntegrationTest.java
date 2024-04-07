@@ -20,6 +20,7 @@ import one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport;
 import one.tomorrow.transactionaloutbox.commons.ProxiedContainerSupport;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.reactive.service.OutboxProcessor.CleanupSettings;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -148,7 +149,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         Map<String, Object> producerProps = producerPropsWithShortTimeouts(requestTimeout);
         Duration processingInterval = Duration.ofMillis(50);
         int batchSize = 100;
-        testee = new OutboxProcessor(repository, lockService, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize);
+        testee = new OutboxProcessor(repository, lockService, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null);
 
         // when
         int numRecords = 500;
@@ -179,7 +180,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         String eventSource = "test";
         Duration processingInterval = Duration.ofMillis(2);
         int batchSize = 5; // use a smaller batch size so that batch management (locking etc) is likely to happen during a cut connection
-        testee = new OutboxProcessor(repository, lockService, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize);
+        testee = new OutboxProcessor(repository, lockService, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null);
 
         // when
         int numRecords = 500;
@@ -202,6 +203,39 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         for (OutboxRecord outboxRecord : outboxRecords) {
             assertConsumedRecord(outboxRecord, eventSource, kafkaRecordsIter.next());
         }
+    }
+
+    @Test
+    void should_cleanupOutdatedProcessedRecords() {
+        // given
+        Duration processingInterval = Duration.ofMillis(50);
+        String eventSource = "test";
+        CleanupSettings cleanupSettings = CleanupSettings.builder()
+                .interval(Duration.ofMillis(100))
+                .retention(Duration.ofMillis(200))
+                .build();
+        testee = new OutboxProcessor(repository,
+                lockService,
+                producerFactory(),
+                processingInterval,
+                DEFAULT_OUTBOX_LOCK_TIMEOUT,
+                lockOwnerId(),
+                eventSource,
+                cleanupSettings);
+
+        // when
+        OutboxRecord outboxRecord = repository.save(newRecord(topic1, "key1", "value1")).block();
+
+        // then
+        assertThat(getAndCommitRecords(1).count(), is(1));
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> repository.getUnprocessedRecords(100).collectList().block().isEmpty()
+        );
+
+        // and eventually
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> repository.findAll().collectList().block().isEmpty()
+        );
     }
 
     private List<OutboxRecord> getSortedById(List<Mono<OutboxRecord>> outboxRecordMonos) {

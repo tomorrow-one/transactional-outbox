@@ -15,7 +15,9 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.service;
 
+import lombok.Builder;
 import lombok.Getter;
+import lombok.Value;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
@@ -44,10 +46,19 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOUR
 @SuppressWarnings("unused")
 public class OutboxProcessor {
 
-	@FunctionalInterface
+    @FunctionalInterface
 	public interface KafkaProducerFactory {
 		KafkaProducer<String, byte[]> createKafkaProducer();
 	}
+
+    /** If provided, the outbox will be cleaned up in the given interval, i.e. outbox records will be
+     * deleted if they were processed before `ǹow - retention`. */
+    @Value
+    @Builder
+    public static class CleanupSettings {
+        Duration interval;
+        Duration retention;
+    }
 
 	private static final int DEFAULT_BATCH_SIZE = 100;
 
@@ -62,6 +73,7 @@ public class OutboxProcessor {
 	private final Duration processingInterval;
 	private final Duration lockTimeout;
 	private final ScheduledExecutorService executor;
+    private final ScheduledExecutorService cleanupExecutor;
 	private final byte[] eventSource;
 	private final int batchSize;
 	private KafkaProducer<String, byte[]> producer;
@@ -70,6 +82,7 @@ public class OutboxProcessor {
 	private Instant lastLockAckquisitionAttempt;
 
 	private ScheduledFuture<?> schedule;
+    private ScheduledFuture<?> cleanupSchedule;
 
 	public OutboxProcessor(
 			OutboxRepository repository,
@@ -79,8 +92,20 @@ public class OutboxProcessor {
 			Duration lockTimeout,
 			String lockOwnerId,
 			String eventSource) {
-		this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE);
+		this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, null);
 	}
+
+    public OutboxProcessor(
+            OutboxRepository repository,
+            OutboxLockService lockService,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            CleanupSettings cleanupSettings) {
+        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, cleanupSettings);
+    }
 
 	public OutboxProcessor(
 			OutboxRepository repository,
@@ -90,7 +115,8 @@ public class OutboxProcessor {
 			Duration lockTimeout,
 			String lockOwnerId,
 			String eventSource,
-			int batchSize) {
+			int batchSize,
+            CleanupSettings cleanupSettings) {
 		logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
 				lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
 		this.repository = repository;
@@ -106,6 +132,8 @@ public class OutboxProcessor {
 		executor = Executors.newSingleThreadScheduledExecutor();
 
 		tryLockAcquisition();
+
+        cleanupExecutor = cleanupSettings != null ? setupCleanupSchedule(repository, cleanupSettings) : null;
 	}
 
 	/** Register a callback that's invoked before a producer is closed. */
@@ -135,6 +163,18 @@ public class OutboxProcessor {
 		producer.close(Duration.ZERO);
 	}
 
+    private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, CleanupSettings cleanupSettings) {
+        final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+        cleanupSchedule = es.scheduleAtFixedRate(() -> {
+            if (active) {
+                Instant processedBefore = now().minus(cleanupSettings.getRetention());
+                logger.info("Cleaning up outbox records processed before {}", processedBefore);
+                repository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(processedBefore).block();
+            }
+        }, 0, cleanupSettings.getInterval().toMillis(), MILLISECONDS);
+        return es;
+    }
+
 	private void scheduleProcessing() {
 		if (executor.isShutdown())
 			logger.info("Not scheduling processing for lockOwnerId {} (executor is shutdown)", lockOwnerId);
@@ -155,6 +195,12 @@ public class OutboxProcessor {
 		if (schedule != null)
 			schedule.cancel(false);
 		executor.shutdown();
+
+        if (cleanupSchedule != null)
+            cleanupSchedule.cancel(false);
+        if (cleanupExecutor != null)
+            cleanupExecutor.shutdown();
+
 		closeProducer();
 		lockService.releaseLock(lockOwnerId).subscribe();
 	}

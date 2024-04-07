@@ -95,22 +95,29 @@ If you're using the `DefaultKafkaProducerFactory` as shown below, it will set `e
 @ComponentScan(basePackages = "one.tomorrow.transactionaloutbox")
 public class TransactionalOutboxConfig {
 
+    private Duration processingInterval = Duration.ofMillis(200);
+    private Duration outboxLockTimeout = Duration.ofSeconds(5);
+    private String lockOwnerId = lockOwnerId();
+    private String eventSource = "my-service";
+    private CleanupSettings cleanupSettings = CleanupSettings.builder()
+                .interval(Duration.ofDays(1))
+                .retention(Duration.ofDays(30))
+                .build();
+
     @Bean
     public OutboxProcessor outboxProcessor(
-            OutboxRepository repository,
-            Duration processingInterval,
-            Duration outboxLockTimeout,
-            String eventSource,
-            Map<String, Object> producerProps,
-            AutowireCapableBeanFactory beanFactory
+                OutboxRepository repository,
+                Map<String, Object> producerProps,
+                AutowireCapableBeanFactory beanFactory
     ) {
         return new OutboxProcessor(
                 repository,
                 new DefaultKafkaProducerFactory(producerProps),
                 processingInterval,
                 outboxLockTimeout,
-                lockOwnerId(),
+                lockOwnerId,
                 eventSource,
+                cleanupSettings,
                 beanFactory
         );
     }
@@ -137,6 +144,7 @@ public class TransactionalOutboxConfig {
     * Proposed value: 5s
 * `String lockOwnerId`: used to identify the instance trying to obtain the lock, **must be unique** per instance (!) (you could e.g. use the hostname)
 * `String eventSource`: used as value for the `x-source` header set for a message published to Kafka
+* `CleanupSettings cleanupSettings`: specifies the interval for cleaning up the outbox and the retention time for processed records, i.e. how long to keep processed records before deleting them. Set `cleanupSettings` to `null` if you prefer manual or no cleanup at all. See also [How to house keep your outbox table](#how-to-house-keep-your-outbox-table) below.
 * `Map<String, Object> producerProps`: the properties used to create the `KafkaProducer` (contains e.g. `bootstrap.servers` etc)
 * `AutowireCapableBeanFactory beanFactory`: used to create the lock service (`OutboxLockService`)
 
@@ -150,13 +158,19 @@ Only slightly different looks the setup of the `OutboxProcessor` for reactive ap
 @ComponentScan(basePackages = "one.tomorrow.transactionaloutbox.reactive")
 public class TransactionalOutboxConfig {
 
+    private Duration processingInterval = Duration.ofMillis(200);
+    private Duration outboxLockTimeout = Duration.ofSeconds(5);
+    private String lockOwnerId = lockOwnerId();
+    private String eventSource = "my-service";
+    private CleanupSettings cleanupSettings = CleanupSettings.builder()
+            .interval(Duration.ofDays(1))
+            .retention(Duration.ofDays(30))
+            .build();
+
     @Bean
     public OutboxProcessor outboxProcessor(
             OutboxRepository repository,
             OutboxLockService lockService,
-            Duration processingInterval,
-            Duration outboxLockTimeout,
-            String eventSource,
             Map<String, Object> producerProps
     ) {
         return new OutboxProcessor(
@@ -165,8 +179,9 @@ public class TransactionalOutboxConfig {
                 new DefaultKafkaProducerFactory(producerProps),
                 processingInterval,
                 outboxLockTimeout,
-                lockOwnerId(),
-                eventSource
+                lockOwnerId,
+                eventSource,
+                cleanupSettings
         );
     }
 
@@ -177,11 +192,6 @@ public class TransactionalOutboxConfig {
 
 }
 ```
-
-#### Housekeeping
-
-Note that by default the `OutboxProcessor` will not delete processed messages from the outbox table.
-To address this, see the section [How to house keep your outbox table](#how-to-house-keep-your-outbox-table).
 
 ## Usage
 

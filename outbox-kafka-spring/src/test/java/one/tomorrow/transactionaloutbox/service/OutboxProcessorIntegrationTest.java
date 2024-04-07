@@ -23,6 +23,7 @@ import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.service.OutboxProcessor.CleanupSettings;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -66,6 +67,7 @@ import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQU
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
@@ -364,6 +366,41 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         // then
         records = getAndCommitRecords();
         assertEquals(1, records.count());
+    }
+
+    @Test
+    public void should_CleanupOutdatedProcessedRecords() {
+        // given
+        String eventSource = "test";
+        CleanupSettings cleanupSettings = CleanupSettings.builder()
+                .interval(Duration.ofMillis(100))
+                .retention(Duration.ofMillis(200))
+                .build();
+        testee = new OutboxProcessor(
+                repository,
+                producerFactory(),
+                Duration.ofMillis(10),
+                DEFAULT_OUTBOX_LOCK_TIMEOUT,
+                lockOwnerId(),
+                eventSource,
+                cleanupSettings, beanFactory
+        );
+
+        // when
+        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        transactionalRepository.persist(record1);
+        assertEquals(1, repository.getUnprocessedRecords(1).size());
+
+        // then
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> repository.getUnprocessedRecords(1).isEmpty()
+        );
+        assertEquals(1, getAndCommitRecords(1).count());
+
+        // and eventually
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> jdbcTemplate.queryForObject("select count(*) from outbox_kafka", Integer.class) == 0
+        );
     }
 
     private void assertConsumedRecord(OutboxRecord outboxRecord, String headerKey, String sourceHeaderValue, ConsumerRecord<String, byte[]> kafkaRecord) {

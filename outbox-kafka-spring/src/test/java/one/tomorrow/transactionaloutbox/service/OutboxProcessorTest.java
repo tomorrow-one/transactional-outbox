@@ -23,12 +23,10 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
 import java.time.Duration;
@@ -40,7 +38,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
@@ -141,18 +138,11 @@ public class OutboxProcessorTest {
     }
 
     @NotNull
-    private static Matcher<ProducerRecord<String, byte[]>> matching(OutboxRecord record) {
-        return new BaseMatcher<>() {
-            @Override
-            public void describeTo(Description description) {
-            }
-
-            @Override
-            public boolean matches(Object item) {
-                if (item == null)
-                    return false;
-                return Objects.equals(((ProducerRecord<String, byte[]>) item).key(), record.getKey());
-            }
+    private static ArgumentMatcher<ProducerRecord<String, byte[]>> matching(OutboxRecord record) {
+        return item -> {
+            if (item == null)
+                return false;
+            return Objects.equals(item.key(), record.getKey());
         };
     }
 

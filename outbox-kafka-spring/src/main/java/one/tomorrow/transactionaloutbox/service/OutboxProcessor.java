@@ -15,6 +15,9 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Value;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
@@ -46,6 +49,15 @@ public class OutboxProcessor {
         KafkaProducer<String, byte[]> createKafkaProducer();
     }
 
+    /** If provided, the outbox will be cleaned up in the given interval, i.e. outbox records will be
+     * deleted if they were processed before `ǹow - retention`. */
+    @Value
+    @Builder
+    public static class CleanupSettings {
+        Duration interval;
+        Duration retention;
+    }
+
     private static final int BATCH_SIZE = 100;
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
@@ -56,12 +68,15 @@ public class OutboxProcessor {
     private final KafkaProducerFactory producerFactory;
     private final Duration processingInterval;
     private final ScheduledExecutorService executor;
+    private final ScheduledExecutorService cleanupExecutor;
     private final byte[] eventSource;
     private KafkaProducer<String, byte[]> producer;
+    @Getter
     private boolean active;
     private Instant lastLockAckquisitionAttempt;
 
     private ScheduledFuture<?> schedule;
+    private ScheduledFuture<?> cleanupSchedule;
 
     public OutboxProcessor(
             OutboxRepository repository,
@@ -70,6 +85,18 @@ public class OutboxProcessor {
             Duration lockTimeout,
             String lockOwnerId,
             String eventSource,
+            AutowireCapableBeanFactory beanFactory) {
+        this(repository, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, null, beanFactory);
+    }
+
+    public OutboxProcessor(
+            OutboxRepository repository,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            CleanupSettings cleanupSettings,
             AutowireCapableBeanFactory beanFactory) {
         logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
                 lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
@@ -86,6 +113,20 @@ public class OutboxProcessor {
         executor = Executors.newSingleThreadScheduledExecutor();
 
         tryLockAcquisition();
+
+        cleanupExecutor = cleanupSettings != null ? setupCleanupSchedule(repository, cleanupSettings) : null;
+    }
+
+    private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, CleanupSettings cleanupSettings) {
+        final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+        cleanupSchedule = es.scheduleAtFixedRate(() -> {
+            if (active) {
+                Instant processedBefore = now().minus(cleanupSettings.getRetention());
+                logger.info("Cleaning up outbox records processed before {}", processedBefore);
+                repository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(processedBefore);
+            }
+        }, 0, cleanupSettings.getInterval().toMillis(), MILLISECONDS);
+        return es;
     }
 
     private void scheduleProcessing() {
@@ -108,6 +149,12 @@ public class OutboxProcessor {
         if (schedule != null)
             schedule.cancel(false);
         executor.shutdown();
+
+        if (cleanupSchedule != null)
+            cleanupSchedule.cancel(false);
+        if (cleanupExecutor != null)
+            cleanupExecutor.shutdown();
+
         producer.close();
         if (active)
             lockService.releaseLock(lockOwnerId);

@@ -7,7 +7,7 @@ dependencies {
     val springKafkaVersion = "3.1.4"
     val sl4jVersion = "2.0.13"
     val junitVersion = "5.10.2"
-    val testcontainersVersion = "1.19.7"
+    val testcontainersVersion = "1.19.8"
 
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")

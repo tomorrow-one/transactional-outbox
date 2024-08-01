@@ -34,7 +34,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 
-    testImplementation("org.hamcrest:hamcrest:2.2")
+    testImplementation("org.hamcrest:hamcrest:3.0")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:1.0.1.RELEASE")

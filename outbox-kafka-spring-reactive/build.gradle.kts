@@ -43,7 +43,7 @@ dependencies {
     testImplementation("org.postgresql:postgresql:42.7.3")
     testImplementation("org.flywaydb:flyway-database-postgresql:10.15.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
-    testImplementation("org.awaitility:awaitility:4.2.1")
+    testImplementation("org.awaitility:awaitility:4.2.2")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
     testImplementation("org.apache.commons:commons-dbcp2:2.12.0")

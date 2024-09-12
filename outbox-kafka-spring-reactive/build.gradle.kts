@@ -6,7 +6,7 @@ tasks.withType<JavaCompile> {
 }
 
 dependencies {
-    val springVersion = "6.1.12"
+    val springVersion = "6.1.13"
     val springDataVersion = "3.3.3"
     val kafkaVersion = "3.8.0"
     val testcontainersVersion = "1.20.1"

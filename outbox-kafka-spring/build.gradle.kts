@@ -23,7 +23,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.12.0")
     testImplementation("org.awaitility:awaitility:4.2.2")
 
-    testImplementation("org.flywaydb:flyway-database-postgresql:10.17.1")
+    testImplementation("org.flywaydb:flyway-database-postgresql:10.18.2")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
 
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

@@ -20,7 +20,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
-    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito:mockito-core:5.14.1")
     testImplementation("org.awaitility:awaitility:4.2.2")
 
     testImplementation("org.flywaydb:flyway-database-postgresql:10.17.1")

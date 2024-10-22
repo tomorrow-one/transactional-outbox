@@ -6,11 +6,11 @@ tasks.withType<JavaCompile> {
 }
 
 dependencies {
-    val springVersion = "6.1.12"
+    val springVersion = "6.1.13"
     val springDataVersion = "3.3.3"
     val kafkaVersion = "3.8.0"
     val testcontainersVersion = "1.20.1"
-    val log4jVersion = "2.23.1"
+    val log4jVersion = "2.24.0"
 
     implementation("org.springframework:spring-context:$springVersion")
 
@@ -27,7 +27,7 @@ dependencies {
 
     // testing
     testImplementation(testFixtures(project(":commons")))
-    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.3.2")
+    testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.3.4")
     testImplementation("io.projectreactor:reactor-test:3.6.11")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -40,7 +40,7 @@ dependencies {
     testImplementation("io.r2dbc:r2dbc-pool:1.0.1.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.11.0")
-    testImplementation("org.postgresql:postgresql:42.7.3")
+    testImplementation("org.postgresql:postgresql:42.7.4")
     testImplementation("org.flywaydb:flyway-database-postgresql:10.17.1")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.2.2")

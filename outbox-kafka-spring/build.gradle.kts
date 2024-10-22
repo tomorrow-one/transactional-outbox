@@ -1,13 +1,13 @@
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
-    val springVersion = "6.1.12"
+    val springVersion = "6.1.13"
     val kafkaVersion = "3.8.0"
-    val log4jVersion = "2.23.1"
+    val log4jVersion = "2.24.0"
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-jdbc:$springVersion")
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.postgresql:postgresql:42.7.4")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")

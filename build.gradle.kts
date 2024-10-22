@@ -123,7 +123,8 @@ subprojects {
     signing {
         val signingKeyId: String? by project
         val signingKey: String? by project
-        useInMemoryPgpKeys(signingKeyId, signingKey, "")
+        val signingPassword: String? by project
+        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
         sign(publishing.publications["maven"])
     }
 

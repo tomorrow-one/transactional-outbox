@@ -37,7 +37,7 @@ dependencies {
     testImplementation("org.hamcrest:hamcrest:3.0")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
-    testImplementation("io.r2dbc:r2dbc-pool:1.0.1.RELEASE")
+    testImplementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.11.0")
     testImplementation("org.postgresql:postgresql:42.7.4")

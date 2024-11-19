@@ -59,7 +59,13 @@ public class DefaultKafkaProducerFactory implements KafkaProducerFactory {
 
 	@Override
 	public String toString() {
-		return "DefaultKafkaProducerFactory{producerProps=" + producerProps + '}';
+		return "DefaultKafkaProducerFactory{producerProps=" + loggableProducerProps(producerProps) + '}';
 	}
+
+    static public Map<String, Object> loggableProducerProps(Map<String, Object> producerProps) {
+        Map<String, Object> maskedProducerProps = new HashMap<>(producerProps);
+        maskedProducerProps.replaceAll((key, value) -> key.equalsIgnoreCase("sasl.jaas.config") ? "[hidden]" : value);
+        return maskedProducerProps;
+    }
 
 }

@@ -30,43 +30,43 @@ import static org.apache.kafka.clients.producer.ProducerConfig.ENABLE_IDEMPOTENC
 
 public class DefaultKafkaProducerFactory implements KafkaProducerFactory {
 
-	private static final Logger logger = LoggerFactory.getLogger(DefaultKafkaProducerFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultKafkaProducerFactory.class);
 
-	private final HashMap<String, Object> producerProps;
+    private final HashMap<String, Object> producerProps;
 
-	public DefaultKafkaProducerFactory(Map<String, Object> producerProps) {
-		HashMap<String, Object> props = new HashMap<>(producerProps);
-		// Settings for guaranteed ordering (via enable.idempotence) and dealing with broker failures.
-		// Note that with `enable.idempotence = true` ordering of messages is also checked by the broker.
-		if (Boolean.FALSE.equals(props.get(ENABLE_IDEMPOTENCE_CONFIG)))
-			logger.warn(ENABLE_IDEMPOTENCE_CONFIG + " is set to 'false' - this might lead to out-of-order messages.");
+    public DefaultKafkaProducerFactory(Map<String, Object> producerProps) {
+        HashMap<String, Object> props = new HashMap<>(producerProps);
+        // Settings for guaranteed ordering (via enable.idempotence) and dealing with broker failures.
+        // Note that with `enable.idempotence = true` ordering of messages is also checked by the broker.
+        if (Boolean.FALSE.equals(props.get(ENABLE_IDEMPOTENCE_CONFIG)))
+            logger.warn(ENABLE_IDEMPOTENCE_CONFIG + " is set to 'false' - this might lead to out-of-order messages.");
 
-		setIfNotSet(props, ENABLE_IDEMPOTENCE_CONFIG, true);
+        setIfNotSet(props, ENABLE_IDEMPOTENCE_CONFIG, true);
 
-		// serializer settings
-		props.put(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-		props.put(VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
-		this.producerProps = props;
-	}
+        // serializer settings
+        props.put(KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        this.producerProps = props;
+    }
 
-	private static void setIfNotSet(Map<String, Object> props, String prop, Object value) {
-		if (!props.containsKey(prop)) props.put(prop, value);
-	}
+    private static void setIfNotSet(Map<String, Object> props, String prop, Object value) {
+        if (!props.containsKey(prop)) props.put(prop, value);
+    }
 
-	@Override
-	public KafkaProducer<String, byte[]> createKafkaProducer() {
-		return new KafkaProducer<>(producerProps);
-	}
+    @Override
+    public KafkaProducer<String, byte[]> createKafkaProducer() {
+        return new KafkaProducer<>(producerProps);
+    }
 
-	@Override
-	public String toString() {
-		return "DefaultKafkaProducerFactory{producerProps=" + loggableProducerProps(producerProps) + '}';
-	}
+    @Override
+    public String toString() {
+        return "DefaultKafkaProducerFactory{producerProps=" + loggableProducerProps(producerProps) + '}';
+    }
 
-	static public Map<String, Object> loggableProducerProps(Map<String, Object> producerProps) {
-		Map<String, Object> maskedProducerProps = new HashMap<>(producerProps);
-		maskedProducerProps.replaceAll((key, value) -> key.equalsIgnoreCase("sasl.jaas.config") ? "[hidden]" : value);
-		return maskedProducerProps;
-	}
+    static Map<String, Object> loggableProducerProps(Map<String, Object> producerProps) {
+        Map<String, Object> maskedProducerProps = new HashMap<>(producerProps);
+        maskedProducerProps.replaceAll((key, value) -> key.equalsIgnoreCase("sasl.jaas.config") ? "[hidden]" : value);
+        return maskedProducerProps;
+    }
 
 }

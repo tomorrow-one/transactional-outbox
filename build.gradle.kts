@@ -144,7 +144,7 @@ allprojects {
 
         testLogging {
             events(SKIPPED, PASSED, FAILED)
-            showStandardStreams = false // change to true to get log output from tests
+            showStandardStreams = true // change to true to get log output from tests
             exceptionFormat = FULL
         }
 

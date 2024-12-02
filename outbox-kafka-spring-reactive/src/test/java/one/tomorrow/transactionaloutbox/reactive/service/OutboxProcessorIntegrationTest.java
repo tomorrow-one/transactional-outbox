@@ -54,6 +54,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})
@@ -167,8 +168,13 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
 
         // then
         List<OutboxRecord> outboxRecords = getSortedById(outboxRecordMonos);
-        Iterator<ConsumerRecord<String, byte[]>> kafkaRecordsIter = consumeAndDeduplicateRecords(outboxRecords.size(), Duration.ofSeconds(30))
-                .iterator();
+        Collection<ConsumerRecord<String, byte[]>> kafkaRecords = consumeAndDeduplicateRecords(outboxRecords.size(), Duration.ofSeconds(30));
+
+        List<Long> outboxRecordIds = outboxRecords.stream().map(OutboxRecord::getId).toList();
+        List<Long> kafkaRecordIds = kafkaRecords.stream().map(rec -> toLong(rec.headers().lastHeader(HEADERS_SEQUENCE_NAME).value())).toList();
+        assertEquals(outboxRecordIds, kafkaRecordIds, "OutboxRecord ids and Kafka record ids do not match");
+
+        Iterator<ConsumerRecord<String, byte[]>> kafkaRecordsIter = kafkaRecords.iterator();
         for (OutboxRecord outboxRecord : outboxRecords) {
             assertConsumedRecord(outboxRecord, eventSource, kafkaRecordsIter.next());
         }

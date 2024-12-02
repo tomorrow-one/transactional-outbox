@@ -28,5 +28,5 @@ dependencies {
 
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
-    testImplementation("org.apache.commons:commons-dbcp2:2.12.0")
+    testImplementation("org.apache.commons:commons-dbcp2:2.13.0")
 }

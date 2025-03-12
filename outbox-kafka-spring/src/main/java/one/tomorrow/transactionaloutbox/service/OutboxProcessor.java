@@ -22,8 +22,13 @@ import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService.TraceOutboxRecordProcessingResult;
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -31,6 +36,7 @@ import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -70,6 +76,7 @@ public class OutboxProcessor {
     private final ScheduledExecutorService executor;
     private final ScheduledExecutorService cleanupExecutor;
     private final byte[] eventSource;
+    private final TracingService tracingService;
     private KafkaProducer<String, byte[]> producer;
     @Getter
     private boolean active;
@@ -86,7 +93,7 @@ public class OutboxProcessor {
             String lockOwnerId,
             String eventSource,
             AutowireCapableBeanFactory beanFactory) {
-        this(repository, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, null, beanFactory);
+        this(repository, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, null, null, beanFactory);
     }
 
     public OutboxProcessor(
@@ -97,6 +104,7 @@ public class OutboxProcessor {
             String lockOwnerId,
             String eventSource,
             CleanupSettings cleanupSettings,
+            TracingService tracingService,
             AutowireCapableBeanFactory beanFactory) {
         logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
                 lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
@@ -107,6 +115,7 @@ public class OutboxProcessor {
         this.lockService = (OutboxLockService) beanFactory.initializeBean(rawLockService, "OutboxLockService");
         this.lockOwnerId = lockOwnerId;
         this.eventSource = eventSource.getBytes();
+        this.tracingService = tracingService != null ? tracingService : new NoopTracingService();
         this.producerFactory = producerFactory;
         producer = producerFactory.createKafkaProducer();
 
@@ -223,16 +232,24 @@ public class OutboxProcessor {
     void processOutbox() {
         repository.getUnprocessedRecords(BATCH_SIZE)
                 .stream()
-                .map(outboxRecord -> producer.send(toProducerRecord(outboxRecord), (metadata, exception) -> {
-                    if (exception != null) {
-                        logger.warn("Failed to publish {}", outboxRecord, exception);
-                    } else {
-                        logger.info("Sent record to kafka: {}", outboxRecord);
-                        repository.updateProcessed(outboxRecord.getId(), now());
-                    }
-                }))
+                .map(this::process)
                 .toList() // collect to List (so that map is completed for all items before awaiting futures), to use producer internal batching
                 .forEach(OutboxProcessor::await);
+    }
+
+    private Future<RecordMetadata> process(OutboxRecord outboxRecord) {
+        TraceOutboxRecordProcessingResult tracingResult = tracingService.traceOutboxRecordProcessing(outboxRecord);
+        Callback callback = (metadata, exception) -> {
+            if (exception != null) {
+                logger.warn("Failed to publish {}", outboxRecord, exception);
+                tracingResult.publishFailed(exception);
+            } else {
+                logger.info("Sent record to kafka: {}", outboxRecord);
+                repository.updateProcessed(outboxRecord.getId(), now());
+                tracingResult.publishCompleted();
+            }
+        };
+        return producer.send(toProducerRecord(outboxRecord, tracingResult.getHeaders()), callback);
     }
 
     private static void await(Future<?> future) {
@@ -246,14 +263,14 @@ public class OutboxProcessor {
         }
     }
 
-    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
+    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord, Map<String, String> headers) {
         ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
                 outboxRecord.getTopic(),
                 outboxRecord.getKey(),
                 outboxRecord.getValue()
         );
-        if (outboxRecord.getHeaders() != null) {
-            outboxRecord.getHeaders().forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
+        if (headers != null && !headers.isEmpty()) {
+            headers.forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
         }
         producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
         producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);

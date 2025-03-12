@@ -21,8 +21,15 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class TestUtils {
+
+    private static final Random RANDOM = new Random();
+
+    public static boolean randomBoolean() {
+        return RANDOM.nextBoolean();
+    }
 
     @NotNull
     public static Map<String, String> newHeaders(String ... keyValue) {

@@ -18,6 +18,7 @@ package one.tomorrow.transactionaloutbox.reactive;
 import one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.service.DefaultKafkaProducerFactory;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Map;
@@ -46,9 +47,10 @@ public interface KafkaTestSupport extends CommonKafkaTestSupport<byte[]> {
                 "OutboxRecord id and " + HEADERS_SEQUENCE_NAME + " headers do not match"
         );
         assertArrayEquals(sourceHeaderValue.getBytes(), kafkaRecord.headers().lastHeader(HEADERS_SOURCE_NAME).value());
-        outboxRecord.getHeadersAsMap().forEach((key, value) ->
-                assertArrayEquals(value.getBytes(), kafkaRecord.headers().lastHeader(key).value())
-        );
+        outboxRecord.getHeadersAsMap().forEach((key, value) -> {
+            if (!key.startsWith(TracingService.INTERNAL_PREFIX))
+                assertArrayEquals(value.getBytes(), kafkaRecord.headers().lastHeader(key).value());
+        });
         assertEquals(outboxRecord.getKey(), kafkaRecord.key());
         assertArrayEquals(outboxRecord.getValue(), kafkaRecord.value());
     }

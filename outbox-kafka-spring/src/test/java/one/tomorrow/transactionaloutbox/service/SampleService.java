@@ -42,18 +42,19 @@ public class SampleService {
     public void doSomething(int id, String something) {
         // Here s.th. else would be done within the transaction, e.g. some entity created.
         // We record this fact with the event that shall be published to interested parties / consumers.
-        OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), something.getBytes());
-        logger.info("Stored event [{}] in outbox with id {} and key {}", something, record.getId(), record.getKey());
+        OutboxRecord outboxRecord = outboxService.saveForPublishing(topic1, String.valueOf(id), something.getBytes());
+        logger.info("Stored event [{}] in outbox with id {} and key {}", something, outboxRecord.getId(), outboxRecord.getKey());
     }
 
     @Transactional
-    public void doSomethingWithAdditionalHeaders(int id, String something, Header...headers) {
+    public OutboxRecord doSomethingWithAdditionalHeaders(int id, String something, Header...headers) {
         // Here s.th. else would be done within the transaction, e.g. some entity created.
         // We record this fact with the event that shall be published to interested parties / consumers.
         Map<String, String> headerMap = Arrays.stream(headers)
                 .collect(Collectors.toMap(Header::getKey, Header::getValue));
-        OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), something.getBytes(), headerMap);
-        logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", something, record.getId(), record.getKey(), record.getHeaders());
+        OutboxRecord outboxRecord = outboxService.saveForPublishing(topic1, String.valueOf(id), something.getBytes(), headerMap);
+        logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", something, outboxRecord.getId(), outboxRecord.getKey(), outboxRecord.getHeaders());
+        return outboxRecord;
     }
 
     @Getter

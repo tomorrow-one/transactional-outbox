@@ -17,6 +17,7 @@ package one.tomorrow.transactionaloutbox.reactive.service;
 
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Map;
 
+import static one.tomorrow.transactionaloutbox.commons.Maps.merge;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord.toJson;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_MANDATORY;
 
@@ -33,10 +35,12 @@ import static org.springframework.transaction.TransactionDefinition.PROPAGATION_
 public class OutboxService {
 
     private final OutboxRepository repository;
+    private final TracingService tracingService;
     private final TransactionalOperator mandatoryTxOperator;
 
-    public OutboxService(OutboxRepository repository, ReactiveTransactionManager tm) {
+    public OutboxService(OutboxRepository repository, ReactiveTransactionManager tm, TracingService tracingService) {
         this.repository = repository;
+        this.tracingService = tracingService;
 
         DefaultTransactionDefinition txDefinition = new DefaultTransactionDefinition();
         txDefinition.setPropagationBehavior(PROPAGATION_MANDATORY);
@@ -48,14 +52,16 @@ public class OutboxService {
     }
 
     public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event, Map<String, String> headerMap) {
-        OutboxRecord record = OutboxRecord.builder()
+        Map<String, String> tracingHeaders = tracingService.tracingHeadersForOutboxRecord();
+        Map<String, String> headers = merge(headerMap, tracingHeaders);
+        OutboxRecord outboxRecord = OutboxRecord.builder()
                 .topic(topic)
                 .key(key)
                 .value(event)
-                .headers(toJson(headerMap))
+                .headers(toJson(headers))
                 .created(Instant.now())
                 .build();
-        return repository.save(record).as(mandatoryTxOperator::transactional);
+        return repository.save(outboxRecord).as(mandatoryTxOperator::transactional);
     }
 
 }

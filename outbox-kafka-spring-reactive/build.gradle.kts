@@ -24,6 +24,8 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
     implementation(project(":commons"))
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.4.4"))
+    compileOnly("io.micrometer:micrometer-tracing")
 
     // testing
     testImplementation(testFixtures(project(":commons")))
@@ -47,4 +49,5 @@ dependencies {
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
     testImplementation("org.apache.commons:commons-dbcp2:2.13.0")
+    testImplementation("io.micrometer:micrometer-tracing-test")
 }

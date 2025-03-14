@@ -22,6 +22,7 @@ import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.reactive.test.Sample.SomethingHappened;
+import one.tomorrow.transactionaloutbox.reactive.tracing.MicrometerTracingIntegrationTestConfig;
 import org.flywaydb.test.annotation.FlywayTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,8 @@ import static org.hamcrest.collection.IsMapContaining.hasKey;
         OutboxLockService.class,
         OutboxService.class,
         ProtobufOutboxService.class,
-        IntegrationTestConfig.class
+        IntegrationTestConfig.class,
+        MicrometerTracingIntegrationTestConfig.class
 })
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})

@@ -15,34 +15,45 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.service;
 
+import io.micrometer.tracing.test.simple.SimpleSpan;
+import io.micrometer.tracing.test.simple.SimpleTraceContext;
+import io.micrometer.tracing.test.simple.SimpleTracer;
 import one.tomorrow.transactionaloutbox.reactive.AbstractIntegrationTest;
 import one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport;
 import one.tomorrow.transactionaloutbox.commons.ProxiedContainerSupport;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.reactive.service.OutboxProcessor.CleanupSettings;
+import one.tomorrow.transactionaloutbox.reactive.tracing.MicrometerTracingIntegrationTestConfig;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingAssertions;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.flywaydb.test.annotation.FlywayTest;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import static java.lang.System.currentTimeMillis;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
 import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
@@ -50,14 +61,20 @@ import static one.tomorrow.transactionaloutbox.reactive.IntegrationTestConfig.DE
 import static one.tomorrow.transactionaloutbox.reactive.KafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
 import static one.tomorrow.transactionaloutbox.reactive.TestUtils.newRecord;
+import static one.tomorrow.transactionaloutbox.reactive.tracing.TracingService.INTERNAL_PREFIX;
+import static one.tomorrow.transactionaloutbox.reactive.tracing.SimplePropagator.TRACING_SPAN_ID;
+import static one.tomorrow.transactionaloutbox.reactive.tracing.SimplePropagator.TRACING_TRACE_ID;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
+@ContextConfiguration(classes = MicrometerTracingIntegrationTestConfig.class)
 @FlywayTest
 @SuppressWarnings({"unused", "ConstantConditions"})
-class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements KafkaTestSupport {
+class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements KafkaTestSupport, TracingAssertions {
 
     private static final String topic1 = "topicOPIT1";
     private static final String topic2 = "topicOPIT2";
@@ -69,6 +86,10 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
     private OutboxRepository repository;
     @Autowired
     private OutboxLockService lockService;
+    @Autowired
+    private TracingService tracingService;
+    @Autowired
+    private SimpleTracer tracer;
 
     private OutboxProcessor testee;
 
@@ -79,12 +100,12 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
     }
 
     @BeforeAll
-    public static void beforeAll() {
+    static void beforeAll() {
         createTopic(bootstrapServers, topic1, topic2);
     }
 
     @AfterAll
-    public static void afterAll() {
+    static void afterAll() {
         if (consumer != null)
             consumer.close();
     }
@@ -112,7 +133,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         logger.info("Test created records");
 
         // then
-        ConsumerRecords<String, byte[]> records = getAndCommitRecords(outboxRecords.size()); // await().atMost(5, SECONDS).until(() -> getAndCommitRecords(1), is(iterableWithSize(1)));
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords(outboxRecords.size());
         assertThat(records.count(), is(outboxRecords.size()));
         Iterator<ConsumerRecord<String, byte[]>> kafkaRecordsIter = records.iterator();
         for (OutboxRecord outboxRecord : outboxRecords) {
@@ -121,9 +142,40 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
     }
 
     @Test
+    void should_processRecords_withTracing() {
+        // given
+        String eventSource = "test";
+        testee = new OutboxProcessor(repository, lockService, producerFactory(), Duration.ofMillis(50), DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource,
+                null, tracingService);
+
+        // when
+        OutboxRecord outboxRecord = repository.save(newRecord(topic1, "key1", "value1", Map.of(
+                "h1", "v1",
+                INTERNAL_PREFIX + TRACING_TRACE_ID, "traceId-1",
+                INTERNAL_PREFIX + TRACING_SPAN_ID, "spanId-1"))).block();
+
+        logger.info("Test created records");
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords(1);
+        assertThat(records.count(), is(1));
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertConsumedRecord(outboxRecord, eventSource, kafkaRecord);
+
+        // verify spans: one for the transactional-outbox, one for the processing to Kafka
+        assertThat(tracer.getSpans(), hasSize(2));
+        SimpleSpan outboxSpan = tracer.getSpans().getFirst();
+        assertOutboxSpan(outboxSpan, "traceId-1", "spanId-1", outboxRecord);
+        SimpleSpan processingSpan = tracer.getSpans().getLast();
+        SimpleTraceContext processingSpanContext = processingSpan.context();
+        assertProcessingSpan(processingSpanContext, "traceId-1", outboxSpan.context().spanId());
+        assertThat(processingSpan.getEndTimestamp(), is(greaterThan(Instant.ofEpochMilli(0))));
+    }
+
+    @Test
     void should_startWhenKafkaIsNotAvailable_and_processOutboxWhenKafkaBecomesAvailable() {
         // given
-        OutboxRecord record = repository.save(newRecord(topic1, "key1", "value1")).retry().block();
+        OutboxRecord outboxRecord = repository.save(newRecord(topic1, "key1", "value1")).retry().block();
         kafkaContainer.setConnectionCut(true);
 
         // when
@@ -137,7 +189,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         // then
         ConsumerRecords<String, byte[]> kafkaRecords = getAndCommitRecords();
         assertThat(kafkaRecords.count(), is(1));
-        assertConsumedRecord(record, eventSource, kafkaRecords.iterator().next());
+        assertConsumedRecord(outboxRecord, eventSource, kafkaRecords.iterator().next());
     }
 
     @Test
@@ -149,7 +201,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         Map<String, Object> producerProps = producerPropsWithShortTimeouts(requestTimeout);
         Duration processingInterval = Duration.ofMillis(50);
         int batchSize = 100;
-        testee = new OutboxProcessor(repository, lockService, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null);
+        testee = new OutboxProcessor(repository, lockService, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null, null);
 
         // when
         int numRecords = 500;
@@ -157,7 +209,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
             // - use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
             // - The Mono has to be cached, so that it can be consumed twice
             return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
-        }).collect(toList());
+        }).toList();
 
         // toggle connection as long as there are unprocessed records
         // - wait until the first element is saved, otherwise the first time the first record might not yet be saved
@@ -180,7 +232,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         String eventSource = "test";
         Duration processingInterval = Duration.ofMillis(2);
         int batchSize = 5; // use a smaller batch size so that batch management (locking etc) is likely to happen during a cut connection
-        testee = new OutboxProcessor(repository, lockService, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null);
+        testee = new OutboxProcessor(repository, lockService, producerFactory(), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, batchSize, null, null);
 
         // when
         int numRecords = 500;
@@ -188,7 +240,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
             // - use the same key so that even if the kafka setup / number of partitions is changed the events still are on the same partition
             // - The Mono has to be cached, so that it can be consumed twice
             return repository.save(newRecord(topic1, "key", "value" + i)).retry().cache();
-        }).collect(toList());
+        }).toList();
 
         // toggle connection as long as there are unprocessed records
         // - wait until the first element is saved, otherwise the first time the first record might not yet be saved
@@ -221,7 +273,8 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
                 DEFAULT_OUTBOX_LOCK_TIMEOUT,
                 lockOwnerId(),
                 eventSource,
-                cleanupSettings);
+                cleanupSettings,
+                null);
 
         // when
         OutboxRecord outboxRecord = repository.save(newRecord(topic1, "key1", "value1")).block();
@@ -242,7 +295,7 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
         return outboxRecordMonos.stream()
                 .map(Mono::block)
                 .sorted(comparing(OutboxRecord::getId))
-                .collect(toList());
+                .toList();
     }
 
     private void toggleConnectionWhileNonEmpty(Flux<?> records, Duration toggleInterval, ProxiedContainerSupport proxiedContainer) {
@@ -273,20 +326,20 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
 
     private LinkedHashMap<Long, ConsumerRecord<String, byte[]>> consumeAndDeduplicateRecords(LinkedHashMap<Long, ConsumerRecord<String, byte[]>> kafkaRecordBySeqNr) {
         ConsumerRecords<String, byte[]> recordsToAdd = getAndCommitRecords();
-        for (ConsumerRecord<String, byte[]> record : recordsToAdd) {
-            Long seqNr = toLong(record.headers().lastHeader(HEADERS_SEQUENCE_NAME).value());
+        for (ConsumerRecord<String, byte[]> rec : recordsToAdd) {
+            Long seqNr = toLong(rec.headers().lastHeader(HEADERS_SEQUENCE_NAME).value());
             if (kafkaRecordBySeqNr.containsKey(seqNr))
-                logger.info("Have duplicate with seqNr {} (offset 1: {}, offset 2: {})", seqNr, kafkaRecordBySeqNr.get(seqNr).offset(), record.offset());
-            kafkaRecordBySeqNr.put(seqNr, record);
+                logger.info("Have duplicate with seqNr {} (offset 1: {}, offset 2: {})", seqNr, kafkaRecordBySeqNr.get(seqNr).offset(), rec.offset());
+            kafkaRecordBySeqNr.put(seqNr, rec);
         }
         return kafkaRecordBySeqNr;
     }
 
     private Collection<ConsumerRecord<String, byte[]>> deduplicate(ConsumerRecords<String, byte[]> records) {
         LinkedHashMap<Long, ConsumerRecord<String, byte[]>> kafkaRecordBySeqNr = new LinkedHashMap<>();
-        for (ConsumerRecord<String, byte[]> record : records) {
-            long seqNr = toLong(record.headers().lastHeader(HEADERS_SEQUENCE_NAME).value());
-            kafkaRecordBySeqNr.put(seqNr, record);
+        for (ConsumerRecord<String, byte[]> rec : records) {
+            long seqNr = toLong(rec.headers().lastHeader(HEADERS_SEQUENCE_NAME).value());
+            kafkaRecordBySeqNr.put(seqNr, rec);
         }
         return kafkaRecordBySeqNr.values();
     }

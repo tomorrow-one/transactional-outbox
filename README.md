@@ -62,7 +62,8 @@ Depending on your application add one of the following libraries as dependency t
 
 | Spring Version | Spring Boot Version | outbox-kafka-spring Version | outbox-kafka-spring-reactive Version |
 |----------------|---------------------|-----------------------------|--------------------------------------|
-| 6.1.x          | 3.2.x               | 3.3.x                       | 3.2.x                                |
+| 6.2.x          | 3.4.x               | 3.5.x                       | 3.4.x                                |
+| 6.1.x          | 3.2.x - 3.3.x       | 3.3.x - 3.4.x               | 3.2.x - 3.3.x                        |
 | 6.0.x          | 3.1.x               | 2.0.x - 3.2.x               | 2.0.x - 3.1.x                        |
 | 5.x.x          | 2.x.x               | 1.2.x                       | 1.1.x                                |
 

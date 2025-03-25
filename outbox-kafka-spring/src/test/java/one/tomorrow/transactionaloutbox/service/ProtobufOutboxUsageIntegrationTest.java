@@ -25,6 +25,7 @@ import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.test.Sample.SomethingHappened;
+import one.tomorrow.transactionaloutbox.tracing.MicrometerTracingIntegrationTestConfig;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -64,7 +65,8 @@ import static org.junit.Assert.*;
         ProtobufOutboxService.class,
         SampleProtobufService.class,
         IntegrationTestConfig.class,
-        ProtobufOutboxUsageIntegrationTest.OutboxProcessorSetup.class
+        ProtobufOutboxUsageIntegrationTest.OutboxProcessorSetup.class,
+        MicrometerTracingIntegrationTestConfig.class
 })
 @TestExecutionListeners({
         DependencyInjectionTestExecutionListener.class,

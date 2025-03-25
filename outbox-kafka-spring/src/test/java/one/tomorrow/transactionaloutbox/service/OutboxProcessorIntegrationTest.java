@@ -16,6 +16,9 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import eu.rekawek.toxiproxy.model.toxic.Timeout;
+import io.micrometer.tracing.test.simple.SimpleSpan;
+import io.micrometer.tracing.test.simple.SimpleTraceContext;
+import io.micrometer.tracing.test.simple.SimpleTracer;
 import one.tomorrow.transactionaloutbox.IntegrationTestConfig;
 import one.tomorrow.transactionaloutbox.KafkaTestSupport;
 import one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer;
@@ -24,6 +27,9 @@ import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.service.OutboxProcessor.CleanupSettings;
+import one.tomorrow.transactionaloutbox.tracing.MicrometerTracingIntegrationTestConfig;
+import one.tomorrow.transactionaloutbox.tracing.TracingAssertions;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -66,6 +72,9 @@ import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SEQUENCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_SOURCE_NAME;
 import static one.tomorrow.transactionaloutbox.commons.Longs.toLong;
+import static one.tomorrow.transactionaloutbox.tracing.TracingService.INTERNAL_PREFIX;
+import static one.tomorrow.transactionaloutbox.tracing.SimplePropagator.TRACING_SPAN_ID;
+import static one.tomorrow.transactionaloutbox.tracing.SimplePropagator.TRACING_TRACE_ID;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertArrayEquals;
@@ -78,7 +87,8 @@ import static org.junit.Assert.assertEquals;
         TransactionalOutboxRepository.class,
         OutboxLock.class,
         OutboxLockRepository.class,
-        IntegrationTestConfig.class
+        IntegrationTestConfig.class,
+        MicrometerTracingIntegrationTestConfig.class
 })
 @TestExecutionListeners({
         DependencyInjectionTestExecutionListener.class,
@@ -86,7 +96,7 @@ import static org.junit.Assert.assertEquals;
 })
 @FlywayTest
 @SuppressWarnings("unused")
-public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> {
+public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>, TracingAssertions {
 
     public static final ProxiedKafkaContainer kafkaContainer = ProxiedKafkaContainer.startProxiedKafka();
     private static final String topic1 = "topicOPIT1";
@@ -104,6 +114,10 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
     private TransactionalOutboxRepository transactionalRepository;
     @Autowired
     private AutowireCapableBeanFactory beanFactory;
+    @Autowired
+    private TracingService tracingService;
+    @Autowired
+    private SimpleTracer tracer;
 
     private OutboxProcessor testee;
 
@@ -131,7 +145,13 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
     public void should_ProcessNewRecords() {
         // given
         String eventSource = "test";
-        testee = new OutboxProcessor(repository, producerFactory(), Duration.ofMillis(50), DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, beanFactory);
+        testee = new OutboxProcessor(repository,
+                producerFactory(),
+                Duration.ofMillis(50),
+                DEFAULT_OUTBOX_LOCK_TIMEOUT,
+                lockOwnerId(),
+                eventSource,
+                beanFactory);
 
         // when
         OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
@@ -152,6 +172,60 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
         assertEquals(1, records.count());
         kafkaRecord = records.iterator().next();
         assertConsumedRecord(record2, "h2", eventSource, kafkaRecord);
+    }
+
+    @Test
+    public void should_ProcessNewRecords_withTracing() {
+        // given
+        String eventSource = "test";
+        testee = new OutboxProcessor(repository,
+                producerFactory(),
+                Duration.ofMillis(50),
+                DEFAULT_OUTBOX_LOCK_TIMEOUT,
+                lockOwnerId(),
+                eventSource,
+                null,
+                tracingService,
+                beanFactory);
+
+        // when
+        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders(
+                "h1", "v1",
+                INTERNAL_PREFIX + TRACING_TRACE_ID, "traceId-1",
+                INTERNAL_PREFIX + TRACING_SPAN_ID, "spanId-1"));
+        transactionalRepository.persist(record1);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertEquals("Have records with keys: " + keys(records), 1, records.count());
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertConsumedRecord(record1, "h1", eventSource, kafkaRecord);
+        // verify spans: one for the transactional-outbox, one for the processing to Kafka
+        assertEquals(2, tracer.getSpans().size());
+        SimpleSpan outboxSpan = tracer.getSpans().getFirst();
+        assertOutboxSpan(outboxSpan, "traceId-1", "spanId-1", record1);
+        SimpleTraceContext processingSpanContext = tracer.getSpans().getLast().context();
+        assertProcessingSpan(processingSpanContext, "traceId-1", outboxSpan.context().spanId());
+
+        // and when
+        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders(
+                "h2", "v2",
+                INTERNAL_PREFIX + TRACING_TRACE_ID, "traceId-2",
+                INTERNAL_PREFIX + TRACING_SPAN_ID, "spanId-2"));
+        transactionalRepository.persist(record2);
+
+        // then
+        records = getAndCommitRecords();
+        assertEquals(1, records.count());
+        kafkaRecord = records.iterator().next();
+        assertConsumedRecord(record2, "h2", eventSource, kafkaRecord);
+        // verify spans: one for the transactional-outbox, one for the processing to Kafka
+        assertEquals(4, tracer.getSpans().size());
+        List<SimpleSpan> spans = tracer.getSpans().stream().toList();
+        outboxSpan = spans.get(2);
+        assertOutboxSpan(outboxSpan, "traceId-2", "spanId-2", record2);
+        processingSpanContext = spans.get(3).context();
+        assertProcessingSpan(processingSpanContext, "traceId-2", outboxSpan.context().spanId());
     }
 
     private List<String> keys(ConsumerRecords<String,byte[]> records) {
@@ -383,7 +457,9 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]> 
                 DEFAULT_OUTBOX_LOCK_TIMEOUT,
                 lockOwnerId(),
                 eventSource,
-                cleanupSettings, beanFactory
+                cleanupSettings,
+                null,
+                beanFactory
         );
 
         // when

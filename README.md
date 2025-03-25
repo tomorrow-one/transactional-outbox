@@ -29,6 +29,8 @@ migration scenarios. You'll specify which value for `x-source` shall be used.
 * `x-value-type` is set to the fully-qualified name of the protobuf message (within the proto language's namespace) if the `ProtobufOutboxService` is used.
   Consumers can use this header to select the appropriate deserializer / protobuf message type to parse the received data/payload.
 
+If tracing is used, tracing information is propagated via message headers (see also [Tracing](#tracing) for more information).  
+
 To allow operation in a service running with multiple instances, a lock is managed using the database, so that only one of the instances
 processes the outbox and publishes messages. All instances monitor that lock, and one of the instances will take over the lock when
 the lock-holding instance crashed (or is stuck somehow and does no longer refresh the lock).
@@ -60,7 +62,8 @@ Depending on your application add one of the following libraries as dependency t
 
 | Spring Version | Spring Boot Version | outbox-kafka-spring Version | outbox-kafka-spring-reactive Version |
 |----------------|---------------------|-----------------------------|--------------------------------------|
-| 6.1.x          | 3.2.x               | 3.3.x                       | 3.2.x                                |
+| 6.2.x          | 3.4.x               | 3.5.x                       | 3.4.x                                |
+| 6.1.x          | 3.2.x - 3.3.x       | 3.3.x - 3.4.x               | 3.2.x - 3.3.x                        |
 | 6.0.x          | 3.1.x               | 2.0.x - 3.2.x               | 2.0.x - 3.1.x                        |
 | 5.x.x          | 2.x.x               | 1.2.x                       | 1.1.x                                |
 
@@ -108,6 +111,7 @@ public class TransactionalOutboxConfig {
     public OutboxProcessor outboxProcessor(
                 OutboxRepository repository,
                 Map<String, Object> producerProps,
+                TracingService tracingService,
                 AutowireCapableBeanFactory beanFactory
     ) {
         return new OutboxProcessor(
@@ -118,6 +122,7 @@ public class TransactionalOutboxConfig {
                 lockOwnerId,
                 eventSource,
                 cleanupSettings,
+                tracingService,
                 beanFactory
         );
     }
@@ -146,6 +151,7 @@ public class TransactionalOutboxConfig {
 * `String eventSource`: used as value for the `x-source` header set for a message published to Kafka
 * `CleanupSettings cleanupSettings`: specifies the interval for cleaning up the outbox and the retention time for processed records, i.e. how long to keep processed records before deleting them. Set `cleanupSettings` to `null` if you prefer manual or no cleanup at all. See also [How to house keep your outbox table](#how-to-house-keep-your-outbox-table) below.
 * `Map<String, Object> producerProps`: the properties used to create the `KafkaProducer` (contains e.g. `bootstrap.servers` etc)
+* `TracingService tracingService`: if [micrometer-tracing](https://docs.micrometer.io/tracing/reference/index.html) is on the classpath, our `MicrometerTracingService` bean will be used, otherwise it will fall back to `NoopTracingService`. You can also provide your own implementation of our `TracingService` interface. For more details on tracing [see below](#tracing).
 * `AutowireCapableBeanFactory beanFactory`: used to create the lock service (`OutboxLockService`)
 
 
@@ -171,7 +177,8 @@ public class TransactionalOutboxConfig {
     public OutboxProcessor outboxProcessor(
             OutboxRepository repository,
             OutboxLockService lockService,
-            Map<String, Object> producerProps
+            Map<String, Object> producerProps,
+            TracingService tracingService
     ) {
         return new OutboxProcessor(
                 repository,
@@ -181,7 +188,8 @@ public class TransactionalOutboxConfig {
                 outboxLockTimeout,
                 lockOwnerId,
                 eventSource,
-                cleanupSettings
+                cleanupSettings,
+                tracingService
         );
     }
 
@@ -244,6 +252,24 @@ public Mono<OutboxRecord> doSomething(String name) {
 
 }
 ```
+
+### Tracing
+
+If you have tracing in place you're probably interested in getting the trace context propagated with Kafka messages as well.
+We provide tracing context propagation out of the box for [micrometer-tracing](https://docs.micrometer.io/tracing/reference/index.html). If you're using something else you can provide your own implementation of the `TracingService` interface (for inspiration see `MicrometerTracingService`). If micrometer-tracing is not on the classpath, by default the `NoopTracingService` bean will be used as implementation.
+
+The tracing context is propagated if there's an active tracing context when `OutboxService.saveForPublishing` is invoked.
+If this is the case, the following will be provided:
+* A span for the message in the transactional-outbox is created (with start timestamp set to the time 
+  when the outbox record was created, and end timestamp set to the time when it's processed and sent to Kafka)
+* Another span is created for sending the message to Kafka (start timestamp is the time when the `ProducerRecord` 
+  is created, end timestamp is set when message sending got confirmed)
+* Tracing headers are added to the Kafka message (using [Propagator.inject](https://javadoc.io/static/io.micrometer/micrometer-tracing/1.5.0-M3/io/micrometer/tracing/propagation/Propagator.html#inject(io.micrometer.tracing.TraceContext,java.lang.Object,io.micrometer.tracing.propagation.Propagator.Setter))), which can be extracted via
+[Propagator.extract](https://javadoc.io/static/io.micrometer/micrometer-tracing/1.5.0-M3/io/micrometer/tracing/propagation/Propagator.html#extract(java.lang.Object,io.micrometer.tracing.propagation.Propagator.Getter)) on consumer side to continue or link the trace.
+
+With the implementation for micrometer-tracing we rely on the related config btw, e.g. regarding sampling probability or tracing protocol W3C/B3.
+
+You might also want to check the [Spring Boot docs for tracing](https://javadoc.io/static/io.micrometer/micrometer-tracing/1.5.0-M3/io/micrometer/tracing/propagation/Propagator.html#extract(java.lang.Object,io.micrometer.tracing.propagation.Propagator.Getter)).
 
 ### How-To re-publish a message
 

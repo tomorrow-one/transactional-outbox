@@ -21,6 +21,9 @@ import lombok.Value;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.reactive.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.reactive.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingService;
+import one.tomorrow.transactionaloutbox.reactive.tracing.TracingService.TraceOutboxRecordProcessingResult;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
@@ -60,7 +63,7 @@ public class OutboxProcessor {
         Duration retention;
     }
 
-    private static final int DEFAULT_BATCH_SIZE = 100;
+    public static final int DEFAULT_BATCH_SIZE = 100;
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
@@ -76,6 +79,7 @@ public class OutboxProcessor {
     private final ScheduledExecutorService cleanupExecutor;
     private final byte[] eventSource;
     private final int batchSize;
+    private final TracingService tracingService;
     private KafkaProducer<String, byte[]> producer;
     @Getter
     private boolean active;
@@ -92,7 +96,7 @@ public class OutboxProcessor {
             Duration lockTimeout,
             String lockOwnerId,
             String eventSource) {
-        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, null);
+        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, null, null);
     }
 
     public OutboxProcessor(
@@ -103,8 +107,9 @@ public class OutboxProcessor {
             Duration lockTimeout,
             String lockOwnerId,
             String eventSource,
-            CleanupSettings cleanupSettings) {
-        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, cleanupSettings);
+            CleanupSettings cleanupSettings,
+            TracingService tracingService) {
+        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource, DEFAULT_BATCH_SIZE, cleanupSettings, tracingService);
     }
 
     public OutboxProcessor(
@@ -116,7 +121,8 @@ public class OutboxProcessor {
             String lockOwnerId,
             String eventSource,
             int batchSize,
-            CleanupSettings cleanupSettings) {
+            CleanupSettings cleanupSettings,
+            TracingService tracingService) {
         logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
                 lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
         this.repository = repository;
@@ -126,6 +132,7 @@ public class OutboxProcessor {
         this.lockOwnerId = lockOwnerId;
         this.eventSource = eventSource.getBytes();
         this.batchSize = batchSize;
+        this.tracingService = tracingService == null ? new NoopTracingService() : tracingService;
         this.producerFactory = producerFactory;
         createProducer(producerFactory);
 
@@ -280,25 +287,27 @@ public class OutboxProcessor {
 
     private Mono<OutboxRecord> publish(OutboxRecord outboxRecord) {
         return Mono.create(monoSink -> {
-            ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord);
+            TraceOutboxRecordProcessingResult tracingResult = tracingService.traceOutboxRecordProcessing(outboxRecord);
+            ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord, tracingResult.getHeaders());
             producer.send(producerRecord, (metadata, exception) -> {
                 if (exception != null) {
                     monoSink.error(exception);
+                    tracingResult.publishFailed(exception);
                 } else {
                     logger.info("Sent record to kafka: {} (got metadata: {})", outboxRecord, metadata);
                     monoSink.success(outboxRecord);
+                    tracingResult.publishCompleted();
                 }
             });
         });
     }
 
-    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
+    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord, Map<String, String> headers) {
         ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
                 outboxRecord.getTopic(),
                 outboxRecord.getKey(),
                 outboxRecord.getValue()
         );
-        Map<String, String> headers = outboxRecord.getHeadersAsMap();
         if (headers != null) {
             headers.forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
         }
@@ -306,6 +315,5 @@ public class OutboxProcessor {
         producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);
         return producerRecord;
     }
-
 
 }

@@ -10,7 +10,7 @@ plugins {
     id("java-library")
     id("java-test-fixtures")
     id("io.freefair.lombok") version "8.13.1"
-    id("com.google.protobuf") version "0.9.4"
+    id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"

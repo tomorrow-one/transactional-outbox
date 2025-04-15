@@ -30,7 +30,7 @@ dependencies {
     // testing
     testImplementation(testFixtures(project(":commons")))
     testImplementation("org.springframework.boot:spring-boot-autoconfigure:3.4.4")
-    testImplementation("io.projectreactor:reactor-test:3.7.4")
+    testImplementation("io.projectreactor:reactor-test:3.7.5")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

@@ -31,15 +31,15 @@ jobs:
         distribution: 'temurin'
         cache: 'gradle'
     - name: Validate gradle wrapper
-      uses: gradle/wrapper-validation-action@v2
+      uses: gradle/actions/wrapper-validation@v4
     - name: Setup Gradle to generate and submit dependency graphs
-      uses: gradle/gradle-build-action@v3
+      uses: gradle/actions/setup-gradle@v4
       with:
         dependency-graph: generate-and-submit
+    - name: Set up gradle
+      uses: gradle/actions/setup-gradle@v4
     - name: Build
-      uses: gradle/gradle-build-action@v3
-      with:
-        arguments: build
+      run: ./gradlew build
 
   dependency-review:
     needs: build
@@ -65,8 +65,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
+      - name: Set up gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Publish
-        uses: gradle/gradle-build-action@v3
         env:
           # variables used by build.gradle.kts for signing / publishing (without 'ORG_GRADLE_PROJECT_' prefix)
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.OSSRH_GPG_SECRET_KEY_ID }}
@@ -74,5 +75,4 @@ jobs:
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.OSSRH_GPG_SECRET_PASSWORD }}
           ORG_GRADLE_PROJECT_ossrhUsername: ${{ secrets.OSSRH_USERNAME }}
           ORG_GRADLE_PROJECT_ossrhPassword: ${{ secrets.OSSRH_PASSWORD }}
-        with:
-          arguments: publish
+        run: ./gradlew publish

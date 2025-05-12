@@ -15,7 +15,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
     implementation(project(":commons"))
-    implementation(platform("io.micrometer:micrometer-tracing-bom:1.4.5"))
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.4.6"))
     compileOnly("io.micrometer:micrometer-tracing")
 
     // testing

@@ -92,6 +92,16 @@ subprojects {
                             name.set("Martin Grotzke")
                             email.set("martin.grotzke@inoio.de")
                         }
+                        developer {
+                            id.set("hnrkdmsk")
+                            name.set("Henrik Adamski")
+                            email.set("henrik.adamski@tomorrow.one")
+                        }
+                        developer {
+                            id.set("danielrehmann")
+                            name.set("Daniel Rehmann")
+                            email.set("daniel.rehmann@tomorrow.one")
+                        }
                     }
                     scm {
                         url.set("https://github.com/tomorrow-one/transactional-outbox/")
@@ -105,15 +115,15 @@ subprojects {
         repositories {
             mavenLocal()
             maven {
-                val releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-                val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                val releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+                val snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
                 url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
 
                 credentials {
-                    val ossrhUsername: String? by project
-                    val ossrhPassword: String? by project
-                    username = ossrhUsername
-                    password = ossrhPassword
+                    val mavenCentralUsername: String? by project
+                    val mavenCentralPassword: String? by project
+                    username = mavenCentralUsername
+                    password = mavenCentralPassword
                 }
             }
         }

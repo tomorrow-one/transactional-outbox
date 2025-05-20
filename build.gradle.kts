@@ -2,9 +2,9 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import java.util.*
 
-project(":commons").version = "2.4.2-SNAPSHOT"
-project(":outbox-kafka-spring").version = "3.5.2-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "3.4.2-SNAPSHOT"
+project(":commons").version = "2.4.2"
+project(":outbox-kafka-spring").version = "3.5.2"
+project(":outbox-kafka-spring-reactive").version = "3.4.2"
 
 plugins {
     id("java-library")
@@ -115,7 +115,7 @@ subprojects {
         repositories {
             mavenLocal()
             maven {
-                val releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
+                val releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/one/tomorrow/"
                 val snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
                 url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
 

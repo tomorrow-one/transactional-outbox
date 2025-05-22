@@ -16,7 +16,6 @@ plugins {
     id("org.jreleaser") version "1.18.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
-    id("signing")
 }
 
 val protobufVersion by extra("3.25.5")
@@ -30,7 +29,6 @@ subprojects {
     apply(plugin = "org.jreleaser")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
-    apply(plugin = "signing")
 
     group = "one.tomorrow.transactional-outbox"
 
@@ -139,15 +137,6 @@ subprojects {
                 }
             }
         }
-    }
-
-    // 'signing' has to be defined after/below 'publishing' so that it can reference the publication
-    signing {
-        val signingKeyId: String? by project
-        val signingKey: String? by project
-        val signingPassword: String? by project
-        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-        sign(publishing.publications["maven"])
     }
 
 }

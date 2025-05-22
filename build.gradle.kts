@@ -1,11 +1,12 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.jreleaser.model.Active
 import org.jreleaser.model.Active.ALWAYS
 import java.util.*
 
-project(":commons").version = "2.4.1"
-project(":outbox-kafka-spring").version = "3.5.1"
-project(":outbox-kafka-spring-reactive").version = "3.4.1"
+project(":commons").version = "2.4.0-SNAPSHOT"
+project(":outbox-kafka-spring").version = "3.5.0-SNAPSHOT"
+project(":outbox-kafka-spring-reactive").version = "3.4.0-SNAPSHOT"
 
 plugins {
     id("java-library")
@@ -129,10 +130,21 @@ subprojects {
         deploy {
             maven {
                 mavenCentral {
-                    create("sonatype") {
-                        active = ALWAYS
+                    create("release-deploy") {
+                        active = Active.RELEASE
                         url = "https://central.sonatype.com/api/v1/publisher"
-                        stagingRepository("target/staging-deploy")
+                        stagingRepository("build/staging-deploy")
+                    }
+                }
+                nexus2 {
+                    create("snapshot-deploy") {
+                        active = Active.SNAPSHOT
+                        snapshotUrl = "https://central.sonatype.com/repository/maven-snapshots"
+                        applyMavenCentralRules = true
+                        snapshotSupported = true
+                        closeRepository = true
+                        releaseRepository = true
+                        stagingRepository("build/staging-deploy")
                     }
                 }
             }

@@ -39,7 +39,7 @@ jobs:
     - name: Build
       uses: gradle/gradle-build-action@v3
       with:
-        arguments: build -x test
+        arguments: build
 
   dependency-review:
     needs: build

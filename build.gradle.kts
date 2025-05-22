@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.jreleaser.model.Active.ALWAYS
 import java.util.*
 
 project(":commons").version = "2.4.2-SNAPSHOT"
@@ -12,6 +13,7 @@ plugins {
     id("io.freefair.lombok") version "8.13.1"
     id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
+    id("org.jreleaser") version "1.18.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
     id("signing")
@@ -25,6 +27,7 @@ subprojects {
     apply(plugin = "io.freefair.lombok")
     apply(plugin = "com.google.protobuf")
     apply(plugin = "maven-publish")
+    apply(plugin = "org.jreleaser")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
     apply(plugin = "signing")
@@ -113,17 +116,26 @@ subprojects {
             }
         }
         repositories {
-            mavenLocal()
             maven {
-                val releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
-                val snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
-                url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+                url = layout.buildDirectory.dir("staging-deploy").get().asFile.toURI()
+            }
+        }
+    }
 
-                credentials {
-                    val mavenCentralUsername: String? by project
-                    val mavenCentralPassword: String? by project
-                    username = mavenCentralUsername
-                    password = mavenCentralPassword
+    jreleaser {
+        signing {
+            active = ALWAYS
+            armored = true
+            verify = false
+        }
+        deploy {
+            maven {
+                mavenCentral {
+                    create("sonatype") {
+                        active = ALWAYS
+                        url = "https://central.sonatype.com/api/v1/publisher"
+                        stagingRepository("target/staging-deploy")
+                    }
                 }
             }
         }

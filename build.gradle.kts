@@ -4,10 +4,6 @@ import org.jreleaser.model.Active
 import org.jreleaser.model.Active.ALWAYS
 import java.util.*
 
-// Required by JReleaser when executing on root level (./gradlew publish jjreleaserFullRelease).
-// This will not affect versions of submodules during release!
-version = "0.0.1-SNAPSHOT"
-
 project(":commons").version = "2.4.1"
 project(":outbox-kafka-spring").version = "3.5.1"
 project(":outbox-kafka-spring-reactive").version = "3.4.1"
@@ -24,6 +20,11 @@ plugins {
 }
 
 val protobufVersion by extra("3.25.5")
+
+// disable JReleaser on root level
+jreleaser {
+    enabled = false
+}
 
 subprojects {
     apply(plugin = "java-library")
@@ -154,11 +155,9 @@ subprojects {
             }
         }
     }
-
 }
 
 allprojects {
-
     repositories {
         mavenCentral()
     }

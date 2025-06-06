@@ -1,5 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.jreleaser.model.Active
+import org.jreleaser.model.Active.ALWAYS
 import java.util.*
 
 project(":commons").version = "2.4.2-SNAPSHOT"
@@ -12,12 +14,17 @@ plugins {
     id("io.freefair.lombok") version "8.13.1"
     id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
+    id("org.jreleaser") version "1.18.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
-    id("signing")
 }
 
 val protobufVersion by extra("3.25.5")
+
+// disable JReleaser on root level
+jreleaser {
+    enabled = false
+}
 
 subprojects {
     apply(plugin = "java-library")
@@ -25,9 +32,9 @@ subprojects {
     apply(plugin = "io.freefair.lombok")
     apply(plugin = "com.google.protobuf")
     apply(plugin = "maven-publish")
+    apply(plugin = "org.jreleaser")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
-    apply(plugin = "signing")
 
     group = "one.tomorrow.transactional-outbox"
 
@@ -113,35 +120,46 @@ subprojects {
             }
         }
         repositories {
-            mavenLocal()
             maven {
-                val releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
-                val snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
-                url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
-
-                credentials {
-                    val mavenCentralUsername: String? by project
-                    val mavenCentralPassword: String? by project
-                    username = mavenCentralUsername
-                    password = mavenCentralPassword
-                }
+                url = layout.buildDirectory.dir("staging-deploy").get().asFile.toURI()
             }
         }
     }
 
-    // 'signing' has to be defined after/below 'publishing' so that it can reference the publication
-    signing {
-        val signingKeyId: String? by project
-        val signingKey: String? by project
-        val signingPassword: String? by project
-        useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-        sign(publishing.publications["maven"])
+    jreleaser {
+        gitRootSearch.set(true)
+        signing {
+            active = ALWAYS
+            armored = true
+            verify = false
+        }
+        deploy {
+            maven {
+                mavenCentral {
+                    create("release-deploy") {
+                        active = Active.RELEASE
+                        url = "https://central.sonatype.com/api/v1/publisher"
+                        stagingRepository("build/staging-deploy")
+                    }
+                }
+                nexus2 {
+                    create("snapshot-deploy") {
+                        active = Active.SNAPSHOT
+                        url = "https://central.sonatype.com/repository/maven-releases"
+                        snapshotUrl = "https://central.sonatype.com/repository/maven-snapshots"
+                        applyMavenCentralRules = true
+                        snapshotSupported = true
+                        closeRepository = true
+                        releaseRepository = true
+                        stagingRepository("build/staging-deploy")
+                    }
+                }
+            }
+        }
     }
-
 }
 
 allprojects {
-
     repositories {
         mavenCentral()
     }

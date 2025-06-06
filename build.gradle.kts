@@ -4,9 +4,9 @@ import org.jreleaser.model.Active
 import org.jreleaser.model.Active.ALWAYS
 import java.util.*
 
-project(":commons").version = "2.4.1"
-project(":outbox-kafka-spring").version = "3.5.1"
-project(":outbox-kafka-spring-reactive").version = "3.4.1"
+project(":commons").version = "2.4.2-SNAPSHOT"
+project(":outbox-kafka-spring").version = "3.5.2-SNAPSHOT"
+project(":outbox-kafka-spring-reactive").version = "3.4.2-SNAPSHOT"
 
 plugins {
     id("java-library")
@@ -127,6 +127,7 @@ subprojects {
     }
 
     jreleaser {
+        gitRootSearch.set(true)
         signing {
             active = ALWAYS
             armored = true
@@ -144,6 +145,7 @@ subprojects {
                 nexus2 {
                     create("snapshot-deploy") {
                         active = Active.SNAPSHOT
+                        url = "https://central.sonatype.com/repository/maven-releases"
                         snapshotUrl = "https://central.sonatype.com/repository/maven-snapshots"
                         applyMavenCentralRules = true
                         snapshotSupported = true

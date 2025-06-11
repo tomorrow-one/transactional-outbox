@@ -138,6 +138,8 @@ subprojects {
                 mavenCentral {
                     create("release-deploy") {
                         active = Active.RELEASE
+                        namespace = "one.tomorrow"
+                        applyMavenCentralRules = true
                         url = "https://central.sonatype.com/api/v1/publisher"
                         stagingRepository("build/staging-deploy")
                     }

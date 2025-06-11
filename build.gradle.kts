@@ -1,7 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
-import org.jreleaser.model.Active
-import org.jreleaser.model.Active.ALWAYS
+import org.jreleaser.model.Active.*
 import java.util.*
 
 project(":commons").version = "2.4.2-SNAPSHOT"
@@ -14,7 +13,7 @@ plugins {
     id("io.freefair.lombok") version "8.13.1"
     id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
-    id("org.jreleaser") version "1.18.0"
+    id("org.jreleaser") version "1.19.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
 }
@@ -137,18 +136,16 @@ subprojects {
             maven {
                 mavenCentral {
                     create("release-deploy") {
-                        active = Active.RELEASE
+                        active = RELEASE
                         namespace = "one.tomorrow"
-                        applyMavenCentralRules = true
                         url = "https://central.sonatype.com/api/v1/publisher"
                         stagingRepository("build/staging-deploy")
                     }
                 }
                 nexus2 {
                     create("snapshot-deploy") {
-                        active = Active.SNAPSHOT
-                        url = "https://central.sonatype.com/repository/maven-releases"
-                        snapshotUrl = "https://central.sonatype.com/repository/maven-snapshots"
+                        active = SNAPSHOT
+                        snapshotUrl = "https://central.sonatype.com/repository/maven-snapshots/"
                         applyMavenCentralRules = true
                         snapshotSupported = true
                         closeRepository = true

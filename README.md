@@ -325,6 +325,6 @@ public class Cleaner {
 To release a new version follow this step
 1. In your PR with the functional change, bump the version of `commons`, `outbox-kafka-spring` or `outbox-kafka-spring-reactive` in the root `build.gradle.kts` to a non-`SNAPSHOT` version.
    * Try to follow semantic versioning, i.e. bump the major version for binary incompatible changes, the minor version for compatible changes with improvements/new features, and the patch version for bugfixes or non-functional changes like refactorings.
-2. Merge your PR - the related pipeline will publish the new version(s) to Sonatype's staging repo (SNAPSHOTs are published directly to the [repo](https://central.sonatype.com/service/rest/repository/browse/maven-snapshots/one/tomorrow/transactional-outbox/) (and are kept for 90 days)).
+2. Merge your PR - the related pipeline will publish the new version(s) to Sonatype's staging repo (SNAPSHOTs are published to Maven Central Snapshots repository (and are kept for 90 days)).
 3. To publish a release, follow https://central.sonatype.com/publishing/deployments
 4. Push the released version(s) to the next SNAPSHOT version (choose the next higher patch version for this) - totally fine to push this to master directly

@@ -3,9 +3,9 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jreleaser.model.Active.*
 import java.util.*
 
-project(":commons").version = "2.4.2-SNAPSHOT"
-project(":outbox-kafka-spring").version = "3.5.2-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "3.4.2-SNAPSHOT"
+project(":commons").version = "2.4.2"
+project(":outbox-kafka-spring").version = "3.5.2"
+project(":outbox-kafka-spring-reactive").version = "3.4.2"
 
 plugins {
     id("java-library")
@@ -99,7 +99,7 @@ subprojects {
                             email.set("martin.grotzke@inoio.de")
                         }
                         developer {
-                            id.set("hnrkdmsk")
+                            id.set("mrhnrk")
                             name.set("Henrik Adamski")
                             email.set("henrik.adamski@tomorrow.one")
                         }
@@ -130,7 +130,6 @@ subprojects {
         signing {
             active = ALWAYS
             armored = true
-            verify = false
         }
         deploy {
             maven {

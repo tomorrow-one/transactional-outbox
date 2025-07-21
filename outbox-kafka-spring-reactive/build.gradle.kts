@@ -9,7 +9,7 @@ dependencies {
     val springVersion = "6.2.8"
     val springDataVersion = "3.4.5"
     val kafkaVersion = "3.9.0"
-    val testcontainersVersion = "1.21.0"
+    val testcontainersVersion = "1.21.3"
     val log4jVersion = "2.25.1"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -24,7 +24,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
     implementation(project(":commons"))
-    implementation(platform("io.micrometer:micrometer-tracing-bom:1.5.1"))
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.5.2"))
     compileOnly("io.micrometer:micrometer-tracing")
 
     // testing
@@ -43,7 +43,7 @@ dependencies {
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.13.1")
     testImplementation("org.postgresql:postgresql:42.7.5")
-    testImplementation("org.flywaydb:flyway-database-postgresql:11.10.1")
+    testImplementation("org.flywaydb:flyway-database-postgresql:11.10.3")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.3.0")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

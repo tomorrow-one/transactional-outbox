@@ -15,7 +15,10 @@
  */
 package one.tomorrow.transactionaloutbox.config;
 
+import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig.CleanupConfig;
+
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Utility class for tests that provides a TransactionalOutboxConfig with default values.
@@ -31,6 +34,15 @@ public class TestTransactionalOutboxConfig {
             Duration lockTimeout,
             String lockOwnerId,
             String eventSource) {
+        return createConfig(processingInterval, lockTimeout, lockOwnerId, eventSource, null);
+    }
+
+    public static TransactionalOutboxConfig createConfig(
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            CleanupConfig cleanupConfig) {
 
         return new TransactionalOutboxConfig() {
             @Override
@@ -56,6 +68,25 @@ public class TestTransactionalOutboxConfig {
             @Override
             public String eventSource() {
                 return eventSource;
+            }
+
+            @Override
+            public Optional<CleanupConfig> cleanup() {
+                return Optional.ofNullable(cleanupConfig);
+            }
+        };
+    }
+
+    public static CleanupConfig createCleanupConfig(Duration interval, Duration retention) {
+        return new CleanupConfig() {
+            @Override
+            public Duration interval() {
+                return interval;
+            }
+
+            @Override
+            public Duration retention() {
+                return retention;
             }
         };
     }

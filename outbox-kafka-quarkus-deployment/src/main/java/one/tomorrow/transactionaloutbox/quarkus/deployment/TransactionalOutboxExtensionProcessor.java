@@ -48,6 +48,7 @@ class TransactionalOutboxExtensionProcessor {
                         OutboxRepository.class,
                         OutboxLockService.class,
                         TransactionalOutboxConfig.class,
+                        TransactionalOutboxConfig.CleanupConfig.class,
                         OutboxService.class,
                         OutboxProcessor.class,
                         OutboxProcessor.KafkaProducerFactory.class,

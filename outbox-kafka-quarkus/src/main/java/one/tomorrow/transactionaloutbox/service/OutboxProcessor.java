@@ -20,6 +20,7 @@ import io.smallrye.mutiny.tuples.Tuple2;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Getter;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
@@ -52,6 +53,7 @@ public class OutboxProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
+    @Getter
     private final boolean enabled;
     private final OutboxLockService lockService;
     private final String lockOwnerId;
@@ -65,7 +67,9 @@ public class OutboxProcessor {
     private Instant lastLockAckquisitionAttempt;
 
     private final ScheduledExecutorService scheduledExecutor;
+    private final ScheduledExecutorService cleanupExecutor;
     private ScheduledFuture<?> schedule;
+    private ScheduledFuture<?> cleanupSchedule;
 
     /**
      * Constructs an {@code OutboxProcessor} to process the outbox and publish messages to Kafka.
@@ -102,10 +106,24 @@ public class OutboxProcessor {
 
         if (config.enabled()) {
             scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+            cleanupExecutor = config.cleanup().isPresent() ? setupCleanupSchedule(repository, config.cleanup().get()) : null;
             tryLockAcquisition(false);
         } else {
             scheduledExecutor = null;
+            cleanupExecutor = null;
         }
+    }
+
+    private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, TransactionalOutboxConfig.CleanupConfig cleanupConfig) {
+        final ScheduledExecutorService es = Executors.newSingleThreadScheduledExecutor();
+        cleanupSchedule = es.scheduleAtFixedRate(() -> {
+            if (active) {
+                Instant processedBefore = now().minus(cleanupConfig.retention());
+                logger.info("Cleaning up outbox records processed before {}", processedBefore);
+                repository.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(processedBefore);
+            }
+        }, 0, cleanupConfig.interval().toMillis(), MILLISECONDS);
+        return es;
     }
 
     private void scheduleProcessing() {
@@ -130,6 +148,12 @@ public class OutboxProcessor {
             if (schedule != null)
                 schedule.cancel(false);
             scheduledExecutor.shutdownNow();
+
+            if (cleanupSchedule != null)
+                cleanupSchedule.cancel(false);
+            if (cleanupExecutor != null)
+                cleanupExecutor.shutdownNow();
+
             producer.close();
             if (active)
                 lockService.releaseLock(lockOwnerId);

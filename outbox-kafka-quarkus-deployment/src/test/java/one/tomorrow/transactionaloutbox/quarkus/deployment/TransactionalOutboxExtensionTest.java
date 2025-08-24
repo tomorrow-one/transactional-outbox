@@ -56,6 +56,7 @@ class TransactionalOutboxExtensionTest {
                             .addClasses(OutboxLockRepository.class)
                             .addClasses(OutboxLockService.class)
                             .addClasses(TransactionalOutboxConfig.class)
+                            .addClasses(TransactionalOutboxConfig.CleanupConfig.class)
                             .addClasses(OutboxProcessor.class)
                             .addClasses(OutboxProcessor.KafkaProducerFactory.class)
                             .addClasses(DefaultKafkaProducerFactory.class)

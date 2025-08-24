@@ -21,6 +21,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
 import java.time.Duration;
+import java.util.Optional;
 
 @ConfigMapping(prefix = "one.tomorrow.transactional-outbox", namingStrategy = ConfigMapping.NamingStrategy.KEBAB_CASE)
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
@@ -62,4 +63,27 @@ public interface TransactionalOutboxConfig {
      * Example: the service name or a unique identifier for the producer.
      */
     String eventSource();
+
+    /**
+     * Configuration for automatic cleanup of processed outbox records.
+     * If not configured, cleanup will be disabled.
+     */
+    Optional<CleanupConfig> cleanup();
+
+    /**
+     * Configuration for cleanup settings.
+     */
+    interface CleanupConfig {
+        /**
+         * The interval at which cleanup should be performed.
+         * Example: PT1H (every hour)
+         */
+        Duration interval();
+
+        /**
+         * How long to retain processed records before deleting them.
+         * Example: P30D (30 days)
+         */
+        Duration retention();
+    }
 }

@@ -25,11 +25,13 @@ import jakarta.transaction.Transactional;
 import one.tomorrow.transactionaloutbox.KafkaTestUtils;
 import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer;
-import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
+import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig.CleanupConfig;
+import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
@@ -39,11 +41,15 @@ import java.util.Map;
 import static eu.rekawek.toxiproxy.model.ToxicDirection.DOWNSTREAM;
 import static java.lang.Thread.sleep;
 import static one.tomorrow.transactionaloutbox.KafkaTestUtils.*;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.*;
+import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.startProxiedKafka;
 import static one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer.postgresProxy;
 import static one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer.startProxiedPostgres;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
+import static one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig.createCleanupConfig;
+import static one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig.createConfig;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -117,7 +123,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
     void should_ProcessNewRecords() {
         // given
         String eventSource = "test";
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 Duration.ofMillis(50),
                 Duration.ofMillis(200),
                 "processor",
@@ -163,7 +169,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         // when
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 processingInterval,
                 Duration.ofMillis(200),
                 "processor",
@@ -188,7 +194,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
 
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 processingInterval,
                 Duration.ofMillis(200),
                 "processor",
@@ -225,7 +231,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
 
         Duration processingInterval = Duration.ofMillis(20);
         String eventSource = "test";
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 processingInterval,
                 Duration.ofMillis(200),
                 "processor",
@@ -259,7 +265,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         Duration processingInterval = Duration.ofMillis(50);
         String eventSource = "test";
 
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 processingInterval,
                 Duration.ofMillis(200),
                 "processor",
@@ -295,7 +301,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         Duration processingInterval = Duration.ofMillis(500);
         String eventSource = "test";
 
-        TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
+        TransactionalOutboxConfig config = createConfig(
                 processingInterval,
                 Duration.ofMillis(200),
                 "processor",
@@ -323,6 +329,47 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         // then
         records = getAndCommitRecords();
         assertThat(records.count(), is(1));
+    }
+
+    @Test
+    void should_CleanupOutdatedProcessedRecords() {
+        // given
+        String eventSource = "test";
+        CleanupConfig cleanupConfig = createCleanupConfig(
+                Duration.ofMillis(100),
+                Duration.ofMillis(200)
+        );
+        TransactionalOutboxConfig config = createConfig(
+                Duration.ofMillis(10),
+                Duration.ofMillis(200),
+                "processor",
+                eventSource,
+                cleanupConfig
+        );
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+
+        // when
+        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        transactionalRepository.persist(record1);
+        assertEquals(1, repository.getUnprocessedRecords(1).size());
+
+        // then
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> repository.getUnprocessedRecords(1).isEmpty()
+        );
+        assertEquals(1, getAndCommitRecords().count());
+
+        // and eventually
+        await().atMost(Duration.ofSeconds(5)).until(
+                () -> countOutboxRecords() == 0
+        );
+    }
+
+    @Transactional
+    long countOutboxRecords() {
+        return entityManager
+                .createQuery("SELECT COUNT(r) FROM OutboxRecord r", Long.class)
+                .getSingleResult();
     }
 
     private DefaultKafkaProducerFactory producerFactory() {

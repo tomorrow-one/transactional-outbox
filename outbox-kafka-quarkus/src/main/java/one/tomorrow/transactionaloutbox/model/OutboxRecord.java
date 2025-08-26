@@ -42,7 +42,7 @@ public class OutboxRecord {
     private Long id;
 
     @CreationTimestamp
-    private Timestamp created;
+    private Instant created;
 
     @Column(name = "processed")
     private Instant processed;

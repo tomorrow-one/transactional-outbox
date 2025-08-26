@@ -26,6 +26,10 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm")
     implementation("io.quarkus:quarkus-kafka-client")
 
+    // Tracing dependencies - optional
+    compileOnly("io.quarkus:quarkus-opentelemetry")
+    compileOnly("io.opentelemetry:opentelemetry-api")
+
     // Test dependencies
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.quarkus:quarkus-flyway")
@@ -37,6 +41,11 @@ dependencies {
     testImplementation("org.testcontainers:toxiproxy")
     testImplementation("org.awaitility:awaitility")
     testImplementation("io.quarkus:quarkus-smallrye-fault-tolerance")
+
+    // Test tracing dependencies
+    testImplementation("io.quarkus:quarkus-opentelemetry")
+    testImplementation("io.opentelemetry:opentelemetry-api")
+    testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
 }
 
 java {

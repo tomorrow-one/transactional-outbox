@@ -16,6 +16,9 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import eu.rekawek.toxiproxy.model.toxic.Timeout;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
+import io.opentelemetry.sdk.trace.data.SpanData;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -29,6 +32,8 @@ import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig.CleanupConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.tracing.TracingAssertions;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -36,6 +41,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import static eu.rekawek.toxiproxy.model.ToxicDirection.DOWNSTREAM;
@@ -49,6 +55,7 @@ import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig.createCleanupConfig;
 import static one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig.createConfig;
+import static one.tomorrow.transactionaloutbox.tracing.TracingService.INTERNAL_PREFIX;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,10 +64,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 @TestProfile(OutboxProcessorIntegrationTest.class)
 @SuppressWarnings({"unused", "resource"})
-public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
+public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, TracingAssertions {
 
-    private static final String topic1 = "topicOPIT1";
-    private static final String topic2 = "topicOPIT2";
+    private static final String TOPIC_1 = "topicOPIT1";
+    private static final String TOPIC_2 = "topicOPIT2";
 
     public static final ProxiedPostgreSQLContainer postgresqlContainer = startProxiedPostgres();
     public static final ProxiedKafkaContainer kafkaContainer = startProxiedKafka();
@@ -76,6 +83,12 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
     OutboxLockService lockService;
     @Inject
     TestOutboxRepository transactionalRepository;
+    @Inject
+    TracingService tracingService;
+    @Inject
+    InMemorySpanExporter spanExporter;
+    @Inject
+    OpenTelemetry openTelemetry;
 
     private OutboxProcessor testee;
 
@@ -97,8 +110,8 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
 
     @BeforeAll
     static void beforeAll() {
-        createTopic(bootstrapServers, topic1, topic2);
-        consumer = setupConsumer("testConsumer-" + System.currentTimeMillis(), true, topic1, topic2);
+        createTopic(bootstrapServers, TOPIC_1, TOPIC_2);
+        consumer = setupConsumer("testConsumer-" + System.currentTimeMillis(), true, TOPIC_1, TOPIC_2);
     }
 
     @BeforeEach
@@ -107,6 +120,8 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         entityManager
                 .createQuery("DELETE FROM OutboxRecord")
                 .executeUpdate();
+        // Clear spans from previous test runs
+        spanExporter.reset();
     }
 
     @AfterEach
@@ -129,10 +144,10 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         // then
@@ -142,7 +157,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         assertConsumedRecord(record1, "h1", eventSource, kafkaRecord);
 
         // and when
-        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persist(record2);
 
         // then
@@ -159,9 +174,77 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
     }
 
     @Test
+    void should_ProcessNewRecords_withTracing() {
+        // given
+        String eventSource = "test";
+        TransactionalOutboxConfig config = createConfig(
+                Duration.ofMillis(50),
+                Duration.ofMillis(200),
+                "processor",
+                eventSource
+        );
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+
+        // when
+
+        String traceId1 = "0123456789abcdef0123456789abcdef"; // 32 hex
+        String parentSpanId1 = "0123456789abcdef"; // 16 hex
+        String traceparent1 = "00-" + traceId1 + "-" + parentSpanId1 + "-01";
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders(
+                "h1", "v1",
+                INTERNAL_PREFIX + "traceparent", traceparent1,
+                INTERNAL_PREFIX + "tracestate", "vendor=value1"));
+        transactionalRepository.persist(record1);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertEquals(1, records.count());
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertConsumedRecord(record1, "h1", eventSource, kafkaRecord);
+
+        // verify spans: one for the transactional-outbox, one for the processing to Kafka
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+        assertEquals(2, spans.size());
+
+        SpanData outboxSpan = findSpanByName(spanExporter, "transactional-outbox");
+        assertOutboxSpan(outboxSpan, traceId1, parentSpanId1, record1);
+
+        SpanData processingSpan = findSpanByName(spanExporter, "To_" + TOPIC_1);
+        assertProcessingSpan(processingSpan, traceId1, outboxSpan.getSpanId(), TOPIC_1);
+
+        // and when
+        String traceId2 = "1123456789abcdef0123456789abcdef"; // 32 hex
+        String parentSpanId2 = "1123456789abcdef"; // 16 hex
+        String traceparent2 = "00-" + traceId2 + "-" + parentSpanId2 + "-01";
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders(
+                "h2", "v2",
+                INTERNAL_PREFIX + "traceparent", traceparent2,
+                INTERNAL_PREFIX + "tracestate", "vendor=value2"));
+        transactionalRepository.persist(record2);
+
+        // then
+        records = getAndCommitRecords();
+        assertEquals(1, records.count());
+        kafkaRecord = records.iterator().next();
+        assertConsumedRecord(record2, "h2", eventSource, kafkaRecord);
+
+        // verify spans: one for the transactional-outbox, one for the processing to Kafka
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
+                assertEquals(4, spanExporter.getFinishedSpanItems().size())
+        );
+        spans = spanExporter.getFinishedSpanItems();
+
+        outboxSpan = spans.get(2);
+        assertOutboxSpan(outboxSpan, traceId2, parentSpanId2, record2);
+
+        processingSpan = spans.get(3);
+        assertProcessingSpan(processingSpan, traceId2, outboxSpan.getSpanId(), TOPIC_2);
+    }
+
+    @Test
     void should_StartWhenKafkaIsNotAvailableAndProcessOutboxWhenKafkaIsAvailable() throws InterruptedException {
         // given
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         kafkaContainer.setConnectionCut(true);
@@ -175,7 +258,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         sleep(processingInterval.plusMillis(200).toMillis());
         kafkaContainer.setConnectionCut(false);
@@ -189,7 +272,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
     @Test
     void should_ContinueProcessingAfterKafkaRestart() throws InterruptedException {
         // given
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         Duration processingInterval = Duration.ofMillis(50);
@@ -200,7 +283,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
@@ -211,7 +294,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         // and when
         kafkaContainer.setConnectionCut(true);
 
-        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persist(record2);
 
         sleep(processingInterval.plusMillis(200).toMillis());
@@ -226,7 +309,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
     @Test
     void should_ContinueProcessingAfterDatabaseUnavailability() throws InterruptedException, IOException {
         // given
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         Duration processingInterval = Duration.ofMillis(20);
@@ -237,7 +320,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
@@ -250,7 +333,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         sleep(processingInterval.multipliedBy(5).toMillis());
         timeout.remove();
 
-        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persistWithRetry(record2);
 
         // then
@@ -271,10 +354,10 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         // then
@@ -284,7 +367,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         // and when
         lockRepository.failAcquireOrRefreshLock().set(true);
 
-        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persist(record2);
 
         lockRepository.acquireOrRefreshLockCDL().await();
@@ -307,10 +390,10 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
 
         // then
@@ -320,7 +403,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
         // and when
         lockRepository.failPreventLockStealing().set(true);
 
-        OutboxRecord record2 = newRecord(topic2, "key2", "value2", newHeaders("h2", "v2"));
+        OutboxRecord record2 = newRecord(TOPIC_2, "key2", "value2", newHeaders("h2", "v2"));
         transactionalRepository.persist(record2);
 
         lockRepository.preventLockStealingCDL().await();
@@ -346,10 +429,10 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile {
                 eventSource,
                 cleanupConfig
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService);
+        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
 
         // when
-        OutboxRecord record1 = newRecord(topic1, "key1", "value1", newHeaders("h1", "v1"));
+        OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
         transactionalRepository.persist(record1);
         assertEquals(1, repository.getUnprocessedRecords(1).size());
 

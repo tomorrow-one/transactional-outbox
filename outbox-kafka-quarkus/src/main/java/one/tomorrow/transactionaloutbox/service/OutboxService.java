@@ -16,25 +16,28 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static jakarta.transaction.Transactional.TxType.MANDATORY;
 
-/**
- * Service for persisting outbox records that will later be processed and sent to Kafka.
- */
 @ApplicationScoped
-@Slf4j
-@AllArgsConstructor
 public class OutboxService {
 
-    private final OutboxRepository outboxRepository;
+    private final OutboxRepository repository;
+    private final TracingService tracingService;
+
+    @Inject
+    public OutboxService(OutboxRepository repository, TracingService tracingService) {
+        this.repository = repository;
+        this.tracingService = tracingService;
+    }
 
     /**
      * Persist a record to the outbox table, must be called inside a transaction context.
@@ -60,15 +63,30 @@ public class OutboxService {
      */
     @Transactional(MANDATORY)
     public OutboxRecord saveForPublishing(String topic, String key, byte[] value, Map<String, String> headers) {
+        Map<String, String> tracingHeaders = tracingService.tracingHeadersForOutboxRecord();
+        Map<String, String> allHeaders = merge(headers, tracingHeaders);
         OutboxRecord outboxRecord = OutboxRecord.builder()
                 .topic(topic)
                 .key(key)
                 .value(value)
-                .headers(headers)
+                .headers(allHeaders)
                 .build();
-
-        log.debug("Persisting record for topic {}, key {}", topic, key);
-        outboxRepository.persist(outboxRecord);
+        repository.persist(outboxRecord);
         return outboxRecord;
     }
+
+    public static Map<String, String> merge(Map<String, String> map1, Map<String, String> map2) {
+        if (isNullOrEmpty(map1))
+            return map2;
+        if (isNullOrEmpty(map2))
+            return map1;
+        Map<String, String> result = new HashMap<>(map1);
+        result.putAll(map2);
+        return result;
+    }
+
+    public static boolean isNullOrEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
 }

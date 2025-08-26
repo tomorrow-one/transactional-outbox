@@ -16,6 +16,7 @@
 package one.tomorrow.transactionaloutbox;
 
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -44,12 +45,14 @@ public class TestUtils {
                 .build();
     }
 
-    /**
-     * Creates a new headers map with the given key and value
-     */
-    public static Map<String, String> newHeaders(String key, String value) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put(key, value);
-        return headers;
+    @NotNull
+    public static Map<String, String> newHeaders(String ... keyValue) {
+        Map<String, String> headers1 = new HashMap<>();
+        if(keyValue.length % 2 != 0)
+            throw new IllegalArgumentException("KeyValue must be a list of pairs");
+        for (int i = 0; i < keyValue.length; i += 2) {
+            headers1.put(keyValue[i], keyValue[i + 1]);
+        }
+        return headers1;
     }
 }

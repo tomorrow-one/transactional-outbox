@@ -16,15 +16,18 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import io.quarkus.runtime.Startup;
-import io.smallrye.mutiny.tuples.Tuple2;
+import io.smallrye.mutiny.tuples.Tuple3;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.Getter;
 import one.tomorrow.transactionaloutbox.commons.Longs;
-import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
+import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService.TraceOutboxRecordProcessingResult;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -33,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.*;
 
 import static java.time.Instant.now;
@@ -61,6 +65,7 @@ public class OutboxProcessor {
     private final KafkaProducerFactory producerFactory;
     private final Duration processingInterval;
     private final byte[] eventSource;
+    private final TracingService tracingService;
     private KafkaProducer<String, byte[]> producer;
     private boolean active;
     private boolean closed;
@@ -82,13 +87,15 @@ public class OutboxProcessor {
      *                           By default, the {@link DefaultKafkaProducerFactory} is used.
      * @param lockService        The {@link OutboxLockService} to manage distributed locks for processing.
      *                           Ensures only one instance processes the outbox at a time.
+     * @param tracingService     The {@link TracingService} to handle distributed tracing.
      */
     @Inject
     public OutboxProcessor(
             TransactionalOutboxConfig config,
             OutboxRepository repository,
             KafkaProducerFactory producerFactory,
-            OutboxLockService lockService) {
+            OutboxLockService lockService,
+            TracingService tracingService) {
         if (config.enabled())
             logger.info("Starting outbox processor with lockOwnerId {}, source {}, processing interval {} ms" +
                         " and producer factory {}", config.lockOwnerId(), config.eventSource(), config.processingInterval().toMillis(), producerFactory);
@@ -101,6 +108,7 @@ public class OutboxProcessor {
         this.processingInterval = config.processingInterval();
         this.lockOwnerId = config.lockOwnerId();
         this.eventSource = config.eventSource().getBytes();
+        this.tracingService = tracingService != null ? tracingService : new NoopTracingService();
         this.producerFactory = producerFactory;
         producer = producerFactory.createKafkaProducer();
 
@@ -240,22 +248,31 @@ public class OutboxProcessor {
         logger.debug("Processing outbox");
         repository.getUnprocessedRecords(BATCH_SIZE)
                 .stream()
-                .map(outboxRecord ->
-                        Tuple2.of(outboxRecord, producer.send(toProducerRecord(outboxRecord)))
-                )
+                .map(outboxRecord -> {
+                    TraceOutboxRecordProcessingResult tracingResult =
+                            tracingService.traceOutboxRecordProcessing(outboxRecord);
+                    return Tuple3.of(
+                            outboxRecord,
+                            tracingResult,
+                            producer.send(toProducerRecord(outboxRecord, tracingResult.getHeaders()))
+                    );
+                })
                 // collect to List (so that map is completed for all items before awaiting futures),
                 // to use producer internal batching
                 .toList()
-                .forEach(recordAndFutureResult -> {
-                    OutboxRecord outboxRecord = recordAndFutureResult.getItem1();
-                    Future<RecordMetadata> result = recordAndFutureResult.getItem2();
+                .forEach(tuple3 -> {
+                    OutboxRecord outboxRecord = tuple3.getItem1();
+                    TraceOutboxRecordProcessingResult tracingResult = tuple3.getItem2();
+                    Future<RecordMetadata> result = tuple3.getItem3();
                     try {
                         await(result);
                         logger.info("Sent record to kafka: {}", outboxRecord);
                         outboxRecord.setProcessed(now());
                         repository.update(outboxRecord);
+                        tracingResult.publishCompleted();
                     } catch (RuntimeException e) {
                         logger.warn("Failed to publish {}", outboxRecord, e);
+                        tracingResult.publishFailed(e);
                     }
                 });
     }
@@ -271,14 +288,14 @@ public class OutboxProcessor {
         }
     }
 
-    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord) {
+    private ProducerRecord<String, byte[]> toProducerRecord(OutboxRecord outboxRecord, Map<String, String> headers) {
         ProducerRecord<String, byte[]> producerRecord = new ProducerRecord<>(
                 outboxRecord.getTopic(),
                 outboxRecord.getKey(),
                 outboxRecord.getValue()
         );
-        if (outboxRecord.getHeaders() != null) {
-            outboxRecord.getHeaders().forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
+        if (headers != null && !headers.isEmpty()) {
+            headers.forEach((k, v) -> producerRecord.headers().add(k, v.getBytes()));
         }
         producerRecord.headers().add(HEADERS_SEQUENCE_NAME, Longs.toByteArray(outboxRecord.getId()));
         producerRecord.headers().add(HEADERS_SOURCE_NAME, eventSource);

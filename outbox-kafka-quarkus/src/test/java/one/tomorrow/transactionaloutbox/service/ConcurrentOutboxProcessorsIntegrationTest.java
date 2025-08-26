@@ -28,6 +28,8 @@ import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -68,6 +70,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
     OutboxLockService lockService;
     @Inject
     TestOutboxRepository transactionalRepository;
+    private final TracingService tracingService = new NoopTracingService();
 
     private OutboxProcessor testee1;
     private OutboxProcessor testee2;
@@ -128,8 +131,8 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
         TransactionalOutboxConfig config2 = TestTransactionalOutboxConfig.createConfig(
                 processingInterval, lockTimeout, "processor2", eventSource);
 
-        testee1 = new OutboxProcessor(config1, repository, producerFactory, lockService);
-        testee2 = new OutboxProcessor(config2, repository, producerFactory, lockService);
+        testee1 = new OutboxProcessor(config1, repository, producerFactory, lockService, tracingService);
+        testee2 = new OutboxProcessor(config2, repository, producerFactory, lockService, tracingService);
 
         // when
         List<OutboxRecord> outboxRecords = range(0, 1000).mapToObj(

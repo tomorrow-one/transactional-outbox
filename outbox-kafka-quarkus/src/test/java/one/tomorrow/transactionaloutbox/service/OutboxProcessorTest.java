@@ -20,6 +20,8 @@ import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.service.OutboxProcessor.KafkaProducerFactory;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -44,12 +46,10 @@ import static org.mockito.Mockito.*;
 class OutboxProcessorTest {
 
     private final OutboxRepository repository = mock(OutboxRepository.class);
-
     private final OutboxLockService lockService = mock(OutboxLockService.class);
-
     private final KafkaProducerFactory producerFactory = mock(KafkaProducerFactory.class);
-
     private final KafkaProducer<String, byte[]> producer = mock(KafkaProducer.class);
+    private final TracingService tracingService = new NoopTracingService();
 
     private final OutboxRecord record1 = mock(OutboxRecord.class, RETURNS_MOCKS);
     private final OutboxRecord record2 = mock(OutboxRecord.class, RETURNS_MOCKS);
@@ -63,7 +63,6 @@ class OutboxProcessorTest {
     @BeforeEach
     void setup() {
         when(producerFactory.createKafkaProducer()).thenReturn(producer);
-
         when(lockService.getLockTimeout()).thenReturn(Duration.ZERO);
 
         TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
@@ -77,7 +76,8 @@ class OutboxProcessorTest {
                 config,
                 repository,
                 producerFactory,
-                lockService);
+                lockService,
+                tracingService);
 
         when(record1.getKey()).thenReturn("r1");
         when(record2.getKey()).thenReturn("r2");
@@ -151,5 +151,4 @@ class OutboxProcessorTest {
             }
         };
     }
-
 }

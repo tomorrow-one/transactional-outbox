@@ -26,6 +26,9 @@ import one.tomorrow.transactionaloutbox.service.DefaultKafkaProducerFactory;
 import one.tomorrow.transactionaloutbox.service.OutboxLockService;
 import one.tomorrow.transactionaloutbox.service.OutboxProcessor;
 import one.tomorrow.transactionaloutbox.service.OutboxService;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingServiceProducer;
+import one.tomorrow.transactionaloutbox.tracing.TracingService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -60,6 +63,8 @@ class TransactionalOutboxExtensionTest {
                             .addClasses(OutboxProcessor.class)
                             .addClasses(OutboxProcessor.KafkaProducerFactory.class)
                             .addClasses(DefaultKafkaProducerFactory.class)
+                            .addClasses(NoopTracingService.class)
+                            .addClasses(NoopTracingServiceProducer.class)
                             .addAsResource("application-test.properties")
                             .addAsResource("db/migration/V1__add-outbox-tables.sql")
             );

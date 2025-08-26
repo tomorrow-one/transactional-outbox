@@ -16,6 +16,9 @@
 package one.tomorrow.transactionaloutbox.quarkus.deployment;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
@@ -28,6 +31,8 @@ import one.tomorrow.transactionaloutbox.service.DefaultKafkaProducerFactory;
 import one.tomorrow.transactionaloutbox.service.OutboxLockService;
 import one.tomorrow.transactionaloutbox.service.OutboxProcessor;
 import one.tomorrow.transactionaloutbox.service.OutboxService;
+import one.tomorrow.transactionaloutbox.tracing.NoopTracingServiceProducer;
+import one.tomorrow.transactionaloutbox.tracing.OpenTelemetryTracingServiceProducer;
 
 import java.util.List;
 
@@ -56,6 +61,24 @@ class TransactionalOutboxExtensionProcessor {
                 )
                 .setUnremovable()
                 .build();
+    }
+
+    @BuildStep
+    void registerTracingBeans(Capabilities capabilities,
+                              BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
+        // Always register the default/no-op TracingService (it is marked @DefaultBean)
+        additionalBeans.produce(AdditionalBeanBuildItem.builder()
+                .addBeanClasses(NoopTracingServiceProducer.class)
+                .setUnremovable()
+                .build());
+
+        // Only register the OTel-based TracingService if the OTel capability is present
+        if (capabilities.isPresent(Capability.OPENTELEMETRY_TRACER)) {
+            additionalBeans.produce(AdditionalBeanBuildItem.builder()
+                    .addBeanClass(OpenTelemetryTracingServiceProducer.class)
+                    .setUnremovable()
+                    .build());
+        }
     }
 
     @BuildStep

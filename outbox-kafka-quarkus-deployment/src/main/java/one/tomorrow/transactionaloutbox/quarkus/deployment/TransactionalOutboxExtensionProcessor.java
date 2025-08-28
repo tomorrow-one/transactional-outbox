@@ -65,8 +65,10 @@ class TransactionalOutboxExtensionProcessor {
     }
 
     @BuildStep
-    void registerTracingBeans(Capabilities capabilities,
-                              BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
+    void registerTracingBeans(
+            Capabilities capabilities,
+            BuildProducer<AdditionalBeanBuildItem> additionalBeans
+    ) {
         // Always register the default/no-op TracingService (it is marked @DefaultBean)
         additionalBeans.produce(AdditionalBeanBuildItem.builder()
                 .addBeanClasses(NoopTracingServiceProducer.class)

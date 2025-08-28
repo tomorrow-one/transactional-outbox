@@ -56,11 +56,13 @@ public class EmitterMessagePublisher implements MessagePublisher {
     private final EmitterResolver emitterResolver;
 
     @Override
-    public Future<?> publish(Long id,
-                             String topic,
-                             String key,
-                             byte[] payload,
-                             @Nonnull Map<String, byte[]> headers) {
+    public Future<?> publish(
+            Long id,
+            String topic,
+            String key,
+            byte[] payload,
+            @Nonnull Map<String, byte[]> headers
+    ) {
         MutinyEmitter<byte[]> emitter = emitterResolver.resolveBy(topic);
         if (emitter == null) {
             return CompletableFuture.failedFuture(

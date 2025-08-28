@@ -48,11 +48,11 @@ class EmitterMessagePublisherTest {
 
         assertDoesNotThrow(result::join);
         verify(emitter).sendMessage(argThat((OutgoingKafkaRecord<String, byte[]> kafkaRecord) -> {
-           assertEquals("key", kafkaRecord.getKey());
-           assertEquals("payload", new String(kafkaRecord.getPayload()));
-           assertEquals(1, kafkaRecord.getHeaders().toArray().length);
-           assertEquals("v", new String(kafkaRecord.getHeaders().lastHeader("k").value()));
-           return true;
+            assertEquals("key", kafkaRecord.getKey());
+            assertEquals("payload", new String(kafkaRecord.getPayload()));
+            assertEquals(1, kafkaRecord.getHeaders().toArray().length);
+            assertEquals("v", new String(kafkaRecord.getHeaders().lastHeader("k").value()));
+            return true;
         }));
     }
 

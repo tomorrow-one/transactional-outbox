@@ -31,11 +31,13 @@ public class KafkaProducerMessagePublisher implements MessagePublisher {
     private final KafkaProducer<String, byte[]> kafkaProducer;
 
     @Override
-    public Future<?> publish(Long id,
-                             String topic,
-                             String key,
-                             byte[] payload,
-                             @Nonnull Map<String, byte[]> headers) {
+    public Future<?> publish(
+            Long id,
+            String topic,
+            String key,
+            byte[] payload,
+            @Nonnull Map<String, byte[]> headers
+    ) {
         Headers kafkaHeaders = new RecordHeaders();
         headers.forEach(kafkaHeaders::add);
         return kafkaProducer.send(

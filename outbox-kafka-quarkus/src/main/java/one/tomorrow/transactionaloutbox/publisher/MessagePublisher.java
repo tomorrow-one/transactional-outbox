@@ -27,11 +27,12 @@ import java.util.concurrent.Future;
  */
 public interface MessagePublisher {
 
-    Future<?> publish(Long id,
-                      String topic,
-                      String key,
-                      byte[] payload,
-                      @Nonnull Map<String, byte[]> headers);
+    Future<?> publish(
+            Long id,
+            String topic,
+            String key,
+            byte[] payload,
+            @Nonnull Map<String, byte[]> headers);
 
     void close();
 

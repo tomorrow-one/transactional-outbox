@@ -83,11 +83,13 @@ class KafkaHeadersTest {
         return result;
     }
 
-    private Map<String, Object> mapOf(String key1, Object value1,
-                                      String key2, Object value2,
-                                      String key3, Object value3,
-                                      String key4, Object value4,
-                                      String key5, Object value5) {
+    private Map<String, Object> mapOf(
+            String key1, Object value1,
+            String key2, Object value2,
+            String key3, Object value3,
+            String key4, Object value4,
+            String key5, Object value5
+    ) {
         Map<String, Object> result = new HashMap<>();
         result.put(key1, value1);
         result.put(key2, value2);

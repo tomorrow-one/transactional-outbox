@@ -274,8 +274,10 @@ public class OutboxProcessor {
                 });
     }
 
-    private Map<String, byte[]> getHeaders(OutboxRecord outboxRecord,
-                                           TraceOutboxRecordProcessingResult tracingResult) {
+    private Map<String, byte[]> getHeaders(
+            OutboxRecord outboxRecord,
+            TraceOutboxRecordProcessingResult tracingResult
+    ) {
         Map<String, byte[]> headers = new HashMap<>();
         if (tracingResult.getHeaders() != null) {
             tracingResult.getHeaders().forEach((key, value) ->

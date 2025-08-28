@@ -31,16 +31,16 @@ import static java.time.temporal.ChronoUnit.MILLIS;
 public class TestOutboxRepository {
 
     @Inject
-	OutboxRepository repository;
+    OutboxRepository repository;
 
-	public TestOutboxRepository(OutboxRepository repository) {
-		this.repository = repository;
-	}
+    public TestOutboxRepository(OutboxRepository repository) {
+        this.repository = repository;
+    }
 
-	@Transactional
-	public void persist(OutboxRecord outboxRecord) {
-		repository.persist(outboxRecord);
-	}
+    @Transactional
+    public void persist(OutboxRecord outboxRecord) {
+        repository.persist(outboxRecord);
+    }
 
     @Retry(maxRetries = 10, delay = 500, delayUnit = MILLIS)
     public void persistWithRetry(OutboxRecord outboxRecord) {

@@ -37,8 +37,10 @@ public interface TracingAssertions {
         Instant expectedStartTime = outboxRecord.getCreated();
         Instant actualStartTime = Instant.ofEpochMilli(outboxSpan.getStartEpochNanos() / 1_000_000);
         // Allow some tolerance for timing differences
-        assertTrue(Math.abs(expectedStartTime.toEpochMilli() - actualStartTime.toEpochMilli()) < 1000,
-                   "Start time should be close to outbox record creation time");
+        assertTrue(
+                Math.abs(expectedStartTime.toEpochMilli() - actualStartTime.toEpochMilli()) < 1000,
+                "Start time should be close to outbox record creation time"
+        );
 
         assertTrue(outboxSpan.getEndEpochNanos() > outboxSpan.getStartEpochNanos());
         assertNotNull(spanContext.getSpanId());

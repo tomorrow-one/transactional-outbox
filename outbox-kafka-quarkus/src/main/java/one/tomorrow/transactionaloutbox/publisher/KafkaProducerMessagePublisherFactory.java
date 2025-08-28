@@ -35,16 +35,16 @@ public class KafkaProducerMessagePublisherFactory implements MessagePublisherFac
         KafkaProducer<String, byte[]> createKafkaProducer();
     }
 
-	private final KafkaProducerFactory kafkaProducerFactory;
+    private final KafkaProducerFactory kafkaProducerFactory;
 
     @Override
     public MessagePublisher create() {
         return new KafkaProducerMessagePublisher(kafkaProducerFactory.createKafkaProducer());
     }
 
-	@Override
-	public String toString() {
-		return "KafkaProducerMessageFactory{producerFactory=" + kafkaProducerFactory + '}';
-	}
+    @Override
+    public String toString() {
+        return "KafkaProducerMessageFactory{producerFactory=" + kafkaProducerFactory + '}';
+    }
 
 }

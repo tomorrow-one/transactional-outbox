@@ -31,6 +31,8 @@ import one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig.CleanupConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.publisher.DefaultKafkaProducerFactory;
+import one.tomorrow.transactionaloutbox.publisher.KafkaProducerMessagePublisherFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.tracing.TracingAssertions;
 import one.tomorrow.transactionaloutbox.tracing.TracingService;
@@ -144,7 +146,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
@@ -183,7 +185,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
 
@@ -258,7 +260,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         sleep(processingInterval.plusMillis(200).toMillis());
         kafkaContainer.setConnectionCut(false);
@@ -283,7 +285,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
@@ -320,7 +322,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
@@ -354,7 +356,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
@@ -390,7 +392,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 "processor",
                 eventSource
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
@@ -429,7 +431,7 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 eventSource,
                 cleanupConfig
         );
-        testee = new OutboxProcessor(config, repository, producerFactory(), lockService, tracingService);
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
 
         // when
         OutboxRecord record1 = newRecord(TOPIC_1, "key1", "value1", newHeaders("h1", "v1"));
@@ -455,8 +457,8 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
                 .getSingleResult();
     }
 
-    private DefaultKafkaProducerFactory producerFactory() {
-        return new DefaultKafkaProducerFactory(producerProps());
+    private KafkaProducerMessagePublisherFactory publisherFactory() {
+        return new KafkaProducerMessagePublisherFactory(new DefaultKafkaProducerFactory(producerProps()));
     }
 
     private static Consumer<String, byte[]> consumer() {

@@ -24,9 +24,11 @@ import jakarta.transaction.Transactional;
 import one.tomorrow.transactionaloutbox.KafkaTestUtils;
 import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer;
-import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
+import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.publisher.DefaultKafkaProducerFactory;
+import one.tomorrow.transactionaloutbox.publisher.KafkaProducerMessagePublisherFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
 import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
 import one.tomorrow.transactionaloutbox.tracing.TracingService;
@@ -122,7 +124,8 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
         // given
         Duration lockTimeout = Duration.ofMillis(20); // very aggressive lock stealing
         Duration processingInterval = Duration.ZERO;
-        DefaultKafkaProducerFactory producerFactory = new DefaultKafkaProducerFactory(producerProps());
+        KafkaProducerMessagePublisherFactory publisherFactory = new KafkaProducerMessagePublisherFactory(
+                new DefaultKafkaProducerFactory(producerProps()));
         String eventSource = "test";
 
         TransactionalOutboxConfig config1 = TestTransactionalOutboxConfig.createConfig(
@@ -131,8 +134,8 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
         TransactionalOutboxConfig config2 = TestTransactionalOutboxConfig.createConfig(
                 processingInterval, lockTimeout, "processor2", eventSource);
 
-        testee1 = new OutboxProcessor(config1, repository, producerFactory, lockService, tracingService);
-        testee2 = new OutboxProcessor(config2, repository, producerFactory, lockService, tracingService);
+        testee1 = new OutboxProcessor(config1, repository, publisherFactory, lockService, tracingService);
+        testee2 = new OutboxProcessor(config2, repository, publisherFactory, lockService, tracingService);
 
         // when
         List<OutboxRecord> outboxRecords = range(0, 1000).mapToObj(

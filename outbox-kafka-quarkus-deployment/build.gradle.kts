@@ -20,4 +20,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-flyway")
     testImplementation("io.quarkus:quarkus-kafka-client")
+    testImplementation("io.quarkus:quarkus-messaging-kafka")
+    testImplementation("io.smallrye.reactive:smallrye-reactive-messaging-in-memory")
+    testImplementation("org.awaitility:awaitility")
 }

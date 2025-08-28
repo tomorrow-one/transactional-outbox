@@ -15,25 +15,19 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
-import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
+import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.publisher.MessagePublisher;
+import one.tomorrow.transactionaloutbox.publisher.MessagePublisherFactory;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import one.tomorrow.transactionaloutbox.service.OutboxProcessor.KafkaProducerFactory;
 import one.tomorrow.transactionaloutbox.tracing.NoopTracingService;
 import one.tomorrow.transactionaloutbox.tracing.TracingService;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatcher;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,27 +36,28 @@ import static java.lang.Thread.sleep;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-@SuppressWarnings("unchecked")
 class OutboxProcessorTest {
 
     private final OutboxRepository repository = mock(OutboxRepository.class);
     private final OutboxLockService lockService = mock(OutboxLockService.class);
-    private final KafkaProducerFactory producerFactory = mock(KafkaProducerFactory.class);
-    private final KafkaProducer<String, byte[]> producer = mock(KafkaProducer.class);
+    private final MessagePublisherFactory publisherFactory = mock(MessagePublisherFactory.class);
+    private final MessagePublisher publisher = mock(MessagePublisher.class);
     private final TracingService tracingService = new NoopTracingService();
 
+    private final String key1 = "r1";
     private final OutboxRecord record1 = mock(OutboxRecord.class, RETURNS_MOCKS);
+    private final String key2 = "r2";
     private final OutboxRecord record2 = mock(OutboxRecord.class, RETURNS_MOCKS);
     private final List<OutboxRecord> records = List.of(record1, record2);
 
-    private final Future<RecordMetadata> future1 = mock(Future.class);
-    private final Future<RecordMetadata> future2 = mock(Future.class);
+    private final Future<?> future1 = mock(Future.class);
+    private final Future<?> future2 = mock(Future.class);
 
     private OutboxProcessor processor;
 
     @BeforeEach
     void setup() {
-        when(producerFactory.createKafkaProducer()).thenReturn(producer);
+        when(publisherFactory.create()).thenReturn(publisher);
         when(lockService.getLockTimeout()).thenReturn(Duration.ZERO);
 
         TransactionalOutboxConfig config = TestTransactionalOutboxConfig.createConfig(
@@ -75,12 +70,12 @@ class OutboxProcessorTest {
         processor = new OutboxProcessor(
                 config,
                 repository,
-                producerFactory,
+                publisherFactory,
                 lockService,
                 tracingService);
 
-        when(record1.getKey()).thenReturn("r1");
-        when(record2.getKey()).thenReturn("r2");
+        when(record1.getKey()).thenReturn(key1);
+        when(record2.getKey()).thenReturn(key2);
     }
 
     /* Verifies, that all items are submitted to producer.send before the first future.get() is invoked */
@@ -90,12 +85,12 @@ class OutboxProcessorTest {
 
         AtomicInteger sendCounter = new AtomicInteger(0);
 
-        when(producer.send(argThat(matching(record1)))).thenAnswer(invocation -> {
+        when(publisher.publish(anyLong(), any(), eq(key1), any(), any())).thenAnswer(invocation -> {
             sendCounter.incrementAndGet();
             sleep(10);
             return future1;
         });
-        when(producer.send(argThat(matching(record2)))).thenAnswer(invocation -> {
+        when(publisher.publish(any(), any(), eq(key2), any(), any())).thenAnswer(invocation -> {
             sendCounter.incrementAndGet();
             sleep(10);
             return future2;
@@ -118,13 +113,11 @@ class OutboxProcessorTest {
     void processOutboxShouldSetProcessedOnlyOnSuccess() throws Exception {
         when(repository.getUnprocessedRecords(anyInt())).thenReturn(records);
 
-        RecordMetadata metadata = new RecordMetadata(new TopicPartition("t", -1), -1, -1, -1, -1, -1);
-
-        when(producer.send(argThat(matching(record1)))).thenReturn(future1);
+        when(publisher.publish(any(), any(), eq(key1), any(), any())).thenAnswer(inv -> future1);
         when(future1.get()).thenThrow(new RuntimeException("simulated exception"));
 
-        when(producer.send(argThat(matching(record2)))).thenReturn(future2);
-        when(future2.get()).thenReturn(metadata);
+        when(publisher.publish(any(), any(), eq(key2), any(), any())).thenAnswer(inv -> future2);
+        when(future2.get()).thenReturn(null);
 
         processor.processOutbox();
 
@@ -135,20 +128,4 @@ class OutboxProcessorTest {
         verify(repository).update(record2);
     }
 
-    @NotNull
-    private static ArgumentMatcher<ProducerRecord<String, byte[]>> matching(OutboxRecord outboxRecord) {
-        return new ArgumentMatcher<>() {
-            @Override
-            public Class<?> type() {
-                return ProducerRecord.class;
-            }
-
-            @Override
-            public boolean matches(ProducerRecord<String, byte[]> item) {
-                if (item == null)
-                    return false;
-                return Objects.equals(item.key(), outboxRecord.getKey());
-            }
-        };
-    }
 }

@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package one.tomorrow.transactionaloutbox.service;
+package one.tomorrow.transactionaloutbox.publisher;
 
 import io.quarkus.arc.DefaultBean;
 import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import one.tomorrow.transactionaloutbox.service.OutboxProcessor.KafkaProducerFactory;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -33,7 +32,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.*;
 
 @ApplicationScoped
 @DefaultBean
-public class DefaultKafkaProducerFactory implements KafkaProducerFactory {
+public class DefaultKafkaProducerFactory implements KafkaProducerMessagePublisherFactory.KafkaProducerFactory {
 
 	private static final Logger logger = LoggerFactory.getLogger(DefaultKafkaProducerFactory.class);
 

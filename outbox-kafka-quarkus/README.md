@@ -9,7 +9,7 @@ This module provides a Quarkus extension for the [Transactional Outbox Pattern](
 - **JPA/Hibernate ORM integration**: Works seamlessly with Quarkus Hibernate ORM
 - **Configuration via application.properties**: All settings configurable through standard Quarkus configuration
 - **OpenTelemetry tracing support**: Automatic tracing integration when `quarkus-opentelemetry` is present
-- **Health checks**: Built-in health checks for the outbox processor (if health extension is present)
+- **Test support**: The extension supports in-memory testing using Quarkus's SmallRye in-memory connectors
 
 ## Installation
 
@@ -192,6 +192,90 @@ When `quarkus-opentelemetry` is present, the extension automatically:
 
 No additional configuration is required - tracing works out of the box with your existing OpenTelemetry setup.
 
+## Testing
+
+### In-Memory Testing (Without Kafka)
+
+The extension supports in-memory testing using Quarkus's SmallRye in-memory connectors, allowing you to test your application without requiring a real Kafka instance. This is particularly useful for integration tests that also work with incoming / outgoing Kafka messages.
+
+#### Setup for In-Memory Testing
+
+1. **Configure channels to use in-memory connector:**
+
+```properties
+# Test configuration (application-test.properties or test profile)
+quarkus.kafka.devservices.enabled=false
+
+# Configure outgoing channels to use in-memory connector
+mp.messaging.outgoing.my-channel.connector=smallrye-in-memory
+mp.messaging.outgoing.my-channel.topic=my-topic
+```
+
+2. **Create an EmitterResolver implementation:**
+
+```java
+@ApplicationScoped
+public class TestEmitterResolver implements EmitterMessagePublisher.EmitterResolver {
+
+    @Channel("my-channel")
+    MutinyEmitter<byte[]> myChannelEmitter;
+
+    @Override
+    public MutinyEmitter<byte[]> resolveBy(String topic) {
+        if ("my-topic".equals(topic)) {
+            return myChannelEmitter;
+        }
+        return null;
+    }
+}
+```
+
+3. **Write your test:**
+
+```java
+@QuarkusTest
+public class OutboxInMemoryTest {
+
+    @Inject
+    OutboxService outboxService;
+
+    @Inject
+    @Connector("smallrye-in-memory")
+    InMemoryConnector inMemoryConnector;
+
+    private InMemorySink<byte[]> sink;
+
+    @BeforeEach
+    void setUp() {
+        sink = inMemoryConnector.sink("my-channel");
+    }
+
+    @Test
+    @Transactional
+    void testOutboxWithInMemoryKafka() {
+        // Store message in outbox
+        outboxService.saveForPublishing("my-topic", "key1", "test-message".getBytes());
+
+        // Wait for message to be processed and published
+        await().atMost(5, SECONDS)
+            .until(() -> sink.received(), hasSize(1));
+
+        // Verify the published message
+        Message<byte[]> message = sink.received().get(0);
+        assertEquals("test-message", new String(message.getPayload()));
+        
+        // Get Kafka metadata for key verification
+        Optional<OutgoingKafkaRecordMetadata> metadata = 
+            message.getMetadata(OutgoingKafkaRecordMetadata.class);
+        assertEquals("key1", metadata.orElseThrow().getKey());
+
+        sink.clear();
+    }
+}
+```
+
+This testing approach is demonstrated in the `OutboxProcessorInMemoryIntegrationTest`.
+
 ## Deployment Considerations
 
 ### Multiple Instances
@@ -242,8 +326,3 @@ Enable debug logging for troubleshooting:
 ```properties
 quarkus.log.category."one.tomorrow.transactionaloutbox".level=DEBUG
 ```
-
-## Examples
-
-See the test classes in `src/test/java` for complete working examples of:
-- Basic outbox usage

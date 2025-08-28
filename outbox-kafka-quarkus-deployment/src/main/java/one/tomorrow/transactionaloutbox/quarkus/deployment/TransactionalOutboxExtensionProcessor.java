@@ -25,9 +25,9 @@ import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.publisher.*;
 import one.tomorrow.transactionaloutbox.repository.OutboxLockRepository;
 import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
-import one.tomorrow.transactionaloutbox.service.DefaultKafkaProducerFactory;
 import one.tomorrow.transactionaloutbox.service.OutboxLockService;
 import one.tomorrow.transactionaloutbox.service.OutboxProcessor;
 import one.tomorrow.transactionaloutbox.service.OutboxService;
@@ -56,7 +56,8 @@ class TransactionalOutboxExtensionProcessor {
                         TransactionalOutboxConfig.CleanupConfig.class,
                         OutboxService.class,
                         OutboxProcessor.class,
-                        OutboxProcessor.KafkaProducerFactory.class,
+                        PublisherConfig.class,
+                        KafkaProducerMessagePublisherFactory.class,
                         DefaultKafkaProducerFactory.class
                 )
                 .setUnremovable()

@@ -9,6 +9,7 @@ This module provides a Quarkus extension for the [Transactional Outbox Pattern](
 - **JPA/Hibernate ORM integration**: Works seamlessly with Quarkus Hibernate ORM
 - **Configuration via application.properties**: All settings configurable through standard Quarkus configuration
 - **OpenTelemetry tracing support**: Automatic tracing integration when `quarkus-opentelemetry` is present
+- **Health checks**: Health checks ensure that the outbox is processed properly
 - **Test support**: The extension supports in-memory testing using Quarkus's SmallRye in-memory connectors
 
 ## Installation
@@ -191,6 +192,80 @@ When `quarkus-opentelemetry` is present, the extension automatically:
 - Links outbox storage and message publishing in traces
 
 No additional configuration is required - tracing works out of the box with your existing OpenTelemetry setup.
+
+## Health Checks
+
+If `quarkus-smallrye-health` is present, the extension provides comprehensive health checks for:
+
+- **Outbox processor status**: Whether the processor is enabled, active, and functioning correctly
+- **Lock acquisition monitoring**: Tracks when the processor last attempted to acquire the distributed lock
+- **Message processing monitoring**: Checks the age of the oldest unprocessed message to detect processing stalls
+- **Database connectivity**: Verifies the processor can communicate with the database
+- **Stale detection**: Alerts if the processor hasn't attempted lock acquisition recently (indicating potential issues)
+
+The health check is available at the standard Quarkus health endpoints:
+- `/q/health/ready` - Includes the outbox processor readyness check
+- `/q/health` - Complete health information
+
+### Health Check Response
+
+The health check provides detailed information about the processor state:
+
+```json
+{
+  "status": "UP",
+  "checks": [
+    {
+      "name": "transactional-outbox-processor",
+      "status": "UP",
+      "data": {
+        "enabled": true,
+        "lockOwnerId": "my-service-instance-1",
+        "active": true,
+        "closed": false,
+        "status": "active",
+        "lastLockAttempt": "2025-01-15T10:30:45.123Z",
+        "timeSinceLastLockAttempt": "PT2.5S",
+        "oldestUnprocessedMessageAge": "PT30S",
+        "oldestUnprocessedMessageCreated": "2025-01-15T10:29:15.123Z"
+      }
+    }
+  ]
+}
+```
+
+**Health Check Data Fields:**
+- `enabled`: Whether the outbox processor is enabled in configuration
+- `lockOwnerId`: The unique ID of this processor instance
+- `active`: Whether this instance currently holds the processing lock
+- `closed`: Whether the processor has been shut down
+- `status`: Overall status (active/inactive/disabled/closed/stale/processing-stalled/error)
+- `lastLockAttempt`: Timestamp of the last lock acquisition attempt
+- `timeSinceLastLockAttempt`: Duration since last lock attempt
+- `oldestUnprocessedMessageAge`: Age of the oldest unprocessed message (or "none" if no messages)
+- `oldestUnprocessedMessageCreated`: Creation timestamp of the oldest unprocessed message
+- `reason`: Explanation for unhealthy status
+
+### Health Status Logic
+
+- **UP**: Processor is functioning normally
+  - Processor disabled (not an error)
+  - Processor inactive (normal in multi-instance setup - only one should be active)
+  - Processor active with fresh messages (age < 2×processing-interval)
+
+- **DOWN**: Processor has issues that need attention
+  - **processing-stalled**: Active processor has unprocessed messages older than 2×processing-interval
+  - **stale**: Processor hasn't attempted lock acquisition in 2×lock-timeout
+  - **closed**: Processor has been shut down
+  - **error**: Unexpected error during health check
+
+### Processing Stall Detection
+
+The health check implements intelligent stall detection:
+- Only triggers when processor is **active** (holds the lock)
+- Compares oldest message age against **2×processing-interval** threshold
+- Example: If `processing-interval=PT0.2S`, messages older than `PT0.4S` trigger an alert
+- This catches scenarios where the processor is active but not actually processing messages
 
 ## Testing
 

@@ -56,6 +56,11 @@ public class OutboxProcessor {
     @Getter
     private final boolean enabled;
     private final OutboxLockService lockService;
+
+    /**
+     * Returns the lock owner ID for this processor instance.
+     */
+    @Getter
     private final String lockOwnerId;
     private final OutboxRepository repository;
     private final MessagePublisherFactory publisherFactory;
@@ -63,9 +68,25 @@ public class OutboxProcessor {
     private final byte[] eventSource;
     private final TracingService tracingService;
     private MessagePublisher publisher;
+
+    /**
+     * Returns whether this processor is currently active and processing the outbox.
+     * An active processor has acquired the lock and is processing messages.
+     */
+    @Getter
     private boolean active;
+
+    /**
+     * Returns whether this processor has been closed/shut down.
+     */
+    @Getter
     private boolean closed;
-    private Instant lastLockAckquisitionAttempt;
+
+    /**
+     * Returns the time of the last lock acquisition attempt, or null if no attempt was made yet.
+     */
+    @Getter
+    private Instant lastLockAcquisitionAttempt;
 
     private final ScheduledExecutorService scheduledExecutor;
     private final ScheduledExecutorService cleanupExecutor;
@@ -109,7 +130,9 @@ public class OutboxProcessor {
 
         if (config.enabled()) {
             scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-            cleanupExecutor = config.cleanup().isPresent() ? setupCleanupSchedule(repository, config.cleanup().get()) : null;
+            cleanupExecutor = config.cleanup()
+                    .map(cleanup -> setupCleanupSchedule(repository, cleanup))
+                    .orElse(null);
             tryLockAcquisition(false);
         } else {
             scheduledExecutor = null;
@@ -172,7 +195,7 @@ public class OutboxProcessor {
             boolean originalActive = active;
             logger.debug("{} trying to acquire outbox lock", lockOwnerId);
             active = lockService.acquireOrRefreshLock(lockOwnerId);
-            lastLockAckquisitionAttempt = now();
+            lastLockAcquisitionAttempt = now();
             if (active) {
                 if (originalActive)
                     logger.debug("{} acquired outbox lock, starting to process outbox", lockOwnerId);
@@ -200,7 +223,7 @@ public class OutboxProcessor {
         if (!active)
             throw new IllegalStateException("processOutbox must only be run when in active state");
 
-        if (now().isAfter(lastLockAckquisitionAttempt.plus(lockService.getLockTimeout().dividedBy(2)))) {
+        if (now().isAfter(lastLockAcquisitionAttempt.plus(lockService.getLockTimeout().dividedBy(2)))) {
             tryLockAcquisitionAndProcess();
             return;
         }

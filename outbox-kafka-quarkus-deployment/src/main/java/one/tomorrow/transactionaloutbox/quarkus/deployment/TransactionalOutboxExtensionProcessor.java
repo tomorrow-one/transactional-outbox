@@ -23,6 +23,7 @@ import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
+import one.tomorrow.transactionaloutbox.health.OutboxProcessorHealthCheck;
 import one.tomorrow.transactionaloutbox.model.OutboxLock;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import one.tomorrow.transactionaloutbox.publisher.*;
@@ -79,6 +80,20 @@ class TransactionalOutboxExtensionProcessor {
         if (capabilities.isPresent(Capability.OPENTELEMETRY_TRACER)) {
             additionalBeans.produce(AdditionalBeanBuildItem.builder()
                     .addBeanClass(OpenTelemetryTracingServiceProducer.class)
+                    .setUnremovable()
+                    .build());
+        }
+    }
+
+    @BuildStep
+    void registerHealthCheckBean(
+            Capabilities capabilities,
+            BuildProducer<AdditionalBeanBuildItem> additionalBeans
+    ) {
+        // Only register the OutboxProcessorHealthCheck if the smallrye healt capability is present
+        if (capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
+            additionalBeans.produce(AdditionalBeanBuildItem.builder()
+                    .addBeanClass(OutboxProcessorHealthCheck.class)
                     .setUnremovable()
                     .build());
         }

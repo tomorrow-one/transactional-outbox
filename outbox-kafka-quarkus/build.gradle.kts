@@ -26,9 +26,10 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm")
     implementation("io.quarkus:quarkus-kafka-client")
 
-    // Optional messaging dependency
+    // Messaging dependency - optional
     compileOnly("io.quarkus:quarkus-messaging-kafka")
-
+    // Health check dependencies - optional
+    compileOnly("io.quarkus:quarkus-smallrye-health")
     // Tracing dependencies - optional
     compileOnly("io.quarkus:quarkus-opentelemetry")
     compileOnly("io.opentelemetry:opentelemetry-api")
@@ -46,6 +47,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-smallrye-fault-tolerance")
     testImplementation("io.quarkus:quarkus-messaging-kafka")
     testImplementation("io.smallrye.reactive:smallrye-reactive-messaging-in-memory")
+    testImplementation("io.quarkus:quarkus-smallrye-health")
 
     // Test tracing dependencies
     testImplementation("io.quarkus:quarkus-opentelemetry")

@@ -63,6 +63,15 @@ public class OutboxRepository {
     }
 
     /**
+     * Count the number of unprocessed outbox records
+     * @return the count of records where processed is null
+     */
+    public long countUnprocessedRecords() {
+        return entityManager.createQuery("SELECT COUNT(o) FROM OutboxRecord o WHERE o.processed IS NULL", Long.class)
+                .getSingleResult();
+    }
+
+    /**
      * Delete processed records older than defined point in time
      *
      * @param deleteOlderThan the point in time until the processed entities shall be kept

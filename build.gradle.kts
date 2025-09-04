@@ -13,7 +13,7 @@ plugins {
     id("io.freefair.lombok") version "8.14.2"
     id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
-    id("org.jreleaser") version "1.19.0"
+    id("org.jreleaser") version "1.20.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
 }

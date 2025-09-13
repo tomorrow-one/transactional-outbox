@@ -3,7 +3,7 @@
 
 dependencies {
     val springVersion = "6.2.11"
-    val kafkaVersion = "3.9.0"
+    val kafkaVersion = "4.1.0"
     val springKafkaVersion = "3.3.9"
     val sl4jVersion = "2.0.17"
     val junitVersion = "5.13.4"

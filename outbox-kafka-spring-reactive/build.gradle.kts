@@ -9,7 +9,7 @@ dependencies {
     val springVersion = "6.2.11"
     val springDataVersion = "3.5.4"
     val kafkaVersion = "3.9.0"
-    val testcontainersVersion = "1.21.3"
+    val testcontainersVersion = "2.0.2"
     val log4jVersion = "2.25.1"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -37,7 +37,7 @@ dependencies {
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 
     testImplementation("org.hamcrest:hamcrest:3.0")
-    testImplementation("org.testcontainers:junit-jupiter:$testcontainersVersion")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter:$testcontainersVersion")
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration

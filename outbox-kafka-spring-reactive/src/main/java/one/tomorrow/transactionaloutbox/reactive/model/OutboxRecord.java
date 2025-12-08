@@ -15,9 +15,9 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import io.r2dbc.postgresql.codec.Json;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +27,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Immutable;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class OutboxRecord {
 
         try {
             return OBJECT_MAPPER.readValue(data, new TypeReference<>() {});
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -68,7 +67,7 @@ public class OutboxRecord {
             return null;
         try {
             return Json.of(OBJECT_MAPPER.writeValueAsBytes(headers));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Failed to convert to json: " + headers, e);
         }
     }

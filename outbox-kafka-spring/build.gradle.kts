@@ -1,21 +1,21 @@
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
-    val springVersion = "6.2.11"
-    val kafkaVersion = "3.9.0"
+    val springVersion = "7.0.1"
+    val kafkaVersion = "4.0.0"
     val log4jVersion = "2.25.1"
     val slf4jVersion = "2.0.17"
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-jdbc:$springVersion")
     implementation("org.postgresql:postgresql:42.7.7")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.0")
+    implementation("tools.jackson.core:jackson-databind:3.0.0")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
     implementation(project(":commons"))
-    implementation(platform("io.micrometer:micrometer-tracing-bom:1.5.4"))
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.6.0"))
     compileOnly("io.micrometer:micrometer-tracing")
 
     // testing

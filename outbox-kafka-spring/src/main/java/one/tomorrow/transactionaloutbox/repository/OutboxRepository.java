@@ -15,9 +15,9 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
 import org.postgresql.util.PGobject;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -99,7 +99,7 @@ public class OutboxRepository {
     private static Map<String, String> fromJson(String data) {
         try {
             return data == null ? null : OBJECT_MAPPER.readValue(data, new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException(e);
         }
     }
@@ -112,7 +112,7 @@ public class OutboxRepository {
             holder.setType("jsonb");
             holder.setValue(OBJECT_MAPPER.writeValueAsString(headers));
             return holder;
-        } catch (JsonProcessingException | SQLException e) {
+        } catch (JacksonException | SQLException e) {
             throw new RuntimeException(e);
         }
     }

@@ -3,9 +3,9 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jreleaser.model.Active.*
 import java.util.*
 
-project(":commons").version = "3.0.0-SNAPSHOT"
-project(":outbox-kafka-spring").version = "4.0.0-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "4.0.0-SNAPSHOT"
+project(":commons").version = "3.0.0"
+project(":outbox-kafka-spring").version = "4.0.0"
+project(":outbox-kafka-spring-reactive").version = "4.0.0"
 
 plugins {
     id("java-library")

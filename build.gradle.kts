@@ -3,19 +3,19 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jreleaser.model.Active.*
 import java.util.*
 
-project(":commons").version = "2.4.6-SNAPSHOT"
-project(":outbox-kafka-spring").version = "3.5.6-SNAPSHOT"
-project(":outbox-kafka-spring-reactive").version = "3.4.6-SNAPSHOT"
+project(":commons").version = "3.0.1-SNAPSHOT"
+project(":outbox-kafka-spring").version = "4.0.1-SNAPSHOT"
+project(":outbox-kafka-spring-reactive").version = "4.0.1-SNAPSHOT"
 project(":outbox-kafka-quarkus").version = "1.0.0-SNAPSHOT"
 project(":outbox-kafka-quarkus-deployment").version = "1.0.0-SNAPSHOT"
 
 plugins {
     id("java-library")
     id("java-test-fixtures")
-    id("io.freefair.lombok") version "8.14"
+    id("io.freefair.lombok") version "9.0.0"
     id("com.google.protobuf") version "0.9.5"
     id("maven-publish")
-    id("org.jreleaser") version "1.19.0"
+    id("org.jreleaser") version "1.20.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
     id("io.quarkus.extension") version "3.26.0" apply false

@@ -244,7 +244,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>,
         String eventSource = "test";
         Map<String, Object> producerProps = producerProps(bootstrapServers);
         producerProps.put(REQUEST_TIMEOUT_MS_CONFIG, 5000);
-        producerProps.put(DELIVERY_TIMEOUT_MS_CONFIG, 5000);
+        producerProps.put(DELIVERY_TIMEOUT_MS_CONFIG, 10000);
         producerProps.put(MAX_BLOCK_MS_CONFIG, 5000);
         testee = new OutboxProcessor(repository, producerFactory(producerProps), processingInterval, DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource, beanFactory);
 

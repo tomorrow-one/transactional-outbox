@@ -6,6 +6,8 @@ import java.util.*
 project(":commons").version = "3.0.1-SNAPSHOT"
 project(":outbox-kafka-spring").version = "4.0.1-SNAPSHOT"
 project(":outbox-kafka-spring-reactive").version = "4.0.1-SNAPSHOT"
+project(":outbox-kafka-quarkus").version = "1.0.0-SNAPSHOT"
+project(":outbox-kafka-quarkus-deployment").version = "1.0.0-SNAPSHOT"
 
 plugins {
     id("java-library")
@@ -16,9 +18,14 @@ plugins {
     id("org.jreleaser") version "1.20.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
+    id("io.quarkus.extension") version "3.26.0" apply false
+    id("io.quarkus") version "3.26.0" apply false
 }
 
+group = "one.tomorrow.transactional-outbox"
+
 val protobufVersion by extra("3.25.5")
+val quarkusVersion by extra("3.26.0")
 
 // disable JReleaser on root level
 jreleaser {
@@ -29,18 +36,23 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "java-test-fixtures")
     apply(plugin = "io.freefair.lombok")
-    apply(plugin = "com.google.protobuf")
+    // protobuf plugin does not play nicely with quarkus, see
+    // https://github.com/google/protobuf-gradle-plugin/issues/659
+    if (!name.contains("quarkus"))
+        apply(plugin = "com.google.protobuf")
     apply(plugin = "maven-publish")
     apply(plugin = "org.jreleaser")
     apply(plugin = "jacoco")
     apply(plugin = "com.github.hierynomus.license")
 
-    group = "one.tomorrow.transactional-outbox"
+    group = rootProject.group
 
     java {
         sourceCompatibility = JavaVersion.VERSION_17
 
-        withJavadocJar()
+        if (name != "outbox-kafka-quarkus-deployment") {
+            withJavadocJar()
+        }
         withSourcesJar()
 
         registerFeature("protobufSupport") {
@@ -56,14 +68,16 @@ subprojects {
         (options as StandardJavadocDocletOptions).addBooleanOption("Xdoclint:none", true)
     }
 
-    protobuf {
-        protoc {
-            artifact = "com.google.protobuf:protoc:$protobufVersion"
+    if (!name.contains("quarkus")) {
+        protobuf {
+            protoc {
+                artifact = "com.google.protobuf:protoc:$protobufVersion"
+            }
         }
     }
 
     license {
-        header = file("../LICENSE-header.txt")
+        header = rootDir.resolve("LICENSE-header.txt")
         excludes(
             setOf(
                 "one/tomorrow/kafka/messages/DeserializerMessages.java",
@@ -116,6 +130,11 @@ subprojects {
                     }
                 }
 
+                // ignore information that is not contained in the pom file and suppress the warnings:
+                suppressPomMetadataWarningsFor("protobufSupportApiElements")
+                suppressPomMetadataWarningsFor("protobufSupportRuntimeElements")
+                suppressPomMetadataWarningsFor("testFixturesApiElements")
+                suppressPomMetadataWarningsFor("testFixturesRuntimeElements")
             }
         }
         repositories {
@@ -160,6 +179,7 @@ subprojects {
 allprojects {
     repositories {
         mavenCentral()
+        gradlePluginPortal()
     }
 
     tasks.withType<Test> {

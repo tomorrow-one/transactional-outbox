@@ -37,7 +37,7 @@ jobs:
       - name: Set up gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g build
 
   dependency-review:
     needs: build
@@ -66,7 +66,7 @@ jobs:
       - name: Set up gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Staging artifacts
-        run: ./gradlew publish
+        run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g publish
       - name: Publish
         env:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.MAVEN_CENTRAL_GPG_SECRET_KEY }}
@@ -77,4 +77,4 @@ jobs:
           JRELEASER_NEXUS2_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           JRELEASER_NEXUS2_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew :commons:jreleaserDeploy :outbox-kafka-spring:jreleaserDeploy :outbox-kafka-spring-reactive:jreleaserDeploy
+        run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g :commons:jreleaserDeploy :outbox-kafka-spring:jreleaserDeploy :outbox-kafka-spring-reactive:jreleaserDeploy

@@ -35,11 +35,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -47,7 +47,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -77,10 +77,10 @@ import static one.tomorrow.transactionaloutbox.tracing.SimplePropagator.TRACING_
 import static one.tomorrow.transactionaloutbox.tracing.SimplePropagator.TRACING_TRACE_ID;
 import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
         OutboxRepository.class,
@@ -132,7 +132,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>,
             consumer.close();
     }
 
-    @After
+    @AfterEach
     public void afterTest() {
         testee.close();
     }
@@ -159,7 +159,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>,
 
         // then
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
-        assertEquals("Have records with keys: " + keys(records), 1, records.count());
+        assertEquals(1, records.count(), "Have records with keys: " + keys(records));
         ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
         assertConsumedRecord(record1, "h1", eventSource, kafkaRecord);
 
@@ -197,7 +197,7 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>,
 
         // then
         ConsumerRecords<String, byte[]> records = getAndCommitRecords();
-        assertEquals("Have records with keys: " + keys(records), 1, records.count());
+        assertEquals(1, records.count(), "Have records with keys: " + keys(records));
         ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
         assertConsumedRecord(record1, "h1", eventSource, kafkaRecord);
         // verify spans: one for the transactional-outbox, one for the processing to Kafka

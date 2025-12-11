@@ -24,8 +24,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 
@@ -37,7 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Thread.sleep;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
@@ -60,7 +60,7 @@ public class OutboxProcessorTest {
 
     private OutboxProcessor processor;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(producerFactory.createKafkaProducer()).thenReturn(producer);
 

@@ -7,7 +7,7 @@ dependencies {
     val springKafkaVersion = "4.0.0"
     val sl4jVersion = "2.0.17"
     val junitVersion = "5.13.4"
-    val testcontainersVersion = "1.21.3"
+    val testcontainersVersion = "2.0.2"
 
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
@@ -27,8 +27,8 @@ dependencies {
     testFixturesImplementation("org.slf4j:slf4j-api:$sl4jVersion")
     testFixturesImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     testFixturesApi("org.junit.jupiter:junit-jupiter-api:$junitVersion")
-    testFixturesApi("org.testcontainers:postgresql:$testcontainersVersion")
-    testFixturesApi("org.testcontainers:kafka:$testcontainersVersion")
-    testFixturesApi("org.testcontainers:toxiproxy:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers-kafka:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers-toxiproxy:$testcontainersVersion")
 
 }

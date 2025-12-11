@@ -18,7 +18,7 @@ package one.tomorrow.transactionaloutbox.commons;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
-import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.toxiproxy.ToxiproxyContainer;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;

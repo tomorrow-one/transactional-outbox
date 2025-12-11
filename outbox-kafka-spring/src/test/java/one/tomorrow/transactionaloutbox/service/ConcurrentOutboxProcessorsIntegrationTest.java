@@ -25,16 +25,16 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.time.Duration;
@@ -48,7 +48,7 @@ import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.boo
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
         OutboxRecord.class,
         OutboxRepository.class,
@@ -85,13 +85,13 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements KafkaTestSuppo
         createTopic(bootstrapServers, topic);
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() {
         if (consumer != null)
             consumer.close();
     }
 
-    @After
+    @AfterEach
     public void afterTest() {
         testee1.close();
         testee2.close();

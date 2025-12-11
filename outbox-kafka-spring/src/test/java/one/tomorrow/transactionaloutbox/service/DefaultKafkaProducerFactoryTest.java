@@ -15,14 +15,14 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.producerProps;
 import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("unchecked")
 public class DefaultKafkaProducerFactoryTest {

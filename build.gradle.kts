@@ -11,7 +11,7 @@ plugins {
     id("java-library")
     id("java-test-fixtures")
     id("io.freefair.lombok") version "9.1.0"
-    id("com.google.protobuf") version "0.9.5"
+    id("com.google.protobuf") version "0.9.6"
     id("maven-publish")
     id("org.jreleaser") version "1.21.0"
     id("jacoco")

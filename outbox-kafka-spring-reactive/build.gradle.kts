@@ -7,24 +7,24 @@ tasks.withType<JavaCompile> {
 
 dependencies {
     val springVersion = "7.0.2"
-    val kafkaVersion = "4.0.0"
+    val kafkaVersion = "4.1.1"
     val testcontainersVersion = "2.0.2"
     val log4jVersion = "2.25.1"
 
     implementation("org.springframework:spring-context:$springVersion")
 
-    implementation(platform("org.springframework.data:spring-data-bom:2025.1.0"))
+    implementation(platform("org.springframework.data:spring-data-bom:2025.1.1"))
     implementation("org.springframework.data:spring-data-relational")
     implementation("org.springframework.data:spring-data-r2dbc")
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    implementation("tools.jackson.core:jackson-databind:3.0.0")
+    implementation("tools.jackson.core:jackson-databind:3.0.3")
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
     implementation(project(":commons"))
-    implementation(platform("io.micrometer:micrometer-tracing-bom:1.6.0"))
+    implementation(platform("io.micrometer:micrometer-tracing-bom:1.6.1"))
     compileOnly("io.micrometer:micrometer-tracing")
 
     // testing
@@ -32,7 +32,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.0") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }
-    testImplementation("io.projectreactor:reactor-test:3.7.11")
+    testImplementation("io.projectreactor:reactor-test:3.8.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

@@ -6,9 +6,9 @@ tasks.withType<JavaCompile> {
 }
 
 dependencies {
-    val springVersion = "7.0.2"
+    val springVersion = "7.0.5"
     val kafkaVersion = "4.1.1"
-    val testcontainersVersion = "2.0.2"
+    val testcontainersVersion = "2.0.3"
     val log4jVersion = "2.25.3"
 
     implementation("org.springframework:spring-context:$springVersion")
@@ -44,12 +44,12 @@ dependencies {
     testImplementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.13.2")
-    testImplementation("org.postgresql:postgresql:42.7.8")
+    testImplementation("org.postgresql:postgresql:42.7.10")
     testImplementation("org.flywaydb:flyway-database-postgresql:11.19.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.3.0")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")
     testImplementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
-    testImplementation("org.apache.commons:commons-dbcp2:2.13.0")
+    testImplementation("org.apache.commons:commons-dbcp2:2.14.0")
     testImplementation("io.micrometer:micrometer-tracing-test")
 }

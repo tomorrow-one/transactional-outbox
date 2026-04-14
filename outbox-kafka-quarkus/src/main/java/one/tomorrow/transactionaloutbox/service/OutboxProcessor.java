@@ -74,19 +74,19 @@ public class OutboxProcessor {
      * An active processor has acquired the lock and is processing messages.
      */
     @Getter
-    private boolean active;
+    private volatile boolean active;
 
     /**
      * Returns whether this processor has been closed/shut down.
      */
     @Getter
-    private boolean closed;
+    private volatile boolean closed;
 
     /**
      * Returns the time of the last lock acquisition attempt, or null if no attempt was made yet.
      */
     @Getter
-    private Instant lastLockAcquisitionAttempt;
+    private volatile Instant lastLockAcquisitionAttempt;
 
     private final ScheduledExecutorService scheduledExecutor;
     private final ScheduledExecutorService cleanupExecutor;
@@ -126,15 +126,16 @@ public class OutboxProcessor {
         this.eventSource = config.eventSource().getBytes();
         this.tracingService = tracingService != null ? tracingService : new NoopTracingService();
         this.publisherFactory = publisherFactory;
-        publisher = publisherFactory.create();
 
         if (config.enabled()) {
+            this.publisher = publisherFactory.create();
             scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
             cleanupExecutor = config.cleanup()
                     .map(cleanup -> setupCleanupSchedule(repository, cleanup))
                     .orElse(null);
             tryLockAcquisition(false);
         } else {
+            this.publisher = null;
             scheduledExecutor = null;
             cleanupExecutor = null;
         }

@@ -90,7 +90,7 @@ class TransactionalOutboxExtensionProcessor {
             Capabilities capabilities,
             BuildProducer<AdditionalBeanBuildItem> additionalBeans
     ) {
-        // Only register the OutboxProcessorHealthCheck if the smallrye healt capability is present
+        // Only register the OutboxProcessorHealthCheck if the smallrye health capability is present
         if (capabilities.isPresent(Capability.SMALLRYE_HEALTH)) {
             additionalBeans.produce(AdditionalBeanBuildItem.builder()
                     .addBeanClass(OutboxProcessorHealthCheck.class)

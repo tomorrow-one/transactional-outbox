@@ -77,4 +77,4 @@ jobs:
           JRELEASER_NEXUS2_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           JRELEASER_NEXUS2_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g :commons:jreleaserDeploy :outbox-kafka-spring:jreleaserDeploy :outbox-kafka-spring-reactive:jreleaserDeploy
+        run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g :commons:jreleaserDeploy :outbox-kafka-spring:jreleaserDeploy :outbox-kafka-spring-reactive:jreleaserDeploy :outbox-kafka-quarkus:jreleaserDeploy

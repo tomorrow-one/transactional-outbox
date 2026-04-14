@@ -102,7 +102,7 @@ class OutboxRepositoryIntegrationTest {
     }
 
     private boolean outboxRecordExists(Long id) {
-        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord or where or.id=:id")
+        Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord o where o.id=:id")
                 .setParameter("id", id)
                 .getSingleResult();
         return result > 0;

@@ -2,12 +2,12 @@
 // the version is set in parent/root build.gradle.kts
 
 dependencies {
-    val springVersion = "7.0.2"
-    val kafkaVersion = "4.1.1"
-    val springKafkaVersion = "4.0.1"
+    val springVersion = "7.0.6"
+    val kafkaVersion = "4.2.0"
+    val springKafkaVersion = "4.0.4"
     val sl4jVersion = "2.0.17"
     val junitVersion = "6.0.3"
-    val testcontainersVersion = "2.0.2"
+    val testcontainersVersion = "2.0.4"
 
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")

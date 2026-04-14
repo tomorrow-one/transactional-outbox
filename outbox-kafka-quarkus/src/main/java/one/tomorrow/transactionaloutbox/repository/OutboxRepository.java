@@ -80,7 +80,7 @@ public class OutboxRepository {
     @Transactional
     public int deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan) {
         return entityManager
-                .createQuery("DELETE FROM OutboxRecord or WHERE or.processed IS NOT NULL AND or.processed < :deleteOlderThan")
+                .createQuery("DELETE FROM OutboxRecord o WHERE o.processed IS NOT NULL AND o.processed < :deleteOlderThan")
                 .setParameter("deleteOlderThan", deleteOlderThan)
                 .executeUpdate();
     }

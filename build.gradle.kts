@@ -18,14 +18,14 @@ plugins {
     id("org.jreleaser") version "1.20.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
-    id("io.quarkus.extension") version "3.26.0" apply false
-    id("io.quarkus") version "3.26.0" apply false
+    id("io.quarkus.extension") version "3.33.1" apply false
+    id("io.quarkus") version "3.33.1" apply false
 }
 
 group = "one.tomorrow.transactional-outbox"
 
 val protobufVersion by extra("3.25.5")
-val quarkusVersion by extra("3.26.0")
+val quarkusVersion by extra("3.33.1")
 
 // disable JReleaser on root level
 jreleaser {

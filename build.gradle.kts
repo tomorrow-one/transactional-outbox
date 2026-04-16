@@ -18,7 +18,7 @@ plugins {
     id("org.jreleaser") version "1.23.0"
     id("jacoco")
     id("com.github.hierynomus.license") version "0.16.1"
-    id("io.quarkus.extension") version "3.33.1" apply false
+    id("io.quarkus.extension") version "3.34.4" apply false
     id("io.quarkus") version "3.33.1" apply false
 }
 

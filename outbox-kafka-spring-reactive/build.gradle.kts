@@ -32,7 +32,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.5") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }
-    testImplementation("io.projectreactor:reactor-test:3.8.1")
+    testImplementation("io.projectreactor:reactor-test:3.8.5")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")

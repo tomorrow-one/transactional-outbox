@@ -8,7 +8,7 @@ dependencies {
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-jdbc:$springVersion")
-    implementation("org.postgresql:postgresql:42.7.10")
+    implementation("org.postgresql:postgresql:42.7.11")
     implementation("tools.jackson.core:jackson-databind:3.1.2")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
@@ -26,7 +26,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.awaitility:awaitility:4.3.0")
 
-    testImplementation("org.flywaydb:flyway-database-postgresql:12.4.0")
+    testImplementation("org.flywaydb:flyway-database-postgresql:12.5.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
 
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

@@ -45,9 +45,6 @@ dependencies {
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
     testRuntimeOnly("com.google.code.gson:gson:2.14.0")
     testImplementation("org.postgresql:postgresql:42.7.11")
-    testImplementation("org.flywaydb:flyway-database-postgresql:12.4.0")
-    testRuntimeOnly("com.google.code.gson:gson:2.13.2")
-    testImplementation("org.postgresql:postgresql:42.7.11")
     testImplementation("org.flywaydb:flyway-database-postgresql:12.5.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.3.0")

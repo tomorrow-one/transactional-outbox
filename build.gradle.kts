@@ -25,7 +25,7 @@ plugins {
 group = "one.tomorrow.transactional-outbox"
 
 val protobufVersion by extra("3.25.5")
-val quarkusVersion by extra("3.33.1")
+val quarkusVersion by extra("3.35.0")
 
 // disable JReleaser on root level
 jreleaser {

@@ -29,7 +29,7 @@ dependencies {
 
     // testing
     testImplementation(testFixtures(project(":commons")))
-    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.5") {
+    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.6") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }
     testImplementation("io.projectreactor:reactor-test:3.8.5")

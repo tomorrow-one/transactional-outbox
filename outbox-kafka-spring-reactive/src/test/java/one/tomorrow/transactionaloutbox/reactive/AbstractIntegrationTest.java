@@ -54,6 +54,9 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.r2dbc.pool.enabled", () -> "true");
         registry.add("spring.r2dbc.pool.initial-size", () -> "5");
         registry.add("spring.r2dbc.pool.max-size", () -> "10");
+        // Prevent "Could not open R2DBC Connection", caused by "Connection unexpectedly closed"
+        registry.add("spring.r2dbc.pool.aquire-retry", () -> "5");
+        registry.add("spring.r2dbc.pool.validation-query", () -> "select 1");
     }
 
 }

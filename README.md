@@ -1,6 +1,7 @@
 [![ci](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/tomorrow-one/transactional-outbox/actions/workflows/gradle-build.yml)
 [![maven: outbox-kafka-spring](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring.svg?label=maven:%20outbox-kafka-spring)](https://central.sonatype.com/search?q=one.tomorrow.transactional-outbox:outbox-kafka-spring)
 [![maven: outbox-kafka-spring-reactive](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-spring-reactive.svg?label=maven:%20outbox-kafka-spring-reactive)](https://central.sonatype.com/search?q=one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive)
+[![maven: outbox-kafka-quarkus](https://img.shields.io/maven-central/v/one.tomorrow.transactional-outbox/outbox-kafka-quarkus.svg?label=maven:%20outbox-kafka-quarkus)](https://central.sonatype.com/search?q=one.tomorrow.transactional-outbox:outbox-kafka-quarkus)
 
 # Transactional Outbox
 
@@ -44,9 +45,7 @@ the message / payload), a solution would have to be found or developed. At the t
 experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
-* This library assumes and uses Spring (for transaction handling)
-* It comes with a module for usage in classic spring and spring boot projects using sync/blocking operations (this
-  module uses spring-jdbc), and another module for reactive operations (uses [spring R2DBC](https://spring.io/projects/spring-data-r2dbc) for database access)
+* It comes with modules for usage in Spring/Spring Boot projects (classic sync/blocking and reactive operations), and Quarkus applications
 * It's tested with postgresql only (verified support for other databases could be contributed)
 
 ## Installation & Configuration
@@ -57,6 +56,7 @@ Depending on your application add one of the following libraries as dependency t
 
 * classic (sync/blocking): `one.tomorrow.transactional-outbox:outbox-kafka-spring:$version`
 * reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
+* quarkus: `one.tomorrow.transactional-outbox:outbox-kafka-quarkus:$version`
 
 #### Compatibility Matrix
 
@@ -202,6 +202,28 @@ public class TransactionalOutboxConfig {
 }
 ```
 
+#### Setup the `OutboxProcessor` from `outbox-kafka-quarkus`
+
+For Quarkus applications, the extension automatically configures the `OutboxProcessor` - no manual setup is required! Simply add the dependency and configure via `application.properties`:
+
+```properties
+# Kafka configuration (standard Quarkus Kafka config)
+kafka.bootstrap.servers=localhost:9092
+
+# Transactional Outbox configuration
+one.tomorrow.transactional-outbox.enabled=true
+one.tomorrow.transactional-outbox.processing-interval=PT0.2S
+one.tomorrow.transactional-outbox.lock-timeout=PT5S
+one.tomorrow.transactional-outbox.lock-owner-id=my-service-instance-1
+one.tomorrow.transactional-outbox.event-source=my-service
+
+# Optional: Automatic cleanup configuration
+one.tomorrow.transactional-outbox.cleanup.interval=PT1H
+one.tomorrow.transactional-outbox.cleanup.retention=P30D
+```
+
+For detailed Quarkus-specific configuration and usage, see the [Quarkus module README](outbox-kafka-quarkus/README.md).
+
 ## Usage
 
 In a service that changes the database (inside a transaction), create and serialize the message/event that should
@@ -251,6 +273,26 @@ public Mono<OutboxRecord> doSomething(String name) {
         })
         .as(rxtx::transactional);
 
+}
+```
+
+In a **quarkus application** it would look like this:
+
+```java
+@Inject
+OutboxService outboxService;
+
+@Transactional
+public void doSomething(String id, String name) {
+
+    // Here s.th. else would be done within the transaction, e.g. some entity created.
+
+    SomeEvent event = SomeEvent.newBuilder()
+            .setId(id)
+            .setName(name)
+            .build();
+    Map<String, String> headers = Map.of(KafkaHeaders.HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+    outboxService.saveForPublishing("some-topic", id, event.toByteArray(), headers);
 }
 ```
 
@@ -324,7 +366,7 @@ public class Cleaner {
 ## How-To Release
 
 To release a new version follow this step
-1. In your PR with the functional change, bump the version of `commons`, `outbox-kafka-spring` or `outbox-kafka-spring-reactive` in the root `build.gradle.kts` to a non-`SNAPSHOT` version.
+1. In your PR with the functional change, bump the version of `commons`, `outbox-kafka-spring`, `outbox-kafka-spring-reactive` or `outbox-kafka-quarkus` in the root `build.gradle.kts` to a non-`SNAPSHOT` version.
    * Try to follow semantic versioning, i.e. bump the major version for binary incompatible changes, the minor version for compatible changes with improvements/new features, and the patch version for bugfixes or non-functional changes like refactorings.
 2. Merge your PR - the related pipeline will publish the new version(s) to Sonatype's staging repo (SNAPSHOTs are published to Maven Central Snapshots repository (and are kept for 90 days)).
 3. To publish a release, follow https://central.sonatype.com/publishing/deployments

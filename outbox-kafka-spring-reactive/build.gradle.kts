@@ -6,14 +6,14 @@ tasks.withType<JavaCompile> {
 }
 
 dependencies {
-    val springVersion = "7.0.6"
+    val springVersion = "7.0.7"
     val kafkaVersion = "4.2.0"
-    val testcontainersVersion = "2.0.4"
+    val testcontainersVersion = "2.0.5"
     val log4jVersion = "2.25.4"
 
     implementation("org.springframework:spring-context:$springVersion")
 
-    implementation(platform("org.springframework.data:spring-data-bom:2025.1.1"))
+    implementation(platform("org.springframework.data:spring-data-bom:2025.1.5"))
     implementation("org.springframework.data:spring-data-relational")
     implementation("org.springframework.data:spring-data-r2dbc")
     implementation("org.springframework:spring-r2dbc:$springVersion")
@@ -29,10 +29,10 @@ dependencies {
 
     // testing
     testImplementation(testFixtures(project(":commons")))
-    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.5") {
+    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.6") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }
-    testImplementation("io.projectreactor:reactor-test:3.8.1")
+    testImplementation("io.projectreactor:reactor-test:3.8.5")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
@@ -43,9 +43,9 @@ dependencies {
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
-    testRuntimeOnly("com.google.code.gson:gson:2.13.2")
-    testImplementation("org.postgresql:postgresql:42.7.10")
-    testImplementation("org.flywaydb:flyway-database-postgresql:12.3.0")
+    testRuntimeOnly("com.google.code.gson:gson:2.14.0")
+    testImplementation("org.postgresql:postgresql:42.7.11")
+    testImplementation("org.flywaydb:flyway-database-postgresql:12.5.0")
     testImplementation("org.flywaydb.flyway-test-extensions:flyway-spring-test:10.0.0")
     testImplementation("org.awaitility:awaitility:4.3.0")
     testImplementation("org.apache.logging.log4j:log4j-core:$log4jVersion")

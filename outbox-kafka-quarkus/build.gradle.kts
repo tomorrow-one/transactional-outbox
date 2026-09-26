@@ -41,7 +41,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-devservices-postgresql:$quarkusVersion")
     testImplementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-jdbc-mysql")
-    testImplementation("io.quarkus:quarkus-devservices-mysql:$quarkusVersion")
+    testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-redpanda")
     testImplementation("org.testcontainers:testcontainers-toxiproxy")

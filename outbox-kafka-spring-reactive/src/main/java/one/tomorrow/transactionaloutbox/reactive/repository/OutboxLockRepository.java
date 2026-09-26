@@ -16,12 +16,14 @@
 package one.tomorrow.transactionaloutbox.reactive.repository;
 
 import io.r2dbc.spi.Readable;
+import io.r2dbc.spi.R2dbcException;
+import one.tomorrow.transactionaloutbox.commons.DatabaseDialect;
 import lombok.RequiredArgsConstructor;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -29,6 +31,8 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static java.time.Instant.now;
 import static one.tomorrow.transactionaloutbox.reactive.model.OutboxLock.OUTBOX_LOCK_ID;
@@ -50,16 +54,16 @@ public class OutboxLockRepository {
                 )
                 .as(rxtx::transactional)
                 .onErrorResume(
-                        DataIntegrityViolationException.class,
+                        DuplicateKeyException.class,
                         e -> handleDuplicateKey(e, ownerId)
                 )
                 .onErrorResume(
-                        e -> e instanceof DataAccessResourceFailureException && e.toString().contains("could not obtain lock"),
+                        this::isLockContention,
                         e -> handleRowIsLocked(e, ownerId)
                 );
     }
 
-    private Mono<Boolean> handleDuplicateKey(DataIntegrityViolationException e, String ownerId) {
+    private Mono<Boolean> handleDuplicateKey(DuplicateKeyException e, String ownerId) {
         logger.info("Outbox lock for owner {} could not be created, another one has been created concurrently: {}", ownerId, e);
         return Mono.just(false);
     }
@@ -84,7 +88,7 @@ public class OutboxLockRepository {
             return db.sql("insert into outbox_kafka_lock (id, owner_id, valid_until) values (:id, :ownerId, :validUntil)")
                     .bind("id", OUTBOX_LOCK_ID)
                     .bind("ownerId", ownerId)
-                    .bind("validUntil", now().plus(timeout))
+                    .bind("validUntil", databaseTime(now().plus(timeout)))
                     .fetch()
                     .rowsUpdated()
                     .map(rowsUpdated -> rowsUpdated > 0);
@@ -103,7 +107,7 @@ public class OutboxLockRepository {
         } else if (ownerId.equals(lock.getOwnerId())) {
             logger.debug("Found outbox lock with requested owner {}, valid until {} - updating lock", lock.getOwnerId(), lock.getValidUntil());
             return db.sql("update outbox_kafka_lock set valid_until = :validUntil where id = :id and owner_id = :ownerId")
-                    .bind("validUntil", now().plus(timeout))
+                    .bind("validUntil", databaseTime(now().plus(timeout)))
                     .bind("id", OUTBOX_LOCK_ID)
                     .bind("ownerId", ownerId)
                     .fetch()
@@ -113,7 +117,7 @@ public class OutboxLockRepository {
             logger.info("Found expired outbox lock with owner {}, which was valid until {} - grabbing lock for {}", lock.getOwnerId(), lock.getValidUntil(), ownerId);
             return db.sql("update outbox_kafka_lock set owner_id = :ownerId, valid_until = :validUntil where id = :id")
                     .bind("ownerId", ownerId)
-                    .bind("validUntil", now().plus(timeout))
+                    .bind("validUntil", databaseTime(now().plus(timeout)))
                     .bind("id", OUTBOX_LOCK_ID)
                     .fetch()
                     .rowsUpdated()
@@ -126,7 +130,29 @@ public class OutboxLockRepository {
     }
 
     private OutboxLock toOutboxLock(Readable row) {
-        return new OutboxLock(row.get("owner_id", String.class), row.get("valid_until", Instant.class));
+        Instant validUntil = isMySql()
+                ? row.get("valid_until", LocalDateTime.class).toInstant(ZoneOffset.UTC)
+                : row.get("valid_until", Instant.class);
+        return new OutboxLock(row.get("owner_id", String.class), validUntil);
+    }
+
+    private boolean isMySql() {
+        return DatabaseDialect.fromProductName(db.getConnectionFactory().getMetadata().getName()) == DatabaseDialect.MYSQL;
+    }
+
+    private Object databaseTime(Instant instant) {
+        return isMySql() ? LocalDateTime.ofInstant(instant, ZoneOffset.UTC) : instant;
+    }
+
+    private boolean isLockContention(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof PessimisticLockingFailureException)
+                return true;
+            if (cause instanceof R2dbcException sql
+                    && DatabaseDialect.isLockContention(sql.getSqlState(), sql.getErrorCode()))
+                return true;
+        }
+        return false;
     }
 
     public Mono<Boolean> preventLockStealing(String ownerId) {
@@ -136,7 +162,8 @@ public class OutboxLockRepository {
     }
 
     private Mono<OutboxLock> lockOutboxLock(String ownerId) {
-        return db.sql("select * from outbox_kafka_lock where owner_id = :ownerId for update")
+        return db.sql("select * from outbox_kafka_lock where id = :id and owner_id = :ownerId for update")
+                        .bind("id", OUTBOX_LOCK_ID)
                         .bind("ownerId", ownerId)
                         .map(this::toOutboxLock)
                         .one();

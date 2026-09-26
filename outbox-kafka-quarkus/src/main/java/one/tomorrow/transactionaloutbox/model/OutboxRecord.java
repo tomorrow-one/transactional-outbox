@@ -50,10 +50,10 @@ public class OutboxRecord {
     @Column(name = "topic", nullable = false)
     private String topic;
 
-    @Column(name = "key")
+    @Column(name = "`key`")
     private String key;
 
-    @Column(name = "value", nullable = false)
+    @Column(name = "`value`", nullable = false)
     private byte[] value;
 
     @Column(name = "headers")

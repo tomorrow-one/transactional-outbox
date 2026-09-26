@@ -46,7 +46,7 @@ experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
 * It comes with modules for usage in Spring/Spring Boot projects (classic sync/blocking and reactive operations), and Quarkus applications
-* It's tested with postgresql only (verified support for other databases could be contributed)
+* Database support: PostgreSQL and MySQL 8.4+ (InnoDB). MariaDB is not currently supported.
 
 ## Installation & Configuration
 
@@ -70,11 +70,46 @@ Depending on your application add one of the following libraries as dependency t
 
 ### Prepare Database
 
-Create the tables using your preferred database migration tool: use the DDLs
-from [this sql file](outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql) (
-or for reactive
-projects [this one](outbox-kafka-spring-reactive/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql))
-.
+Create the tables using your preferred database migration tool. Each module packages its DDL under
+`one/tomorrow/transactionaloutbox/schema/`:
+
+| Module | PostgreSQL | MySQL 8.4+ |
+|--------|------------|------------|
+| Spring JDBC | [postgresql.sql](outbox-kafka-spring/src/main/resources/one/tomorrow/transactionaloutbox/schema/postgresql.sql) | [mysql.sql](outbox-kafka-spring/src/main/resources/one/tomorrow/transactionaloutbox/schema/mysql.sql) |
+| Spring Reactive | [postgresql.sql](outbox-kafka-spring-reactive/src/main/resources/one/tomorrow/transactionaloutbox/schema/postgresql.sql) | [mysql.sql](outbox-kafka-spring-reactive/src/main/resources/one/tomorrow/transactionaloutbox/schema/mysql.sql) |
+| Quarkus | [postgresql.sql](outbox-kafka-quarkus/src/main/resources/one/tomorrow/transactionaloutbox/schema/postgresql.sql) | [mysql.sql](outbox-kafka-quarkus/src/main/resources/one/tomorrow/transactionaloutbox/schema/mysql.sql) |
+
+These scripts are starting points for your migrations; the library does not execute them automatically.
+Existing PostgreSQL installations do not need a schema migration for this change.
+MySQL uses `AUTO_INCREMENT`, `JSON`, `LONGBLOB`, and UTC `DATETIME(6)` columns.
+Keep the supplied case-sensitive collation for lock owner IDs and use InnoDB for transactional row locks.
+
+#### MySQL connection setup
+
+For Spring JDBC, add `com.mysql:mysql-connector-j` to your application's runtime dependencies.
+Configure the JVM and database session for UTC (for example, JVM option `-Duser.timezone=UTC`
+and JDBC URL `jdbc:mysql://localhost:3306/app?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true`).
+
+For Spring Reactive, add `io.asyncer:r2dbc-mysql` and configure a MySQL connection factory
+(for example, `r2dbc:mysql://localhost:3306/app`). Register the provided converters for JSON headers
+and UTC timestamps:
+
+```java
+@Bean
+R2dbcCustomConversions r2dbcCustomConversions(ConnectionFactory connectionFactory) {
+    return OutboxR2dbcConversions.create(connectionFactory);
+}
+```
+
+Import `one.tomorrow.transactionaloutbox.reactive.config.OutboxR2dbcConversions`,
+`org.springframework.data.r2dbc.convert.R2dbcCustomConversions`, and `io.r2dbc.spi.ConnectionFactory`.
+If your application already configures custom conversions, merge
+`OutboxR2dbcConversions.mysqlConverters()` into that configuration instead.
+The existing PostgreSQL `Json` model type is retained for API compatibility; keep the
+transitive `r2dbc-postgresql` dependency even when connecting to MySQL.
+
+For Quarkus, add `io.quarkus:quarkus-jdbc-mysql`, set `quarkus.datasource.db-kind=mysql`,
+and set `quarkus.hibernate-orm.jdbc.timezone=UTC`. Use the MySQL schema above with your migration tool.
 
 You should review if the column restrictions for `topic`, `key` and `owner_id` match your use case / context.
 The `owner_id` column (of the `outbox_kafka_lock` table) stores the unique id that you provide for identifying the

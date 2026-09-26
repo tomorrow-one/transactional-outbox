@@ -401,3 +401,17 @@ Enable debug logging for troubleshooting:
 ```properties
 quarkus.log.category."one.tomorrow.transactionaloutbox".level=DEBUG
 ```
+
+### MySQL database configuration
+
+Use MySQL 8.4+ with InnoDB and add `io.quarkus:quarkus-jdbc-mysql` to the application.
+Apply [mysql.sql](src/main/resources/one/tomorrow/transactionaloutbox/schema/mysql.sql) through your migration tool, then configure:
+
+```properties
+quarkus.datasource.db-kind=mysql
+quarkus.datasource.jdbc.url=jdbc:mysql://localhost:3306/app?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+quarkus.hibernate-orm.jdbc.timezone=UTC
+```
+
+Supply credentials using your application's datasource configuration. Retain the schema's
+case-sensitive lock owner collation. PostgreSQL applications can continue using their existing schema.

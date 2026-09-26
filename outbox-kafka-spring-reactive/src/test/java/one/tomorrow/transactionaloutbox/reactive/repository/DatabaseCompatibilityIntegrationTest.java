@@ -140,7 +140,7 @@ class DatabaseCompatibilityIntegrationTest {
         try (Connection connection = databases.dataSource(database).getConnection()) {
             connection.setAutoCommit(false);
             try (var statement = connection.createStatement();
-                 var ignored = statement.executeQuery("select * from outbox_kafka_lock for update")) {
+                var ignored = statement.executeQuery("select * from outbox_kafka_lock for update")) {
                 assertFalse(f.locks.acquireOrRefreshLock("owner", Duration.ofSeconds(30), true).block(Duration.ofSeconds(5)));
             } finally {
                 connection.rollback();
@@ -189,5 +189,5 @@ class DatabaseCompatibilityIntegrationTest {
     }
 
     private record Fixture(DatabaseClient db, OutboxRepository records, OutboxLockRepository locks,
-                           TransactionalOperator tx) {}
+                            TransactionalOperator tx) {}
 }

@@ -125,7 +125,7 @@ class DatabaseCompatibilityIntegrationTest {
         try (Connection connection = f.dataSource.getConnection()) {
             connection.setAutoCommit(false);
             try (var statement = connection.createStatement();
-                 var ignored = statement.executeQuery("select * from outbox_kafka_lock for update")) {
+                var ignored = statement.executeQuery("select * from outbox_kafka_lock for update")) {
                 assertTimeoutPreemptively(Duration.ofSeconds(5),
                         () -> assertFalse(f.locks.acquireOrRefreshLock("owner", Duration.ofSeconds(30))));
             } finally {
@@ -183,5 +183,5 @@ class DatabaseCompatibilityIntegrationTest {
     }
 
     private record Fixture(DataSource dataSource, JdbcTemplate jdbc, OutboxRepository records,
-                           OutboxLockRepository locks, TransactionTemplate tx) {}
+                            OutboxLockRepository locks, TransactionTemplate tx) {}
 }

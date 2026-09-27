@@ -15,206 +15,144 @@
  */
 package one.tomorrow.transactionaloutbox.health;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
+import one.tomorrow.transactionaloutbox.repository.OutboxRepository;
+import one.tomorrow.transactionaloutbox.service.OutboxProcessor;
 import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Readiness;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 
+import static one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig.createConfig;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@QuarkusTest
-@TestProfile(OutboxProcessorHealthCheckTest.class)
-public class OutboxProcessorHealthCheckTest implements QuarkusTestProfile {
-
-    @Inject
-    @Readiness
-    OutboxProcessorHealthCheck healthCheck;
-
-    @Inject
-    EntityManager entityManager;
-
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return Map.of(
-                "one.tomorrow.transactional-outbox.enabled", "true",
-                "one.tomorrow.transactional-outbox.processing-interval", "PT0.1S", // 100ms for testing
-                "one.tomorrow.transactional-outbox.lock-owner-id", "health-check-test",
-                "one.tomorrow.transactional-outbox.lock-timeout", "PT0.5S",
-                "one.tomorrow.transactional-outbox.event-source", "health-test"
-        );
-    }
+/** Health policy tests must not race a running processor that consumes their fixture records. */
+class OutboxProcessorHealthCheckTest {
+    private OutboxProcessor processor;
+    private OutboxRepository repository;
+    private OutboxProcessorHealthCheck healthCheck;
 
     @BeforeEach
-    @AfterEach
-    @Transactional
-    void cleanUp() {
-        entityManager.createQuery("DELETE FROM OutboxRecord").executeUpdate();
-        entityManager.createQuery("DELETE FROM OutboxLock").executeUpdate();
+    void setUp() {
+        processor = mock(OutboxProcessor.class);
+        repository = mock(OutboxRepository.class);
+        when(processor.isEnabled()).thenReturn(true);
+        when(processor.getLockOwnerId()).thenReturn("health-check-test");
+        // Evaluate the timestamp when queried, independent of CI startup/scheduling delays.
+        when(processor.getLastLockAcquisitionAttempt()).thenAnswer(ignored -> Instant.now());
+        when(repository.getUnprocessedRecords(1)).thenReturn(List.of());
+        healthCheck = new OutboxProcessorHealthCheck(processor, repository,
+                createConfig(Duration.ofMillis(100), Duration.ofMillis(500), "health-check-test", "health-test"));
     }
 
     @Test
     void shouldReturnHealthyWhenProcessorIsEnabled() {
-        // when
         HealthCheckResponse response = healthCheck.call();
-
-        // then
         assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
         assertEquals("transactional-outbox-processor", response.getName());
-
-        // Verify basic processor information is included
-        Map<String, Object> data = response.getData().orElse(Map.of());
-        assertTrue((Boolean) data.get("enabled"));
+        Map<String, Object> data = response.getData().orElseThrow();
+        assertEquals(true, data.get("enabled"));
         assertEquals("health-check-test", data.get("lockOwnerId"));
-        assertNotNull(data.get("active"));
-        assertFalse((Boolean) data.get("closed"));
+        assertEquals(false, data.get("active"));
+        assertEquals(false, data.get("closed"));
+        assertEquals("inactive", data.get("status"));
     }
 
     @Test
     void shouldIncludeOldestMessageAgeWhenMessagesExist() {
-        // given - add some unprocessed messages with different ages
-        addUnprocessedMessage("test-topic-1", "key1", "message1", Instant.now().minus(30, ChronoUnit.SECONDS));
-        addUnprocessedMessage("test-topic-2", "key2", "message2", Instant.now().minus(10, ChronoUnit.SECONDS));
-
-        // when
+        // An inactive instance is healthy even when another instance has an old pending message.
+        oldestMessage(Duration.ofSeconds(30));
         HealthCheckResponse response = healthCheck.call();
-
-        // then
         assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
-
-        // Should include oldest message age (30 seconds is oldest)
-        Map<String, Object> data = response.getData().orElse(Map.of());
-        String oldestAge = (String) data.get("oldestUnprocessedMessageAge");
-        assertNotNull(oldestAge);
-
-        // The oldest message should be approximately 30 seconds old
-        // Accept some variation due to test execution time
-        assertTrue(oldestAge.matches("PT\\d+(\\.\\d+)?S"),
-            "Expected duration format like PT30S or PT30.123S, but was: " + oldestAge);
-
-        // Should include creation timestamp
+        Map<String, Object> data = response.getData().orElseThrow();
+        assertTrue(Duration.parse((String) data.get("oldestUnprocessedMessageAge"))
+                .compareTo(Duration.ofSeconds(30)) >= 0);
         assertNotNull(data.get("oldestUnprocessedMessageCreated"));
+        verify(repository).getUnprocessedRecords(1);
     }
 
     @Test
     void shouldReturnDownWhenActiveProcessorHasStaleMessage() {
-        // given - add an old message (older than 2x processing interval = 2 * 100ms = 200ms)
-        Instant oldTimestamp = Instant.now().minus(1, ChronoUnit.SECONDS); // 1 second old (much older than 200ms)
-        addUnprocessedMessage("test-topic", "key1", "stale-message", oldTimestamp);
-
-        // Wait a bit to ensure the processor might become active
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // when
-        HealthCheckResponse response = healthCheck.call();
-
-        // then
-        Map<String, Object> data = response.getData().orElse(Map.of());
-
-        // If processor is active and message is older than 2x processing interval (200ms), should be DOWN
-        Boolean isActive = (Boolean) data.get("active");
-        if (Boolean.TRUE.equals(isActive)) {
-            assertEquals(HealthCheckResponse.Status.DOWN, response.getStatus());
-            assertEquals("processing-stalled", data.get("status"));
-            assertNotNull(data.get("reason"));
-        } else {
-            // If processor is not active, should still be UP (normal in multi-instance setup)
-            assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
-        }
+        when(processor.isActive()).thenReturn(true);
+        oldestMessage(Duration.ofSeconds(30));
+        assertStatus(HealthCheckResponse.Status.DOWN, "processing-stalled");
     }
 
     @Test
     void shouldReturnUpWhenActiveProcessorHasFreshMessage() {
-        // given - add a fresh message (newer than 2x processing interval = 200ms)
-        Instant freshTimestamp = Instant.now().minus(50, ChronoUnit.MILLIS); // 50ms old (less than 200ms threshold)
-        addUnprocessedMessage("test-topic", "key1", "fresh-message", freshTimestamp);
-
-        // when
-        HealthCheckResponse response = healthCheck.call();
-
-        // then - Even if processor is active, fresh message should not cause DOWN status
-        assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
-
-        Map<String, Object> data = response.getData().orElse(Map.of());
-        assertNotEquals("processing-stalled", data.get("status"));
+        when(processor.isActive()).thenReturn(true);
+        oldestMessage(Duration.ZERO);
+        assertStatus(HealthCheckResponse.Status.UP, "active");
     }
 
     @Test
     void shouldReturnNoneWhenNoUnprocessedMessages() {
-        // when (no messages added)
         HealthCheckResponse response = healthCheck.call();
-
-        // then
         assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
-
-        Map<String, Object> data = response.getData().orElse(Map.of());
-        assertEquals("none", data.get("oldestUnprocessedMessageAge"));
+        assertEquals("none", response.getData().orElseThrow().get("oldestUnprocessedMessageAge"));
     }
 
     @Test
     void shouldIncludeLockInformation() {
-        // when
         HealthCheckResponse response = healthCheck.call();
-
-        // then
         assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
-
-        // Should include lock-related information
-        Map<String, Object> data = response.getData().orElse(Map.of());
-        assertNotNull(data.get("lockOwnerId"));
+        Map<String, Object> data = response.getData().orElseThrow();
         assertEquals("health-check-test", data.get("lockOwnerId"));
-
-        // Should track lock acquisition attempts
-        assertNotNull(data.get("lastLockAttempt"));
+        assertNotNull(Instant.parse((String) data.get("lastLockAttempt")));
     }
 
     @Test
     void shouldHandleRepositoryErrors() {
-        // The health check should gracefully handle repository errors
-        // In a real scenario, this might happen if the database is unavailable
+        when(repository.getUnprocessedRecords(1)).thenThrow(new IllegalStateException("database unavailable"));
+        // The existing policy tolerates failure to read the oldest message.
+        assertStatus(HealthCheckResponse.Status.UP, "inactive");
+        verify(repository).getUnprocessedRecords(1);
+    }
 
-        // when
+    @Test
+    void shouldReturnDownWhenLockAcquisitionIsStale() {
+        when(processor.getLastLockAcquisitionAttempt()).thenReturn(Instant.EPOCH);
+        assertStatus(HealthCheckResponse.Status.DOWN, "stale");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void shouldReturnUpBeforeFirstLockAttempt() {
+        when(processor.getLastLockAcquisitionAttempt()).thenReturn(null);
         HealthCheckResponse response = healthCheck.call();
-
-        // then
-        // Even if there are issues with getting oldest message,
-        // the health check should not fail completely
-        assertEquals("transactional-outbox-processor", response.getName());
-        assertNotNull(response.getStatus());
+        assertEquals(HealthCheckResponse.Status.UP, response.getStatus());
+        assertEquals("never", response.getData().orElseThrow().get("lastLockAttempt"));
     }
 
-    @Transactional
-    void addUnprocessedMessage(String topic, String key, String message) {
-        addUnprocessedMessage(topic, key, message, Instant.now());
+    @Test
+    void shouldReturnDownWhenProcessorIsClosed() {
+        when(processor.isClosed()).thenReturn(true);
+        assertStatus(HealthCheckResponse.Status.DOWN, "closed");
+        verifyNoInteractions(repository);
     }
 
-    @Transactional
-    void addUnprocessedMessage(String topic, String key, String message, Instant created) {
-        OutboxRecord outboxRecord = new OutboxRecord();
-        outboxRecord.setTopic(topic);
-        outboxRecord.setKey(key);
-        outboxRecord.setValue(message.getBytes());
-        // Don't set processed timestamp - this makes it unprocessed
-        entityManager.persist(outboxRecord);
-        entityManager.flush(); // Ensure it's written to DB immediately
-        // update created timestamp
-        outboxRecord.setCreated(created);
-        entityManager.merge(outboxRecord);
-        entityManager.flush();
+    @Test
+    void shouldReturnUpWhenProcessorIsDisabled() {
+        when(processor.isEnabled()).thenReturn(false);
+        when(processor.isClosed()).thenReturn(true);
+        assertStatus(HealthCheckResponse.Status.UP, "disabled");
+        verifyNoInteractions(repository);
+    }
+
+    private void oldestMessage(Duration age) {
+        OutboxRecord record = mock(OutboxRecord.class);
+        when(record.getCreated()).thenAnswer(ignored -> Instant.now().minus(age));
+        when(repository.getUnprocessedRecords(1)).thenReturn(List.of(record));
+    }
+
+    private void assertStatus(HealthCheckResponse.Status expected, String detail) {
+        HealthCheckResponse response = healthCheck.call();
+        assertEquals(expected, response.getStatus(), () -> response.getData().toString());
+        assertEquals(detail, response.getData().orElseThrow().get("status"));
     }
 }

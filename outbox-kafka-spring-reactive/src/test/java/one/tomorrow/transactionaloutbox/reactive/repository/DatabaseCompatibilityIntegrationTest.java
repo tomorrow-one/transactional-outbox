@@ -35,6 +35,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.sql.Connection;
 import java.time.Duration;
@@ -169,12 +170,23 @@ class DatabaseCompatibilityIntegrationTest {
         Fixture f = fixture(database);
         assertTrue(f.locks.acquireOrRefreshLock("owner", Duration.ofSeconds(30), false).block(WAIT));
         expire(database);
-        // A separate subscription uses a different transaction/connection from the processing transaction.
-        f.locks.preventLockStealing("owner").doOnNext(held -> {
-            assertTrue(held);
-            assertFalse(f.locks.acquireOrRefreshLock("other", Duration.ofSeconds(30), false)
-                    .subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic()).toFuture().join());
-        }).as(f.tx::transactional).block(WAIT);
+        Sinks.One<Void> lockHeld = Sinks.one();
+        Sinks.One<Void> contenderFinished = Sinks.one();
+        Mono<Void> processing = f.locks.preventLockStealing("owner")
+                .doOnNext(held -> {
+                    assertTrue(held);
+                    lockHeld.tryEmitEmpty();
+                })
+                .then(contenderFinished.asMono())
+                .as(f.tx::transactional);
+        // Sibling subscriptions keep transaction contexts separate. Never block a database
+        // event-loop thread while waiting for another connection to finish its query.
+        Mono<Void> contender = lockHeld.asMono()
+                .then(Mono.defer(() -> f.locks.acquireOrRefreshLock("other", Duration.ofSeconds(30), false)))
+                .doOnNext(acquired -> assertFalse(acquired))
+                .then()
+                .doOnSuccess(ignored -> contenderFinished.tryEmitEmpty());
+        Mono.when(processing, contender).block(WAIT);
         assertTrue(f.locks.acquireOrRefreshLock("other", Duration.ofSeconds(30), false).block(WAIT));
     }
 

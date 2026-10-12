@@ -43,7 +43,7 @@ Optional dependencies:
 ## Database Setup
 
 Create the required tables using Flyway, Liquibase, or your preferred migration tool. Use the DDL from:
-[outbox tables SQL](../outbox-kafka-spring/src/test/resources/db/migration/V2020.06.19.22.29.00__add-outbox-tables.sql)
+[postgresql.sql](src/main/resources/one/tomorrow/transactionaloutbox/schema/postgresql.sql)
 
 Example with Flyway:
 

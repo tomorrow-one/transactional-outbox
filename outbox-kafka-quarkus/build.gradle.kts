@@ -40,6 +40,8 @@ dependencies {
     testImplementation("io.quarkus:quarkus-junit5-mockito")
     testImplementation("io.quarkus:quarkus-devservices-postgresql:$quarkusVersion")
     testImplementation("io.quarkus:quarkus-jdbc-postgresql")
+    testImplementation("io.quarkus:quarkus-jdbc-mysql")
+    testImplementation("org.testcontainers:testcontainers-mysql")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.testcontainers:testcontainers-redpanda")
     testImplementation("org.testcontainers:testcontainers-toxiproxy")

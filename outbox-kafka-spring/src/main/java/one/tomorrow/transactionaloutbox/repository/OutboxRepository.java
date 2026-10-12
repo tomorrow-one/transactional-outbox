@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2023 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2022-2026 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,17 +19,16 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
-import org.postgresql.util.PGobject;
+import one.tomorrow.transactionaloutbox.commons.DatabaseDialect;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.SQLException;
+import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,32 +52,28 @@ public class OutboxRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    private final SimpleJdbcInsert jdbcInsert;
-
     public OutboxRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.jdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
-                .withTableName("outbox_kafka")
-                .usingGeneratedKeyColumns("id");
     }
 
     public void persist(OutboxRecord record) {
         record.setCreated(new Timestamp(System.currentTimeMillis()));
-        Long id = (Long) jdbcInsert.executeAndReturnKey(argsFor(record));
-        record.setId(id);
-    }
-
-    private static Map<String, Object> argsFor(OutboxRecord record) {
-        Map<String, Object> args = new HashMap<>();
-        args.put("created", record.getCreated());
-        if (record.getProcessed() != null)
-            args.put("processed", Timestamp.from(record.getProcessed()));
-        args.put("topic", record.getTopic());
-        if (record.getKey() != null)
-            args.put("key", record.getKey());
-        args.put("value", record.getValue());
-        args.put("headers", toJson(record.getHeaders()));
-        return args;
+        GeneratedKeyHolder keys = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            DatabaseDialect dialect = DatabaseDialect.fromProductName(connection.getMetaData().getDatabaseProductName());
+            PreparedStatement statement = connection.prepareStatement(dialect.insertRecordSql(), new String[]{"id"});
+            statement.setTimestamp(1, record.getCreated());
+            statement.setTimestamp(2, record.getProcessed() == null ? null : Timestamp.from(record.getProcessed()));
+            statement.setString(3, record.getTopic());
+            statement.setString(4, record.getKey());
+            statement.setBytes(5, record.getValue());
+            statement.setString(6, toJson(record.getHeaders()));
+            return statement;
+        }, keys);
+        Number id = keys.getKey();
+        if (id == null)
+            throw new IllegalStateException("Database did not return an outbox ID");
+        record.setId(id.longValue());
     }
 
     @Transactional
@@ -104,17 +99,8 @@ public class OutboxRepository {
         }
     }
 
-    private static PGobject toJson(Map<String, String> headers) {
-        if (headers == null)
-            return null;
-        try {
-            final PGobject holder = new PGobject();
-            holder.setType("jsonb");
-            holder.setValue(OBJECT_MAPPER.writeValueAsString(headers));
-            return holder;
-        } catch (JacksonException | SQLException e) {
-            throw new RuntimeException(e);
-        }
+    private static String toJson(Map<String, String> headers) {
+        return headers == null ? null : OBJECT_MAPPER.writeValueAsString(headers);
     }
 
 

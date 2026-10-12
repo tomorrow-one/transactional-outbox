@@ -27,7 +27,12 @@ dependencies {
     testFixturesImplementation("org.slf4j:slf4j-api:$sl4jVersion")
     testFixturesImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     testFixturesApi("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testFixturesApi("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testFixturesApi("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")
+    testFixturesApi("org.testcontainers:testcontainers-mysql:$testcontainersVersion")
+    testFixturesImplementation("org.springframework:spring-jdbc:$springVersion")
+    testFixturesRuntimeOnly("com.mysql:mysql-connector-j:9.6.0")
+    testFixturesRuntimeOnly("org.postgresql:postgresql:42.7.11")
     testFixturesApi("org.testcontainers:testcontainers-kafka:$testcontainersVersion")
     testFixturesApi("org.testcontainers:testcontainers-toxiproxy:$testcontainersVersion")
 

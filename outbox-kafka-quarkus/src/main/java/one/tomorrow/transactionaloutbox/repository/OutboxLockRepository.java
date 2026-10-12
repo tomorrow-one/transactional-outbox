@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2025-2026 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,20 +62,15 @@ public class OutboxLockRepository {
                 logger.debug("No outbox lock found. Creating one for {}", ownerId);
                 lock = new OutboxLock(ownerId, now.plus(timeout));
             } else {
-                if (ownerId.equals(lock.getOwnerId())) {
-                    logger.debug("Found outbox lock with requested owner {}, valid until {} - updating lock", lock.getOwnerId(), lock.getValidUntil());
-                    entityManager.lock(lock, LockModeType.PESSIMISTIC_WRITE, PESSIMISTIC_LOCK_PROPS);
-                    lock.setValidUntil(now.plus(timeout));
-                } else if (lock.getValidUntil().isAfter(now)) {
-                    logger.debug("Found outbox lock with owner {}, valid until {}", lock.getOwnerId(), lock.getValidUntil());
-                    setRollbackOnly();
+                if (!ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now))
                     return false;
-                } else {
-                    logger.info("Found expired outbox lock with owner {}, which was valid until {} - grabbing lock for {}", lock.getOwnerId(), lock.getValidUntil(), ownerId);
-                    entityManager.lock(lock, LockModeType.PESSIMISTIC_WRITE, PESSIMISTIC_LOCK_PROPS);
-                    lock.setOwnerId(ownerId);
-                    lock.setValidUntil(now.plus(timeout));
-                }
+                // Refresh both the row lock and its state before deciding to take ownership.
+                entityManager.refresh(lock, LockModeType.PESSIMISTIC_WRITE, PESSIMISTIC_LOCK_PROPS);
+                now = now();
+                if (!ownerId.equals(lock.getOwnerId()) && lock.getValidUntil().isAfter(now))
+                    return false;
+                lock.setOwnerId(ownerId);
+                lock.setValidUntil(now.plus(timeout));
             }
 
             entityManager.persist(lock);

@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Tomorrow GmbH @ https://tomorrow.one
+ * Copyright 2025-2026 Tomorrow GmbH @ https://tomorrow.one
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,10 +50,10 @@ public class OutboxRecord {
     @Column(name = "topic", nullable = false)
     private String topic;
 
-    @Column(name = "key")
+    @Column(name = "`key`")
     private String key;
 
-    @Column(name = "value", nullable = false)
+    @Column(name = "`value`", nullable = false)
     private byte[] value;
 
     @Column(name = "headers")

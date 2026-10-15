@@ -46,7 +46,7 @@ experience in the team with Debezium or Kafka Connect.
 
 ### Current Limitations
 * It comes with modules for usage in Spring/Spring Boot projects (classic sync/blocking and reactive operations), and Quarkus applications
-* Database support: PostgreSQL and MySQL 8.4+ (InnoDB). MariaDB is not currently supported.
+* Database support: PostgreSQL and MySQL 8.4+ (InnoDB, MariaDB is currently not supported). Verified support for other databases could be contributed.
 
 ## Installation & Configuration
 
@@ -58,7 +58,7 @@ Depending on your application add one of the following libraries as dependency t
 * reactive: `one.tomorrow.transactional-outbox:outbox-kafka-spring-reactive:$version`
 * quarkus: `one.tomorrow.transactional-outbox:outbox-kafka-quarkus:$version`
 
-#### Compatibility Matrix
+#### Spring Compatibility Matrix
 
 | Spring Version | Spring Boot Version | outbox-kafka-spring Version | outbox-kafka-spring-reactive Version |
 |----------------|---------------------|-----------------------------|--------------------------------------|
@@ -67,6 +67,12 @@ Depending on your application add one of the following libraries as dependency t
 | 6.1.x          | 3.2.x - 3.3.x       | 3.3.x - 3.4.x               | 3.2.x - 3.3.x                        |
 | 6.0.x          | 3.1.x               | 2.0.x - 3.2.x               | 2.0.x - 3.1.x                        |
 | 5.x.x          | 2.x.x               | 1.2.x                       | 1.1.x                                |
+
+#### Quarkus Compatibility Matrix
+
+| Quarkus Version | outbox-kafka-quarkus Version |
+|-----------------|------------------------------|
+| 3.33.x          | 1.0.x                        |
 
 ### Prepare Database
 
@@ -365,7 +371,7 @@ If you have any questions, feel free to ask in the GitHub Discussions.
 
 ### How to house keep your outbox table
 
-As the outbox table might contain data that you want to delete in regular intervals we provide a convenience cleanup method in the outbox repositories to delete messages processed before a certain point in time. Make sure you have created an index on your outbox tables before using these cleanup methods:
+As the outbox table might contain data that you want to delete in regular intervals you can run cleanups according to the `CleanupSettings` documented above. If you prefer to take care of cleanup on your own, you can use the cleanup method in the outbox repositories to delete messages processed before a certain point in time. Make sure you have created an index on your outbox tables before using these cleanup methods:
 ```sql
 CREATE INDEX idx_outbox_kafka_processed ON outbox_kafka (processed);
 ```

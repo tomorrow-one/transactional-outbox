@@ -3,11 +3,11 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jreleaser.model.Active.*
 import java.util.*
 
-project(":commons").version = "3.1.0"
-project(":outbox-kafka-spring").version = "4.1.0"
-project(":outbox-kafka-spring-reactive").version = "4.1.0"
-project(":outbox-kafka-quarkus").version = "1.0.0"
-project(":outbox-kafka-quarkus-deployment").version = "1.0.0"
+project(":commons").version = "3.1.1-SNAPSHOT"
+project(":outbox-kafka-spring").version = "4.1.1-SNAPSHOT"
+project(":outbox-kafka-spring-reactive").version = "4.1.1-SNAPSHOT"
+project(":outbox-kafka-quarkus").version = "1.0.1-SNAPSHOT"
+project(":outbox-kafka-quarkus-deployment").version = "1.0.1-SNAPSHOT"
 
 plugins {
     id("java-library")

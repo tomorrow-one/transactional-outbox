@@ -19,6 +19,7 @@ dependencies {
     testImplementation("io.quarkus:quarkus-hibernate-orm")
     testImplementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-flyway")
+    testImplementation("org.flywaydb:flyway-database-postgresql")
     testImplementation("io.quarkus:quarkus-kafka-client")
     testImplementation("io.quarkus:quarkus-messaging-kafka")
     testImplementation("io.smallrye.reactive:smallrye-reactive-messaging-in-memory")

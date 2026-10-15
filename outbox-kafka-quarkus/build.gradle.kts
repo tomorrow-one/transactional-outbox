@@ -1,8 +1,20 @@
 import io.quarkus.deployment.Capability.*
+import org.gradle.api.attributes.Attribute
+import org.gradle.api.attributes.AttributeDisambiguationRule
+import org.gradle.api.attributes.MultipleCandidatesDetails
+
+abstract class PreferUnqualifiedQuarkusVariant : AttributeDisambiguationRule<String> {
+    override fun execute(details: MultipleCandidatesDetails<String>) {
+        if (details.candidateValues.contains("runtime")) {
+            details.closestMatch("runtime")
+        }
+    }
+}
 
 plugins {
     id("java")
     id("io.quarkus.extension")
+    id("io.quarkus")
 }
 
 quarkusExtension {
@@ -13,6 +25,14 @@ quarkusExtension {
         requires(TRANSACTIONS)
         requires(KAFKA)
         requires(JACKSON)
+    }
+}
+
+listOf("prod", "test").forEach { launchMode ->
+    dependencies.attributesSchema.attribute(
+        Attribute.of("quarkus.$launchMode.deployment-dependency.outbox-kafka-quarkus", String::class.java)
+    ) {
+        disambiguationRules.add(PreferUnqualifiedQuarkusVariant::class.java)
     }
 }
 
@@ -63,12 +83,22 @@ java {
 }
 
 tasks.withType<Test> {
-
-    // apply the quarkus plugin so that we get quarkus test support (dev services etc.)
-    apply(plugin = "io.quarkus")
-    // don't build this module as quarkus app (this leads to failures with jpa), therefore disable this task
+    // This module is an extension library; Quarkus app augmentation is exercised in tests instead.
     tasks.named("quarkusAppPartsBuild") {
         enabled = false
+    }
+
+    afterEvaluate {
+        configurations.named("quarkusDeploymentClasspath") {
+            attributes.attribute(
+                Attribute.of("quarkus.prod.deployment-dependency.outbox-kafka-quarkus", String::class.java),
+                "on"
+            )
+            attributes.attribute(
+                Attribute.of("quarkus.test.deployment-dependency.outbox-kafka-quarkus", String::class.java),
+                "off"
+            )
+        }
     }
 
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")

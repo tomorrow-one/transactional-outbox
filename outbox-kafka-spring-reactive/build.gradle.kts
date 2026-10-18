@@ -19,6 +19,7 @@ dependencies {
     implementation("org.springframework:spring-r2dbc:$springVersion")
     implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
+    compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("tools.jackson.core:jackson-databind:3.1.2")
     implementation("org.slf4j:slf4j-api:2.0.17")
@@ -29,6 +30,7 @@ dependencies {
 
     // testing
     testImplementation(testFixtures(project(":commons")))
+    testImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.6") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }

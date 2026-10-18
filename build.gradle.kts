@@ -1,7 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jreleaser.model.Active.*
-import java.util.*
 
 project(":commons").version = "3.1.1-SNAPSHOT"
 project(":outbox-kafka-spring").version = "4.1.1-SNAPSHOT"
@@ -17,15 +16,14 @@ plugins {
     id("maven-publish")
     id("org.jreleaser") version "1.23.0"
     id("jacoco")
-    id("com.github.hierynomus.license") version "0.16.1"
     id("io.quarkus.extension") version "3.40.1" apply false
     id("io.quarkus") version "3.40.1" apply false
 }
 
 group = "one.tomorrow.transactional-outbox"
 
-val protobufVersion by extra("3.25.5")
-val quarkusVersion by extra("3.40.1")
+extra["protobufVersion"] = "3.25.5"
+extra["quarkusVersion"] = "3.40.1"
 
 // disable JReleaser on root level
 jreleaser {
@@ -43,9 +41,10 @@ subprojects {
     apply(plugin = "maven-publish")
     apply(plugin = "org.jreleaser")
     apply(plugin = "jacoco")
-    apply(plugin = "com.github.hierynomus.license")
 
     group = rootProject.group
+
+    val protobufFeatureSourceSet = sourceSets.create("protobufSupport")
 
     java {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -56,8 +55,15 @@ subprojects {
         withSourcesJar()
 
         registerFeature("protobufSupport") {
-            usingSourceSet(sourceSets["main"])
+            usingSourceSet(protobufFeatureSourceSet)
         }
+    }
+
+    configurations.named("protobufSupportApiElements") {
+        outgoing.artifact(tasks.named<Jar>("jar"))
+    }
+    configurations.named("protobufSupportRuntimeElements") {
+        outgoing.artifact(tasks.named<Jar>("jar"))
     }
 
     tasks.withType<JavaCompile> {
@@ -71,23 +77,9 @@ subprojects {
     if (!name.contains("quarkus")) {
         protobuf {
             protoc {
-                artifact = "com.google.protobuf:protoc:$protobufVersion"
+                artifact = "com.google.protobuf:protoc:${rootProject.extra["protobufVersion"]}"
             }
         }
-    }
-
-    license {
-        header = rootDir.resolve("LICENSE-header.txt")
-        excludes(
-            setOf(
-                "one/tomorrow/kafka/messages/DeserializerMessages.java",
-                "one/tomorrow/transactionaloutbox/test/Sample.java",
-                "one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
-            )
-        ) // java sources generated from proto messages
-        include("**/*.java")
-        ext["year"] = Calendar.getInstance().get(Calendar.YEAR)
-        skipExistingHeaders = true
     }
 
     val subproject = this
@@ -146,6 +138,7 @@ subprojects {
 
     jreleaser {
         gitRootSearch.set(true)
+        @Suppress("DEPRECATION")
         signing {
             active = ALWAYS
             armored = true
@@ -173,6 +166,34 @@ subprojects {
                 }
             }
         }
+    }
+}
+
+subprojects {
+    val licenseSourceFiles = fileTree("src") {
+        include("**/*.java")
+        exclude(
+            "**/one/tomorrow/kafka/messages/DeserializerMessages.java",
+            "**/one/tomorrow/transactionaloutbox/test/Sample.java",
+            "**/one/tomorrow/transactionaloutbox/reactive/test/Sample.java"
+        )
+    }
+
+    tasks.register("licenseMain") {
+        inputs.files(licenseSourceFiles)
+        doLast {
+            val filesWithoutLicense = licenseSourceFiles.filter { file ->
+                val contents = file.readText()
+                !contents.startsWith("/**") || !contents.contains("Licensed under the Apache License, Version 2.0")
+            }
+            check(filesWithoutLicense.isEmpty()) {
+                "Missing Apache 2.0 license header in: ${filesWithoutLicense.joinToString()}"
+            }
+        }
+    }
+
+    tasks.named("check") {
+        dependsOn("licenseMain")
     }
 }
 

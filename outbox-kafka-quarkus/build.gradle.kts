@@ -39,6 +39,8 @@ listOf("prod", "test").forEach { launchMode ->
 val quarkusVersion = rootProject.extra["quarkusVersion"]
 
 dependencies {
+    compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
+
     // Quarkus BOM
     implementation(platform("io.quarkus:quarkus-bom:$quarkusVersion"))
 

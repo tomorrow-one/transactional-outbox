@@ -22,7 +22,6 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import one.tomorrow.transactionaloutbox.KafkaTestUtils;
-import one.tomorrow.transactionaloutbox.ProxiedKafkaContainer;
 import one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer;
 import one.tomorrow.transactionaloutbox.config.TestTransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
@@ -36,6 +35,8 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.*;
+import org.testcontainers.redpanda.RedpandaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -45,12 +46,11 @@ import java.util.Map;
 
 import static java.util.stream.IntStream.range;
 import static one.tomorrow.transactionaloutbox.KafkaTestUtils.*;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.bootstrapServers;
-import static one.tomorrow.transactionaloutbox.ProxiedKafkaContainer.startProxiedKafka;
 import static one.tomorrow.transactionaloutbox.ProxiedPostgreSQLContainer.startProxiedPostgres;
 import static one.tomorrow.transactionaloutbox.TestUtils.newHeaders;
 import static one.tomorrow.transactionaloutbox.TestUtils.newRecord;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(ConcurrentOutboxProcessorsIntegrationTest.class)
@@ -59,7 +59,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
 
     private static final String topic = "topicConcurrentTest";
     public static final ProxiedPostgreSQLContainer postgresqlContainer = startProxiedPostgres();
-    public static final ProxiedKafkaContainer kafkaContainer = startProxiedKafka();
+    private static final RedpandaContainer kafkaContainer = startKafka();
     private static Consumer<String, byte[]> consumer;
 
     @Inject
@@ -76,6 +76,13 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
 
     private OutboxProcessor testee1;
     private OutboxProcessor testee2;
+
+    private static RedpandaContainer startKafka() {
+        RedpandaContainer container = new RedpandaContainer(
+                DockerImageName.parse("docker.redpanda.com/redpandadata/redpanda:v26.2.2"));
+        container.start();
+        return container;
+    }
 
     @Override
     public Map<String, String> getConfigOverrides() {
@@ -95,7 +102,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
 
     @BeforeAll
     static void beforeAll() {
-        createTopic(bootstrapServers, topic);
+        createTopic(kafkaContainer.getBootstrapServers(), topic);
         consumer = setupConsumer("testGroup", false, topic);
     }
 
@@ -117,6 +124,7 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
     static void afterClass() {
         if (consumer != null)
             consumer.close();
+        kafkaContainer.stop();
     }
 
     @Test
@@ -145,7 +153,10 @@ public class ConcurrentOutboxProcessorsIntegrationTest implements QuarkusTestPro
 
         // then
         List<ConsumerRecord<String, byte[]>> allRecords = new ArrayList<>();
+        long deadline = System.nanoTime() + Duration.ofMinutes(2).toNanos();
         while (allRecords.size() < outboxRecords.size()) {
+            assertTrue(System.nanoTime() < deadline,
+                    "Timed out waiting for Kafka records: received " + allRecords.size() + " of " + outboxRecords.size());
             ConsumerRecords<String, byte[]> records = KafkaTestUtils.getRecords(consumer(), Duration.ofSeconds(5));
             records.iterator().forEachRemaining(allRecords::add);
         }

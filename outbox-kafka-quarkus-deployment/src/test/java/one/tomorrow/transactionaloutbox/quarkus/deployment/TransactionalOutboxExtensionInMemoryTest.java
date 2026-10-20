@@ -15,7 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.quarkus.deployment;
 
-import io.quarkus.test.QuarkusUnitTest;
+import io.quarkus.test.QuarkusExtensionTest;
 import io.smallrye.mutiny.tuples.Tuple2;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
@@ -71,7 +71,7 @@ class TransactionalOutboxExtensionInMemoryTest {
     }
 
     @RegisterExtension
-    static final QuarkusUnitTest config = new QuarkusUnitTest()
+    static final QuarkusExtensionTest config = new QuarkusExtensionTest()
             .withConfigurationResource("application-test.properties")
             .setArchiveProducer(() ->
                     ShrinkWrap.create(JavaArchive.class)

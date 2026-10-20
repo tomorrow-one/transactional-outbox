@@ -15,7 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.quarkus.deployment;
 
-import io.quarkus.test.QuarkusUnitTest;
+import io.quarkus.test.QuarkusExtensionTest;
 import io.smallrye.common.annotation.Identifier;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -53,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class TransactionalOutboxExtensionTest {
 
     @RegisterExtension
-    static final QuarkusUnitTest config = new QuarkusUnitTest()
+    static final QuarkusExtensionTest config = new QuarkusExtensionTest()
             .withConfigurationResource("application-test.properties")
             .setArchiveProducer(() ->
                     ShrinkWrap.create(JavaArchive.class)

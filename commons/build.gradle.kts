@@ -9,6 +9,7 @@ dependencies {
     val junitVersion = "6.0.3"
     val testcontainersVersion = "2.0.5"
 
+    compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     implementation("org.springframework:spring-core:$springVersion")
@@ -16,6 +17,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:$sl4jVersion")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:$junitVersion")
+    testImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
     testRuntimeOnly("org.slf4j:slf4j-simple:$sl4jVersion")

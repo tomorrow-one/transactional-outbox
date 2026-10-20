@@ -21,6 +21,7 @@ import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.quarkus.hibernate.orm.runtime.PersistenceUnitUtil;
 import io.quarkus.hibernate.orm.deployment.spi.AdditionalJpaModelBuildItem;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.health.OutboxProcessorHealthCheck;
@@ -36,6 +37,7 @@ import one.tomorrow.transactionaloutbox.tracing.NoopTracingServiceProducer;
 import one.tomorrow.transactionaloutbox.tracing.OpenTelemetryTracingServiceProducer;
 
 import java.util.List;
+import java.util.Set;
 
 class TransactionalOutboxExtensionProcessor {
 
@@ -102,8 +104,10 @@ class TransactionalOutboxExtensionProcessor {
     @BuildStep
     List<AdditionalJpaModelBuildItem> jpaModels() {
         return List.of(
-                new AdditionalJpaModelBuildItem(OutboxLock.class.getName()),
-                new AdditionalJpaModelBuildItem(OutboxRecord.class.getName())
+                new AdditionalJpaModelBuildItem(OutboxLock.class.getName(),
+                        Set.of(PersistenceUnitUtil.DEFAULT_PERSISTENCE_UNIT_NAME)),
+                new AdditionalJpaModelBuildItem(OutboxRecord.class.getName(),
+                        Set.of(PersistenceUnitUtil.DEFAULT_PERSISTENCE_UNIT_NAME))
         );
     }
 

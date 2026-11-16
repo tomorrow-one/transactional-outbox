@@ -105,6 +105,18 @@ class DatabaseCompatibilityIntegrationTest {
 
     @ParameterizedTest
     @EnumSource(DatabaseDialect.class)
+    void roundTripsNullPayloadForTombstones(DatabaseDialect database) {
+        Fixture f = fixture(database);
+        var tombstone = f.records.save(record(Instant.now(), null, null)).block(WAIT);
+        var rows = f.records.getUnprocessedRecords(1).collectList().block(WAIT);
+        assertEquals(1, rows.size());
+        assertEquals(tombstone.getId(), rows.get(0).getId());
+        assertEquals("key", rows.get(0).getKey());
+        assertNull(rows.get(0).getValue());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseDialect.class)
     void rollsBackWithBusinessTransaction(DatabaseDialect database) {
         Fixture f = fixture(database);
         Mono<Void> work = f.db.sql("insert into business_record (id) values (1)").fetch().rowsUpdated()

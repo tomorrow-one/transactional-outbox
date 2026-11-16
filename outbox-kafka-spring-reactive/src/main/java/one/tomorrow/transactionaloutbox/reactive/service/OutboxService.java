@@ -47,10 +47,27 @@ public class OutboxService {
         mandatoryTxOperator = TransactionalOperator.create(tm, txDefinition);
     }
 
+    /**
+     * Persist a record to the outbox table, must be subscribed to inside a transaction context.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param event the value used for the Kafka record (can be null to publish a tombstone)
+     * @return the persisted outbox record
+     */
     public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event) {
         return saveForPublishing(topic, key, event, null);
     }
 
+    /**
+     * Persist a record to the outbox table, must be subscribed to inside a transaction context.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param event the value used for the Kafka record (can be null to publish a tombstone)
+     * @param headerMap the headers used for the Kafka record (can be null)
+     * @return the persisted outbox record
+     */
     public Mono<OutboxRecord> saveForPublishing(String topic, String key, byte[] event, Map<String, String> headerMap) {
         Map<String, String> tracingHeaders = tracingService.tracingHeadersForOutboxRecord();
         Map<String, String> headers = merge(headerMap, tracingHeaders);

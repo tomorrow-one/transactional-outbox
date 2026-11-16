@@ -142,6 +142,24 @@ class OutboxProcessorIntegrationTest extends AbstractIntegrationTest implements 
     }
 
     @Test
+    void should_publishTombstoneForRecordWithNullValue() {
+        // given
+        String eventSource = "test";
+        testee = new OutboxProcessor(repository, lockService, producerFactory(), Duration.ofMillis(50), DEFAULT_OUTBOX_LOCK_TIMEOUT, lockOwnerId(), eventSource);
+
+        // when
+        OutboxRecord tombstone = repository.save(newRecord(topic1, "key", null)).block();
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords(1);
+        assertThat(records.count(), is(1));
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertThat(kafkaRecord.key(), is("key"));
+        assertThat(kafkaRecord.value(), is(nullValue()));
+        assertConsumedRecord(tombstone, eventSource, kafkaRecord);
+    }
+
+    @Test
     void should_processRecords_withTracing() {
         // given
         String eventSource = "test";

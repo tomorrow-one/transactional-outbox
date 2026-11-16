@@ -49,6 +49,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class TransactionalOutboxExtensionTest {
 
@@ -114,9 +115,31 @@ class TransactionalOutboxExtensionTest {
         }
     }
 
+    @Test
+    void testTransactionalOutboxWithTombstone() {
+        // given / when
+        OutboxRecord outboxRecord = createOutboxRecord(null);
+        assertNotNull(outboxRecord.getId());
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerConfig())) {
+            consumer.subscribe(List.of(topic));
+
+            // then
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
+            assertEquals(1, records.count());
+            ConsumerRecord<String, String> consumerRecord = records.iterator().next();
+            assertEquals(outboxRecord.getKey(), consumerRecord.key());
+            assertNull(consumerRecord.value());
+        }
+    }
+
     @Transactional
     OutboxRecord createOutboxRecord() {
-        return outboxService.saveForPublishing(topic, "k1", "value".getBytes());
+        return createOutboxRecord("value".getBytes());
+    }
+
+    @Transactional
+    OutboxRecord createOutboxRecord(byte[] value) {
+        return outboxService.saveForPublishing(topic, "k1", value);
     }
 
     private @NotNull Map<String, Object> consumerConfig() {

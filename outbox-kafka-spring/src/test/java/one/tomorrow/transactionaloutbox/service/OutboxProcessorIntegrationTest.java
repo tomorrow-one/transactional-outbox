@@ -79,6 +79,7 @@ import static org.apache.kafka.clients.producer.ProducerConfig.*;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {
@@ -172,6 +173,30 @@ public class OutboxProcessorIntegrationTest implements KafkaTestSupport<byte[]>,
         assertEquals(1, records.count());
         kafkaRecord = records.iterator().next();
         assertConsumedRecord(record2, "h2", eventSource, kafkaRecord);
+    }
+
+    @Test
+    public void should_PublishTombstoneForRecordWithNullValue() {
+        // given
+        String eventSource = "test";
+        testee = new OutboxProcessor(repository,
+                producerFactory(),
+                Duration.ofMillis(50),
+                DEFAULT_OUTBOX_LOCK_TIMEOUT,
+                lockOwnerId(),
+                eventSource,
+                beanFactory);
+
+        // when
+        OutboxRecord tombstone = newRecord(topic1, "key1", null, newHeaders("h1", "v1"));
+        transactionalRepository.persist(tombstone);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertEquals(1, records.count(), "Have records with keys: " + keys(records));
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertNull(kafkaRecord.value());
+        assertConsumedRecord(tombstone, "h1", eventSource, kafkaRecord);
     }
 
     @Test

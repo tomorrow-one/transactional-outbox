@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS outbox_kafka (
     processed       TIMESTAMP WITH TIME ZONE NULL,
     topic           CHARACTER VARYING(128) NOT NULL,
     key             CHARACTER VARYING(128) NULL,
-    value           BYTEA NOT NULL,
+    value           BYTEA NULL,
     headers         JSONB NULL
 );
 

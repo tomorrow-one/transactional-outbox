@@ -53,6 +53,7 @@ import java.util.List;
 import static one.tomorrow.transactionaloutbox.IntegrationTestConfig.DEFAULT_OUTBOX_LOCK_TIMEOUT;
 import static one.tomorrow.transactionaloutbox.commons.CommonKafkaTestSupport.*;
 import static one.tomorrow.transactionaloutbox.commons.ProxiedKafkaContainer.bootstrapServers;
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
@@ -142,6 +143,44 @@ public class ProtobufOutboxUsageIntegrationTest implements KafkaTestSupport<Mess
 
         Header foundHeader = kafkaRecord.headers().lastHeader("key");
         assertEquals(additionalHeader.getValue(), new String(foundHeader.value()));
+    }
+
+    @Test
+    public void should_SaveEventWithEventTypeForPublishing() {
+        // given beans in ContextConfiguration and OutboxSetup below
+
+        // when
+        SomethingHappened state = SomethingHappened.newBuilder().setId(25).setName("foo").build();
+        sampleService.publishState(25, state);
+
+        // then
+        ConsumerRecords<String, Message> records = getAndCommitRecords();
+        assertEquals(1, records.count());
+        ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
+        assertEquals("25", kafkaRecord.key());
+        assertEquals(state, kafkaRecord.value());
+        assertValueTypeHeader(kafkaRecord);
+    }
+
+    @Test
+    public void should_SaveTombstoneForPublishing() {
+        // given beans in ContextConfiguration and OutboxSetup below
+
+        // when
+        sampleService.publishState(26, null);
+
+        // then
+        ConsumerRecords<String, Message> records = getAndCommitRecords();
+        assertEquals(1, records.count());
+        ConsumerRecord<String, Message> kafkaRecord = records.iterator().next();
+        assertEquals("26", kafkaRecord.key());
+        assertNull(kafkaRecord.value());
+        assertValueTypeHeader(kafkaRecord);
+    }
+
+    private static void assertValueTypeHeader(ConsumerRecord<String, Message> kafkaRecord) {
+        Header valueType = kafkaRecord.headers().lastHeader(HEADERS_VALUE_TYPE_NAME);
+        assertEquals(SomethingHappened.getDescriptor().getFullName(), new String(valueType.value()));
     }
 
     @Override

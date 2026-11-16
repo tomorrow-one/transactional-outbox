@@ -40,7 +40,7 @@ public class TestUtils {
                 .processed(processed)
                 .topic(topic)
                 .key(key)
-                .value(value.getBytes(StandardCharsets.UTF_8))
+                .value(value == null ? null : value.getBytes(StandardCharsets.UTF_8))
                 .headers(headers)
                 .build();
     }

@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS outbox_kafka (
     processed DATETIME(6) NULL,
     topic VARCHAR(128) NOT NULL,
     `key` VARCHAR(128) NULL,
-    `value` LONGBLOB NOT NULL,
+    `value` LONGBLOB NULL,
     headers JSON NULL,
     INDEX idx_outbox_kafka_processed_id (processed, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_bin;

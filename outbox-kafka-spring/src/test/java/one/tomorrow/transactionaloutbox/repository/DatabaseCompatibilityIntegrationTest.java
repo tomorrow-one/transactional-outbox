@@ -89,6 +89,19 @@ class DatabaseCompatibilityIntegrationTest {
 
     @ParameterizedTest
     @EnumSource(DatabaseDialect.class)
+    void roundTripsNullPayloadForTombstones(DatabaseDialect dialect) {
+        Fixture f = fixture(dialect);
+        OutboxRecord tombstone = record(null, null);
+        f.records.persist(tombstone);
+        var found = f.records.getUnprocessedRecords(1);
+        assertEquals(1, found.size());
+        assertEquals(tombstone.getId(), found.get(0).getId());
+        assertEquals("key", found.get(0).getKey());
+        assertNull(found.get(0).getValue());
+    }
+
+    @ParameterizedTest
+    @EnumSource(DatabaseDialect.class)
     void rollsBackWithBusinessTransaction(DatabaseDialect dialect) {
         Fixture f = fixture(dialect);
         assertThrows(IllegalStateException.class, () -> f.tx.executeWithoutResult(status -> {

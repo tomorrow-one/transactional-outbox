@@ -44,7 +44,7 @@ public class OutboxService {
      *
      * @param topic the Kafka topic to send the record to
      * @param key the key used for the Kafka record (can be null)
-     * @param value the value used for the Kafka record
+     * @param value the value used for the Kafka record (can be null to publish a tombstone)
      * @return the ID of the persisted outbox record
      */
     @Transactional(MANDATORY)
@@ -57,7 +57,7 @@ public class OutboxService {
      *
      * @param topic the Kafka topic to send the record to
      * @param key the key used for the Kafka record (can be null)
-     * @param value the value used for the Kafka record
+     * @param value the value used for the Kafka record (can be null to publish a tombstone)
      * @param headers the headers used for the Kafka record (can be null)
      * @return the ID of the persisted outbox record
      */

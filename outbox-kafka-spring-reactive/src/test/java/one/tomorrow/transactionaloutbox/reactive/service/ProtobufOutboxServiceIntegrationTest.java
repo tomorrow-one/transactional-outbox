@@ -35,8 +35,10 @@ import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import static one.tomorrow.transactionaloutbox.commons.KafkaHeaders.HEADERS_VALUE_TYPE_NAME;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
@@ -116,6 +118,34 @@ class ProtobufOutboxServiceIntegrationTest extends AbstractIntegrationTest {
         OutboxRecord foundRecord = repository.findById(savedRecord.getId()).block();
         assertThat(foundRecord, is(notNullValue()));
         assertThat(foundRecord.getHeadersAsMap(), hasEntry(additionalHeader.getKey(), additionalHeader.getValue()));
+    }
+
+    @Test
+    void should_save_withEventType() {
+        // given
+        SomethingHappened message = SomethingHappened.newBuilder().setId(1).setName("foo").build();
+
+        // when
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", SomethingHappened.class, message)
+                .as(rxtx::transactional);
+
+        // then
+        OutboxRecord foundRecord = repository.findById(result.block().getId()).block();
+        assertThat(foundRecord.getValue(), is(message.toByteArray()));
+        assertThat(foundRecord.getHeadersAsMap(), hasEntry(HEADERS_VALUE_TYPE_NAME, SomethingHappened.getDescriptor().getFullName()));
+    }
+
+    @Test
+    void should_saveTombstone_withEventTypeAndNullEvent() {
+        // when
+        Mono<OutboxRecord> result = testee.saveForPublishing("topic", "key", SomethingHappened.class, null)
+                .as(rxtx::transactional);
+
+        // then
+        OutboxRecord foundRecord = repository.findById(result.block().getId()).block();
+        assertThat(foundRecord.getKey(), is("key"));
+        assertThat(foundRecord.getValue(), is(nullValue()));
+        assertThat(foundRecord.getHeadersAsMap(), hasEntry(HEADERS_VALUE_TYPE_NAME, SomethingHappened.getDescriptor().getFullName()));
     }
 
 }

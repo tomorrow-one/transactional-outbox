@@ -55,13 +55,25 @@ public class KafkaProtobufDeserializer implements Deserializer<Message> {
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) { }
 
+    /**
+     * Returns {@code null} for a tombstone, i.e. for {@code null} data.
+     */
     @Override
     public Message deserialize(String topic, byte[] data) {
+        if (data == null)
+            return null;
+
         return getInvalidMessageOrThrow("Headers not available", data);
     }
 
+    /**
+     * Returns {@code null} for a tombstone, i.e. for {@code null} data.
+     */
     @Override
     public Message deserialize(String topic, Headers headers, byte[] data) {
+        if (data == null)
+            return null;
+
         String headerValueType = Optional
                 .ofNullable(headers.lastHeader(HEADERS_VALUE_TYPE_NAME))
                 .map(h -> new String(h.value()))

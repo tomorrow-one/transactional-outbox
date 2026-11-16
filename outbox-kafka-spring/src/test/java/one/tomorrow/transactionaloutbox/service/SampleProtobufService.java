@@ -58,6 +58,13 @@ public class SampleProtobufService {
         logger.info("Stored event [{}] in outbox with id {}, key {} and headers {}", event, record.getId(), record.getKey(), record.getHeaders());
     }
 
+    @Transactional
+    public void publishState(int id, SomethingHappened stateOrNull) {
+        // E.g. for a log-compacted topic, publish the current state of an entity, or a tombstone if it was deleted.
+        OutboxRecord record = outboxService.saveForPublishing(topic1, String.valueOf(id), SomethingHappened.class, stateOrNull);
+        logger.info("Stored state [{}] in outbox with id {}, key {} and headers {}", stateOrNull, record.getId(), record.getKey(), record.getHeaders());
+    }
+
     abstract static class Topics {
         public static final String topic1 = "sampleProtobufTopic";
     }

@@ -33,10 +33,27 @@ public class OutboxService {
     private OutboxRepository repository;
     private TracingService tracingService;
 
+    /**
+     * Persist a record to the outbox table, should be called inside the transaction that changes the business data.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param value the value used for the Kafka record (can be null to publish a tombstone)
+     * @return the persisted outbox record
+     */
     public OutboxRecord saveForPublishing(String topic, String key, byte[] value) {
         return saveForPublishing(topic, key, value, null);
     }
 
+    /**
+     * Persist a record to the outbox table, should be called inside the transaction that changes the business data.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param value the value used for the Kafka record (can be null to publish a tombstone)
+     * @param headerMap the headers used for the Kafka record (can be null)
+     * @return the persisted outbox record
+     */
     public OutboxRecord saveForPublishing(String topic, String key, byte[] value, Map<String, String> headerMap) {
         Map<String, String> tracingHeaders = tracingService.tracingHeadersForOutboxRecord();
         Map<String, String> headers = merge(headerMap, tracingHeaders);

@@ -51,6 +51,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class TransactionalOutboxExtensionInMemoryTest {
 
@@ -136,9 +137,25 @@ class TransactionalOutboxExtensionInMemoryTest {
         assertEquals(new String(outboxRecord.getValue()), new String(keyValue.getItem2()));
     }
 
+    @Test
+    void testTransactionalOutboxWithTombstone() {
+        // given / when
+        OutboxRecord outboxRecord = createOutboxRecord(null);
+        assertNotNull(outboxRecord.getId());
+        // then
+        Tuple2<String, byte[]> keyValue = waitForNextMessage(testTopicSink);
+        assertEquals(outboxRecord.getKey(), keyValue.getItem1());
+        assertNull(keyValue.getItem2());
+    }
+
     @Transactional
     OutboxRecord createOutboxRecord() {
-        return outboxService.saveForPublishing(TOPIC, "k1", "value".getBytes());
+        return createOutboxRecord("value".getBytes());
+    }
+
+    @Transactional
+    OutboxRecord createOutboxRecord(byte[] value) {
+        return outboxService.saveForPublishing(TOPIC, "k1", value);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

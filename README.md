@@ -72,7 +72,8 @@ Depending on your application add one of the following libraries as dependency t
 
 | Quarkus Version | outbox-kafka-quarkus Version |
 |-----------------|------------------------------|
-| 3.33.x          | 1.0.x                        |
+| 3.40.x          | 1.0.1                        |
+| 3.33.x          | 1.0.0                        |
 
 ### Prepare Database
 
@@ -86,9 +87,11 @@ Create the tables using your preferred database migration tool. Each module pack
 | Quarkus | [postgresql.sql](outbox-kafka-quarkus/src/main/resources/one/tomorrow/transactionaloutbox/schema/postgresql.sql) | [mysql.sql](outbox-kafka-quarkus/src/main/resources/one/tomorrow/transactionaloutbox/schema/mysql.sql) |
 
 These scripts are starting points for your migrations; the library does not execute them automatically.
-Existing PostgreSQL installations do not need a schema migration for this change.
+MySQL support did not change the PostgreSQL schema, so you don't need to migrate an existing PostgreSQL setup for it.
 MySQL uses `AUTO_INCREMENT`, `JSON`, `LONGBLOB`, and UTC `DATETIME(6)` columns.
 Keep the supplied case-sensitive collation for lock owner IDs and use InnoDB for transactional row locks.
+
+The `value` column is nullable so that you can publish tombstones (if you created the `outbox_kafka` table with an earlier schema in which the column is `NOT NULL`, and you want to publish tombstones, just drop the constraint).
 
 #### MySQL connection setup
 

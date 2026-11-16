@@ -62,6 +62,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 @TestProfile(OutboxProcessorIntegrationTest.class)
@@ -167,6 +168,30 @@ public class OutboxProcessorIntegrationTest implements QuarkusTestProfile, Traci
         assertThat(records.count(), is(1));
         kafkaRecord = records.iterator().next();
         assertConsumedRecord(record2, "h2", eventSource, kafkaRecord);
+    }
+
+    @Test
+    void should_PublishTombstoneForRecordWithNullValue() {
+        // given
+        String eventSource = "test";
+        TransactionalOutboxConfig config = createConfig(
+                Duration.ofMillis(50),
+                Duration.ofMillis(200),
+                "processor",
+                eventSource
+        );
+        testee = new OutboxProcessor(config, repository, publisherFactory(), lockService, tracingService);
+
+        // when
+        OutboxRecord tombstone = newRecord(TOPIC_1, "key1", null, newHeaders("h1", "v1"));
+        transactionalRepository.persist(tombstone);
+
+        // then
+        ConsumerRecords<String, byte[]> records = getAndCommitRecords();
+        assertThat(records.count(), is(1));
+        ConsumerRecord<String, byte[]> kafkaRecord = records.iterator().next();
+        assertNull(kafkaRecord.value());
+        assertConsumedRecord(tombstone, "h1", eventSource, kafkaRecord);
     }
 
     private ConsumerRecords<String, byte[]> getAndCommitRecords() {

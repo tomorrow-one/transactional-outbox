@@ -15,6 +15,8 @@
  */
 package one.tomorrow.transactionaloutbox.service;
 
+import com.google.protobuf.Descriptors.Descriptor;
+import com.google.protobuf.Internal;
 import com.google.protobuf.Message;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,10 +43,40 @@ public class ProtobufOutboxService {
     /**
      * Save the message/event (as byte array), setting the {@link one.tomorrow.transactionaloutbox.commons.KafkaHeaders#HEADERS_VALUE_TYPE_NAME}
      * to the fully qualified name of the message descriptor.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param event the message/event used as value for the Kafka record, must not be null; to publish a tombstone use
+     *              {@link #saveForPublishing(String, String, Class, Message, Header...)}
+     * @param headers additional headers used for the Kafka record
+     * @return the persisted outbox record
      */
     public <T extends Message> OutboxRecord saveForPublishing(String topic, String key, T event, Header...headers) {
-        byte[] value = event.toByteArray();
-        Header valueType = new Header(HEADERS_VALUE_TYPE_NAME, event.getDescriptorForType().getFullName());
+        Objects.requireNonNull(event, "event must not be null, to publish a tombstone pass the event type and a null event");
+        return save(topic, key, event.getDescriptorForType(), event.toByteArray(), headers);
+    }
+
+    /**
+     * Save the message/event (as byte array), setting the {@link one.tomorrow.transactionaloutbox.commons.KafkaHeaders#HEADERS_VALUE_TYPE_NAME}
+     * to the fully qualified name of the message descriptor of the given event type.
+     * If the event is null, a tombstone is published, e.g. to delete an entry from a log-compacted topic.
+     *
+     * @param topic the Kafka topic to send the record to
+     * @param key the key used for the Kafka record (can be null)
+     * @param eventType the type of the message/event, used to determine the value type header
+     * @param event the message/event used as value for the Kafka record (can be null to publish a tombstone)
+     * @param headers additional headers used for the Kafka record
+     * @return the persisted outbox record
+     */
+    public <T extends Message> OutboxRecord saveForPublishing(String topic, String key, Class<T> eventType, T event, Header...headers) {
+        Objects.requireNonNull(eventType, "eventType must not be null");
+        if (event == null)
+            return save(topic, key, Internal.getDefaultInstance(eventType).getDescriptorForType(), null, headers);
+        return save(topic, key, event.getDescriptorForType(), event.toByteArray(), headers);
+    }
+
+    private OutboxRecord save(String topic, String key, Descriptor descriptor, byte[] value, Header...headers) {
+        Header valueType = new Header(HEADERS_VALUE_TYPE_NAME, descriptor.getFullName());
         Map<String, String> headerMap = Stream.concat(Stream.of(valueType), Arrays.stream(headers))
                 .collect(Collectors.toMap(Header::getKey, Header::getValue));
         return outboxService.saveForPublishing(topic, key, value, headerMap);

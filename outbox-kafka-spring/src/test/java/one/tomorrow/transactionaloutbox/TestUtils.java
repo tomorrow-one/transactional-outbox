@@ -55,7 +55,7 @@ public class TestUtils {
                 processed,
                 topic,
                 key,
-                value.getBytes(),
+                value == null ? null : value.getBytes(),
                 headers
         );
     }

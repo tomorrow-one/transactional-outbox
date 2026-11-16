@@ -72,6 +72,26 @@ class OutboxRepositoryIntegrationTest {
 
     @Test
     @Transactional
+    void should_PersistAndFindRecordWithNullValue() {
+        // given
+        OutboxRecord tombstone = newRecord("topic1", "key1", null, newHeaders("h1", "v1"));
+        repository.persist(tombstone);
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        List<OutboxRecord> result = repository.getUnprocessedRecords(100);
+
+        // then
+        assertEquals(1, result.size());
+        OutboxRecord foundRecord = result.get(0);
+        assertEquals(tombstone.getId(), foundRecord.getId());
+        assertEquals("key1", foundRecord.getKey());
+        assertNull(foundRecord.getValue());
+    }
+
+    @Test
+    @Transactional
     void should_DeleteProcessedRecordsAfterRetentionTime() {
         // given
         OutboxRecord shouldBeKeptAsNotProcessed = newRecord(null, "topic1", "key1", "value1", Collections.emptyMap());

@@ -53,7 +53,7 @@ public class OutboxRecord {
     @Column(name = "`key`")
     private String key;
 
-    @Column(name = "`value`", nullable = false)
+    @Column(name = "`value`")
     private byte[] value;
 
     @Column(name = "headers")

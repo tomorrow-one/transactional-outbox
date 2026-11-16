@@ -57,6 +57,24 @@ class EmitterMessagePublisherTest {
     }
 
     @Test
+    void publishSendsTombstoneForNullPayload() {
+        when(emitterResolver.resolveBy("test-topic")).thenReturn(emitter);
+        when(emitter.sendMessage(any(OutgoingKafkaRecord.class)))
+                .thenReturn(Uni.createFrom().nullItem());
+
+        CompletableFuture<?> result = (CompletableFuture<?>) publisher.publish(
+                1L, "test-topic", "key", null, Collections.emptyMap()
+        );
+
+        assertDoesNotThrow(result::join);
+        verify(emitter).sendMessage(argThat((OutgoingKafkaRecord<String, byte[]> kafkaRecord) -> {
+            assertEquals("key", kafkaRecord.getKey());
+            assertNull(kafkaRecord.getPayload());
+            return true;
+        }));
+    }
+
+    @Test
     void publishFailsWhenEmitterNotFound() {
         when(emitterResolver.resolveBy("non-existent-topic")).thenReturn(null);
 

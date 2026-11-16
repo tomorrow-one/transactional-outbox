@@ -54,7 +54,7 @@ CREATE TABLE outbox_kafka
   id         BIGSERIAL PRIMARY KEY,
   topic      VARCHAR(249) NOT NULL,
   key        VARCHAR(249),
-  value      BYTEA        NOT NULL,
+  value      BYTEA,
   headers    JSONB,
   created    TIMESTAMP    NOT NULL DEFAULT NOW(),
   processed  TIMESTAMP

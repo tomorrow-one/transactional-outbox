@@ -72,7 +72,8 @@ Depending on your application add one of the following libraries as dependency t
 
 | Quarkus Version | outbox-kafka-quarkus Version |
 |-----------------|------------------------------|
-| 3.33.x          | 1.0.x                        |
+| 3.40.x          | 1.0.1                        |
+| 3.33.x          | 1.0.0                        |
 
 ### Prepare Database
 

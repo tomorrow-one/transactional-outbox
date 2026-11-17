@@ -17,7 +17,7 @@ plugins {
     id("org.jreleaser") version "1.23.0"
     id("jacoco")
     id("io.quarkus.extension") version "3.40.1" apply false
-    id("io.quarkus") version "3.40.1" apply false
+    id("io.quarkus") version "3.40.1.2" apply false
 }
 
 group = "one.tomorrow.transactional-outbox"

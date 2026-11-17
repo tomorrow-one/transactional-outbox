@@ -34,8 +34,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           dependency-graph: generate-and-submit
-      - name: Set up gradle
-        uses: gradle/actions/setup-gradle@v4
       - name: Build
         run: ./gradlew -Dorg.gradle.jvmargs=-Xmx1g build
 
@@ -47,7 +45,15 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
-          allow-ghsas: GHSA-h3qr-39j9-4r5v
+          # GHSA-f58c-gq56-vjjf: XXE in tika-core via crafted PDFs, pulled in by the jreleaser gradle plugin
+          # (build tooling only, not part of the published artifacts, no untrusted PDFs are parsed)
+          # GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv: snappy-java decompression issues, pulled in by kafka-clients
+          # (the library only produces messages; snappy is only used for compression if configured by the user)
+          # GHSA-mcr4-qmvw-px4g: lz4-java native library extraction to a shared temp dir, pulled in by kafka-clients
+          # (requires a local attacker; lz4 is only used for compression if configured by the user)
+          # GHSA-xxph-c9ww-hj94: guava deserialization issue, pinned by the quarkus-bom
+          # (only in quarkus test classpath and build tooling, no untrusted java deserialization)
+          allow-ghsas: GHSA-h3qr-39j9-4r5v, GHSA-f58c-gq56-vjjf, GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv, GHSA-mcr4-qmvw-px4g, GHSA-xxph-c9ww-hj94
           base-ref: ${{ github.event.pull_request.base.sha || 'main' }}
           head-ref: ${{ github.event.pull_request.head.sha || github.ref }}
 

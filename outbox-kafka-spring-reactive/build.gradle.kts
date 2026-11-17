@@ -17,7 +17,7 @@ dependencies {
     implementation("org.springframework.data:spring-data-relational")
     implementation("org.springframework.data:spring-data-r2dbc")
     implementation("org.springframework:spring-r2dbc:$springVersion")
-    implementation("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
+    implementation("org.postgresql:r2dbc-postgresql:1.1.3.RELEASE")
     // align netty (pulled in via r2dbc-postgresql / reactor-netty) to a version without known vulnerabilities
     implementation(platform("io.netty:netty-bom:4.1.141.Final"))
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")

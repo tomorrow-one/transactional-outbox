@@ -33,7 +33,7 @@ dependencies {
     testFixturesApi("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")
     testFixturesApi("org.testcontainers:testcontainers-mysql:$testcontainersVersion")
     testFixturesImplementation("org.springframework:spring-jdbc:$springVersion")
-    testFixturesRuntimeOnly("com.mysql:mysql-connector-j:9.6.0")
+    testFixturesRuntimeOnly("com.mysql:mysql-connector-j:26.10.0")
     testFixturesRuntimeOnly("org.postgresql:postgresql:42.7.11")
     testFixturesApi("org.testcontainers:testcontainers-kafka:$testcontainersVersion")
     testFixturesApi("org.testcontainers:testcontainers-toxiproxy:$testcontainersVersion")

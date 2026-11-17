@@ -51,7 +51,9 @@ jobs:
           # (the library only produces messages; snappy is only used for compression if configured by the user)
           # GHSA-mcr4-qmvw-px4g: lz4-java native library extraction to a shared temp dir, pulled in by kafka-clients
           # (requires a local attacker; lz4 is only used for compression if configured by the user)
-          allow-ghsas: GHSA-h3qr-39j9-4r5v, GHSA-f58c-gq56-vjjf, GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv, GHSA-mcr4-qmvw-px4g
+          # GHSA-xxph-c9ww-hj94: guava deserialization issue, pinned by the quarkus-bom
+          # (only in quarkus test classpath and build tooling, no untrusted java deserialization)
+          allow-ghsas: GHSA-h3qr-39j9-4r5v, GHSA-f58c-gq56-vjjf, GHSA-q233-g92q-qxp6, GHSA-gwq9-9ffj-mvrv, GHSA-mcr4-qmvw-px4g, GHSA-xxph-c9ww-hj94
           base-ref: ${{ github.event.pull_request.base.sha || 'main' }}
           head-ref: ${{ github.event.pull_request.head.sha || github.ref }}
 

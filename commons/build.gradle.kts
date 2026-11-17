@@ -26,6 +26,8 @@ dependencies {
     testFixturesImplementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     testFixturesImplementation("org.springframework.kafka:spring-kafka:$springKafkaVersion")
     testFixturesImplementation("org.springframework.kafka:spring-kafka-test:$springKafkaVersion")
+    // align jackson 2 (pulled in by the embedded kafka broker) to a version without known vulnerabilities
+    testFixturesImplementation(platform("com.fasterxml.jackson:jackson-bom:2.21.8"))
     testFixturesImplementation("org.slf4j:slf4j-api:$sl4jVersion")
     testFixturesImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     testFixturesApi("org.junit.jupiter:junit-jupiter-api:$junitVersion")

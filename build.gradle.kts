@@ -16,14 +16,14 @@ plugins {
     id("maven-publish")
     id("org.jreleaser") version "1.23.0"
     id("jacoco")
-    id("io.quarkus.extension") version "3.40.1" apply false
-    id("io.quarkus") version "3.40.1" apply false
+    id("io.quarkus.extension") version "3.40.1.2" apply false
+    id("io.quarkus") version "3.40.1.2" apply false
 }
 
 group = "one.tomorrow.transactional-outbox"
 
 extra["protobufVersion"] = "3.25.5"
-extra["quarkusVersion"] = "3.40.1"
+extra["quarkusVersion"] = "3.40.1.2"
 
 // disable JReleaser on root level
 jreleaser {

@@ -51,7 +51,7 @@ dependencies {
     testImplementation("org.springframework:spring-jdbc:$springVersion")
     testImplementation("io.r2dbc:r2dbc-pool:1.0.2.RELEASE")
     // update gson version to fix a conflict of toxiproxy dependency and spring GsonAutoConfiguration
-    testRuntimeOnly("com.google.code.gson:gson:2.14.0")
+    testRuntimeOnly("com.google.code.gson:gson:2.15.0")
     testImplementation("org.postgresql:postgresql:42.7.14")
     testRuntimeOnly("io.asyncer:r2dbc-mysql:1.4.3")
     testImplementation("org.flywaydb:flyway-database-postgresql:13.12.2")

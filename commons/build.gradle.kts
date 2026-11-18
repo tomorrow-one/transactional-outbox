@@ -6,7 +6,7 @@ dependencies {
     val kafkaVersion = "4.2.0"
     val springKafkaVersion = "4.1.2"
     val sl4jVersion = "2.0.17"
-    val junitVersion = "6.0.3"
+    val junitVersion = "6.1.3"
     val testcontainersVersion = "2.0.5"
 
     compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")

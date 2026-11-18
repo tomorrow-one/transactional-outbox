@@ -11,7 +11,7 @@ project(":outbox-kafka-quarkus-deployment").version = "1.0.1-SNAPSHOT"
 plugins {
     id("java-library")
     id("java-test-fixtures")
-    id("io.freefair.lombok") version "9.4.0"
+    id("io.freefair.lombok") version "9.8.3"
     id("com.google.protobuf") version "0.10.1"
     id("maven-publish")
     id("org.jreleaser") version "1.27.0"

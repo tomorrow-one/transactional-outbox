@@ -13,7 +13,7 @@ dependencies {
 
     implementation("org.springframework:spring-context:$springVersion")
 
-    implementation(platform("org.springframework.data:spring-data-bom:2025.1.8"))
+    implementation(platform("org.springframework.data:spring-data-bom:2026.0.2"))
     implementation("org.springframework.data:spring-data-relational")
     implementation("org.springframework.data:spring-data-r2dbc")
     implementation("org.springframework:spring-r2dbc:$springVersion")

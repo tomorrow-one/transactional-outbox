@@ -8,7 +8,7 @@ dependencies {
 
     implementation("org.springframework:spring-context:$springVersion")
     implementation("org.springframework:spring-jdbc:$springVersion")
-    runtimeOnly("org.postgresql:postgresql:42.7.12")
+    runtimeOnly("org.postgresql:postgresql:42.7.14")
     implementation("tools.jackson.core:jackson-databind:3.1.8")
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")

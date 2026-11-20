@@ -28,7 +28,7 @@ dependencies {
     compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     implementation("tools.jackson.core:jackson-databind:3.1.8")
-    implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("org.slf4j:slf4j-api:2.0.20")
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
     implementation(project(":commons"))
     implementation(platform("io.micrometer:micrometer-tracing-bom:1.7.2"))

@@ -20,7 +20,7 @@ dependencies {
     implementation("org.postgresql:r2dbc-postgresql:1.1.3.RELEASE")
     constraints {
         // r2dbc-postgresql pulls in scram 3.2, affected by GHSA-p9jg-fcr6-3mhf
-        implementation("com.ongres.scram:scram-client:3.3")
+        implementation("com.ongres.scram:scram-client:3.4")
     }
     // align netty (pulled in via r2dbc-postgresql / reactor-netty) to a version without known vulnerabilities
     implementation(platform("io.netty:netty-bom:4.2.21.Final"))

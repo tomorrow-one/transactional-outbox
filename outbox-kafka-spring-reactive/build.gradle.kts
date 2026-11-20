@@ -23,7 +23,7 @@ dependencies {
         implementation("com.ongres.scram:scram-client:3.3")
     }
     // align netty (pulled in via r2dbc-postgresql / reactor-netty) to a version without known vulnerabilities
-    implementation(platform("io.netty:netty-bom:4.2.20.Final"))
+    implementation(platform("io.netty:netty-bom:4.2.21.Final"))
     implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
     compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
     "protobufSupportImplementation"("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")

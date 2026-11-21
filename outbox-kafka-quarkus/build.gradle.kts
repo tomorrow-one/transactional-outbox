@@ -39,6 +39,7 @@ listOf("prod", "test").forEach { launchMode ->
 val quarkusVersion = rootProject.extra["quarkusVersion"]
 
 dependencies {
+    api(project(":outbox-metrics-api"))
     compileOnly("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
 
     // Quarkus BOM

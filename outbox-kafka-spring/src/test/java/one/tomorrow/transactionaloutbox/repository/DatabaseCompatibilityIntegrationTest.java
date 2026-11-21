@@ -65,6 +65,8 @@ class DatabaseCompatibilityIntegrationTest {
     @EnumSource(DatabaseDialect.class)
     void roundTripsPayloadAndHeadersAndCleansProcessedRecords(DatabaseDialect dialect) {
         Fixture f = fixture(dialect);
+        assertEquals(0, f.records.getPendingMetrics().count());
+        assertNull(f.records.getPendingMetrics().oldestCreated());
         byte[] payload = new byte[100_000];
         payload[0] = (byte) 255;
         Map<String, String> headers = Map.of("한글", "value \"quoted\" 🐬");
@@ -73,6 +75,8 @@ class DatabaseCompatibilityIntegrationTest {
         f.records.persist(first);
         f.records.persist(second);
         assertTrue(first.getId() < second.getId());
+        assertEquals(2, f.records.getPendingMetrics().count());
+        assertEquals(first.getCreated().toInstant(), f.records.getPendingMetrics().oldestCreated());
         var found = f.records.getUnprocessedRecords(1);
         assertEquals(1, found.size());
         assertEquals(first.getId(), found.get(0).getId());
@@ -83,6 +87,8 @@ class DatabaseCompatibilityIntegrationTest {
         assertNull(f.records.getUnprocessedRecords(2).get(1).getHeaders());
         Instant processed = Instant.now().minusSeconds(60);
         f.records.updateProcessed(first.getId(), processed);
+        assertEquals(1, f.records.getPendingMetrics().count());
+        assertEquals(second.getCreated().toInstant(), f.records.getPendingMetrics().oldestCreated());
         assertEquals(second.getId(), f.records.getUnprocessedRecords(10).get(0).getId());
         assertEquals(1, f.records.deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant.now()));
     }

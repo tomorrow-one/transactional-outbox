@@ -16,11 +16,12 @@
 package one.tomorrow.transactionaloutbox.service;
 
 import io.quarkus.runtime.Startup;
-import io.smallrye.mutiny.tuples.Tuple3;
+import io.smallrye.mutiny.tuples.Tuple4;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.Getter;
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.config.TransactionalOutboxConfig;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
@@ -67,6 +68,8 @@ public class OutboxProcessor {
     private final Duration processingInterval;
     private final byte[] eventSource;
     private final TracingService tracingService;
+    private final OutboxMetrics metrics;
+    private final OutboxMetrics.Registration metricsRegistration;
     private MessagePublisher publisher;
 
     /**
@@ -105,13 +108,30 @@ public class OutboxProcessor {
      *                           Ensures only one instance processes the outbox at a time.
      * @param tracingService     The {@link TracingService} to handle distributed tracing.
      */
-    @Inject
     public OutboxProcessor(
             TransactionalOutboxConfig config,
             OutboxRepository repository,
             MessagePublisherFactory publisherFactory,
             OutboxLockService lockService,
             TracingService tracingService) {
+        this(config, repository, publisherFactory, lockService, tracingService, OutboxMetrics.NOOP);
+    }
+
+    @Inject
+    public OutboxProcessor(TransactionalOutboxConfig config, OutboxRepository repository,
+            MessagePublisherFactory publisherFactory, OutboxLockService lockService,
+            TracingService tracingService, jakarta.enterprise.inject.Instance<OutboxMetrics> metrics) {
+        this(config, repository, publisherFactory, lockService, tracingService,
+                metrics.isUnsatisfied() ? OutboxMetrics.NOOP : metrics.get());
+    }
+
+    public OutboxProcessor(
+            TransactionalOutboxConfig config,
+            OutboxRepository repository,
+            MessagePublisherFactory publisherFactory,
+            OutboxLockService lockService,
+            TracingService tracingService, OutboxMetrics metrics) {
+        this.metrics = OutboxMetrics.safe(metrics);
         if (config.enabled())
             logger.info("Starting outbox processor with lockOwnerId {}, source {}, processing interval {} ms" +
                         " and publisher factory {}", config.lockOwnerId(), config.eventSource(), config.processingInterval().toMillis(), publisherFactory);
@@ -139,6 +159,9 @@ public class OutboxProcessor {
             scheduledExecutor = null;
             cleanupExecutor = null;
         }
+        metricsRegistration = enabled ? this.metrics.monitor(
+                () -> CompletableFuture.completedFuture(repository.getPendingMetrics()), this::isActive)
+                : OutboxMetrics.NOOP_REGISTRATION;
     }
 
     private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, TransactionalOutboxConfig.CleanupConfig cleanupConfig) {
@@ -169,6 +192,7 @@ public class OutboxProcessor {
 
     @PreDestroy
     public void close() {
+        metricsRegistration.close();
         closed = true;
         if (enabled) {
             logger.info("Stopping OutboxProcessor.");
@@ -270,23 +294,36 @@ public class OutboxProcessor {
                 .map(outboxRecord -> {
                     TraceOutboxRecordProcessingResult tracingResult =
                             tracingService.traceOutboxRecordProcessing(outboxRecord);
-                    Future<?> futureResult = publisher.publish(
-                            outboxRecord.getId(),
-                            outboxRecord.getTopic(),
-                            outboxRecord.getKey(),
-                            outboxRecord.getValue(),
-                            getHeaders(outboxRecord, tracingResult));
-                    return Tuple3.of(outboxRecord, tracingResult, futureResult);
+                    OutboxMetrics.Attempt attempt = metrics.startPublish();
+                    Future<?> futureResult;
+                    try {
+                        futureResult = publisher.publish(
+                                outboxRecord.getId(),
+                                outboxRecord.getTopic(),
+                                outboxRecord.getKey(),
+                                outboxRecord.getValue(),
+                                getHeaders(outboxRecord, tracingResult));
+                    } catch (RuntimeException e) {
+                        attempt.complete(false);
+                        throw e;
+                    }
+                    return Tuple4.of(outboxRecord, tracingResult, futureResult, attempt);
                 })
                 // collect to List (so that map is completed for all items before awaiting futures),
                 // to use producer internal batching
                 .toList()
-                .forEach(tuple3 -> {
-                    OutboxRecord outboxRecord = tuple3.getItem1();
-                    TraceOutboxRecordProcessingResult tracingResult = tuple3.getItem2();
-                    Future<?> result = tuple3.getItem3();
+                .forEach(tuple -> {
+                    OutboxRecord outboxRecord = tuple.getItem1();
+                    TraceOutboxRecordProcessingResult tracingResult = tuple.getItem2();
+                    Future<?> result = tuple.getItem3();
                     try {
-                        await(result);
+                        try {
+                            await(result);
+                            tuple.getItem4().complete(true);
+                        } catch (RuntimeException e) {
+                            tuple.getItem4().complete(false);
+                            throw e;
+                        }
                         logger.info("Sent record to kafka: {}", outboxRecord);
                         outboxRecord.setProcessed(now());
                         repository.update(outboxRecord);

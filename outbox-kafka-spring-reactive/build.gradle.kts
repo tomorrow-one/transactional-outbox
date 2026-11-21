@@ -6,6 +6,7 @@ tasks.withType<JavaCompile> {
 }
 
 dependencies {
+    api(project(":outbox-metrics-api"))
     val springVersion = "7.0.10"
     val kafkaVersion = "4.4.0"
     val testcontainersVersion = "2.0.5"
@@ -33,6 +34,8 @@ dependencies {
     implementation(project(":commons"))
     implementation(platform("io.micrometer:micrometer-tracing-bom:1.7.2"))
     compileOnly("io.micrometer:micrometer-tracing")
+
+    testImplementation("org.mockito:mockito-core:5.23.0")
 
     // testing
     testImplementation(testFixtures(project(":commons")))

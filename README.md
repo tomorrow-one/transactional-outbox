@@ -358,6 +358,87 @@ With the implementation for micrometer-tracing we rely on the related config btw
 
 You might also want to check the [Spring Boot docs for tracing](https://javadoc.io/static/io.micrometer/micrometer-tracing/1.5.0-M3/io/micrometer/tracing/propagation/Propagator.html#extract(java.lang.Object,io.micrometer.tracing.propagation.Propagator.Getter)).
 
+### Metrics (optional)
+
+Metrics work with both PostgreSQL and MySQL; no schema migration is required.
+Add `one.tomorrow.transactional-outbox:outbox-metrics-micrometer:1.0.0-SNAPSHOT`
+to your application and supply an `OutboxMetrics` instance to enable them.
+The small `outbox-metrics-api` dependency contains no Spring, Quarkus or Micrometer dependencies.
+Existing processor constructors continue to use a no-op implementation: no metrics polling or
+Micrometer runtime dependency is added unless explicitly configured.
+
+| Meter | Meaning |
+|-------|---------|
+| `outbox.pending` | Total unprocessed records, sampled from the database |
+| `outbox.oldest.pending.age` | Age in seconds of the earliest `created` timestamp among unprocessed records; zero for an empty outbox |
+| `outbox.processor.active` | 1 if this processor holds the processing lock, otherwise 0 |
+| `outbox.publish.duration` | Timer with `outcome=success` or `outcome=failure`; its count is the number of publishing attempts |
+| `outbox.publish.failures` | Number of failed publishing attempts |
+
+Publishing success means that Kafka acknowledged the send. It does not mean the subsequent
+`processed` database update succeeded, nor that a consumer handled the event. A retry is a new
+attempt and is counted again. Quarkus measures until the processor observes the publisher's
+future completion, which can include time awaiting earlier records in the batch.
+
+Create one metrics instance per processor. Use stable tags that uniquely identify the processor
+within a registry; do not use event IDs or message keys as tags. When aggregating multiple replicas,
+the pending count describes the same shared table and should not be summed across replicas.
+
+```java
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
+import one.tomorrow.transactionaloutbox.metrics.MicrometerOutboxMetrics;
+
+@Bean
+OutboxMetrics outboxMetrics(MeterRegistry registry) {
+    return new MicrometerOutboxMetrics(registry,
+            Tags.of("source", "my-service"), Duration.ofSeconds(10));
+}
+```
+
+For Spring JDBC, pass this bean as the last argument of the new constructor:
+
+```java
+return new OutboxProcessor(repository, producerFactory, processingInterval,
+        outboxLockTimeout, lockOwnerId, eventSource, cleanupSettings,
+        tracingService, beanFactory, outboxMetrics);
+```
+
+For Spring Reactive, use the constructor with an explicit batch size and metrics:
+
+```java
+return new OutboxProcessor(repository, lockService, producerFactory, processingInterval,
+        outboxLockTimeout, lockOwnerId, eventSource, 100, cleanupSettings,
+        tracingService, outboxMetrics);
+```
+
+For Quarkus, provide a CDI producer; the extension uses the bean automatically and falls back
+to no-op when there is none. Supply exactly one unqualified `OutboxMetrics` bean.
+Use your application's configured `MeterRegistry` (for example, from a Quarkus Micrometer extension).
+
+```java
+@jakarta.enterprise.context.ApplicationScoped
+public class OutboxMetricsConfiguration {
+    @jakarta.enterprise.inject.Produces
+    @jakarta.inject.Singleton
+    OutboxMetrics outboxMetrics(MeterRegistry registry) {
+        return new MicrometerOutboxMetrics(registry,
+                Tags.of("source", "my-service"), Duration.ofSeconds(10));
+    }
+}
+```
+
+Backlog sampling uses a separate daemon thread and at most one query in flight per metrics
+instance. Reactive queries remain asynchronous. Configure database/driver query timeouts in
+your application; a stuck query is not replaced with overlapping queries. Failed, unavailable,
+or stale samples (older than twice the sampling interval) are reported as `NaN`, not zero.
+Scraping gauges does not query the database. Processor shutdown stops sampling and removes its
+gauges; counters and timers remain in the registry as cumulative history.
+Metric callback exceptions are isolated from publishing. Existing tracing remains independent.
+The module records into the provided registry; exposing a Prometheus endpoint or configuring
+another exporter remains the application's responsibility.
+
 ### How-To re-publish a message
 
 In some cases, you need to re-publish a message. One example is when the consumer had an error on their side and fixed it now, then they still need the missed messages and had also had no DLT in place. For this, you can follow these steps:
@@ -410,7 +491,7 @@ public class Cleaner {
 ## How-To Release
 
 To release a new version follow this step
-1. In your PR with the functional change, bump the version of `commons`, `outbox-kafka-spring`, `outbox-kafka-spring-reactive` or `outbox-kafka-quarkus` in the root `build.gradle.kts` to a non-`SNAPSHOT` version.
+1. In your PR with the functional change, bump the version of `outbox-metrics-api`, `outbox-metrics-micrometer`, `commons`, `outbox-kafka-spring`, `outbox-kafka-spring-reactive` or `outbox-kafka-quarkus` in the root `build.gradle.kts` to a non-`SNAPSHOT` version.
    * Try to follow semantic versioning, i.e. bump the major version for binary incompatible changes, the minor version for compatible changes with improvements/new features, and the patch version for bugfixes or non-functional changes like refactorings.
 2. Merge your PR - the related pipeline will publish the new version(s) to Sonatype's staging repo (SNAPSHOTs are published to Maven Central Snapshots repository (and are kept for 90 days)).
 3. To publish a release, follow https://central.sonatype.com/publishing/deployments

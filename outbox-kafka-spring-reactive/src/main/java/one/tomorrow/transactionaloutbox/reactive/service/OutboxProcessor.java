@@ -17,6 +17,7 @@ package one.tomorrow.transactionaloutbox.reactive.service;
 
 import lombok.Builder;
 import lombok.Getter;
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import lombok.Value;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
@@ -80,9 +81,11 @@ public class OutboxProcessor {
     private final byte[] eventSource;
     private final int batchSize;
     private final TracingService tracingService;
+    private final OutboxMetrics metrics;
+    private final OutboxMetrics.Registration metricsRegistration;
     private KafkaProducer<String, byte[]> producer;
     @Getter
-    private boolean active;
+    private volatile boolean active;
     private Instant lastLockAckquisitionAttempt;
 
     private ScheduledFuture<?> schedule;
@@ -123,6 +126,22 @@ public class OutboxProcessor {
             int batchSize,
             CleanupSettings cleanupSettings,
             TracingService tracingService) {
+        this(repository, lockService, producerFactory, processingInterval, lockTimeout, lockOwnerId,
+                eventSource, batchSize, cleanupSettings, tracingService, OutboxMetrics.NOOP);
+    }
+
+    public OutboxProcessor(
+            OutboxRepository repository,
+            OutboxLockService lockService,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            int batchSize,
+            CleanupSettings cleanupSettings,
+            TracingService tracingService, OutboxMetrics metrics) {
+        this.metrics = OutboxMetrics.safe(metrics);
         logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
                 lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
         this.repository = repository;
@@ -141,6 +160,7 @@ public class OutboxProcessor {
         tryLockAcquisition();
 
         cleanupExecutor = cleanupSettings != null ? setupCleanupSchedule(repository, cleanupSettings) : null;
+        metricsRegistration = this.metrics.monitor(() -> repository.getPendingMetrics().toFuture(), this::isActive);
     }
 
     /** Register a callback that's invoked before a producer is closed. */
@@ -198,6 +218,7 @@ public class OutboxProcessor {
 
     @PreDestroy
     public void close() {
+        metricsRegistration.close();
         logger.info("Stopping OutboxProcessor.");
         if (schedule != null)
             schedule.cancel(false);
@@ -289,16 +310,23 @@ public class OutboxProcessor {
         return Mono.create(monoSink -> {
             TraceOutboxRecordProcessingResult tracingResult = tracingService.traceOutboxRecordProcessing(outboxRecord);
             ProducerRecord<String, byte[]> producerRecord = toProducerRecord(outboxRecord, tracingResult.getHeaders());
-            producer.send(producerRecord, (metadata, exception) -> {
-                if (exception != null) {
-                    monoSink.error(exception);
-                    tracingResult.publishFailed(exception);
-                } else {
-                    logger.info("Sent record to kafka: {} (got metadata: {})", outboxRecord, metadata);
-                    monoSink.success(outboxRecord);
-                    tracingResult.publishCompleted();
-                }
-            });
+            OutboxMetrics.Attempt attempt = metrics.startPublish();
+            try {
+                producer.send(producerRecord, (metadata, exception) -> {
+                    attempt.complete(exception == null);
+                    if (exception != null) {
+                        monoSink.error(exception);
+                        tracingResult.publishFailed(exception);
+                    } else {
+                        logger.info("Sent record to kafka: {} (got metadata: {})", outboxRecord, metadata);
+                        monoSink.success(outboxRecord);
+                        tracingResult.publishCompleted();
+                    }
+                });
+            } catch (RuntimeException e) {
+                attempt.complete(false);
+                monoSink.error(e);
+            }
         });
     }
 

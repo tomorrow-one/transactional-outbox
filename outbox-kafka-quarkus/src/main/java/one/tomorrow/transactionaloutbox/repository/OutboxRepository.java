@@ -15,6 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -69,6 +70,15 @@ public class OutboxRepository {
     public long countUnprocessedRecords() {
         return entityManager.createQuery("SELECT COUNT(o) FROM OutboxRecord o WHERE o.processed IS NULL", Long.class)
                 .getSingleResult();
+    }
+
+    @Transactional
+    public OutboxMetrics.Pending getPendingMetrics() {
+        Object[] result = entityManager.createQuery(
+                "SELECT COUNT(o), MIN(o.created) FROM OutboxRecord o WHERE o.processed IS NULL", Object[].class)
+                .getSingleResult();
+        return new OutboxMetrics.Pending(
+                ((Number) result[0]).longValue(), (Instant) result[1]);
     }
 
     /**

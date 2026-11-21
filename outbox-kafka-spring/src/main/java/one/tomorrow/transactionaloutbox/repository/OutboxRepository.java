@@ -15,6 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.repository;
 
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
@@ -89,6 +90,16 @@ public class OutboxRepository {
      */
     public List<OutboxRecord> getUnprocessedRecords(int limit) {
         return jdbcTemplate.query("select * from outbox_kafka where processed is null order by id asc limit " + limit, ROW_MAPPER);
+    }
+
+    public OutboxMetrics.Pending getPendingMetrics() {
+        return jdbcTemplate.queryForObject(
+                "select count(*) as pending_count, min(created) as oldest_created from outbox_kafka where processed is null",
+                (rs, rowNum) -> {
+                    Timestamp oldest = rs.getTimestamp("oldest_created");
+                    return new OutboxMetrics.Pending(
+                            rs.getLong("pending_count"), oldest == null ? null : oldest.toInstant());
+                });
     }
 
     private static Map<String, String> fromJson(String data) {

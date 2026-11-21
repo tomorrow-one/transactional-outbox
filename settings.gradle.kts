@@ -4,3 +4,6 @@ include("outbox-kafka-spring")
 include("outbox-kafka-spring-reactive")
 include("outbox-kafka-quarkus")
 include("outbox-kafka-quarkus-deployment")
+
+include("outbox-metrics-api")
+include("outbox-metrics-micrometer")

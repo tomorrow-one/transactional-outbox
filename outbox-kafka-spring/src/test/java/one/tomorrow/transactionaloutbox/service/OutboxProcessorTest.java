@@ -58,7 +58,19 @@ public class OutboxProcessorTest {
     private final Future<RecordMetadata> future1 = mock(Future.class);
     private final Future<RecordMetadata> future2 = mock(Future.class);
 
+    private final AtomicInteger successfulPublishes = new AtomicInteger();
+    private final AtomicInteger failedPublishes = new AtomicInteger();
+    private final one.tomorrow.transactionaloutbox.metrics.OutboxMetrics metrics =
+            new one.tomorrow.transactionaloutbox.metrics.OutboxMetrics() {
+                public Attempt startPublish() {
+                    return success -> (success ? successfulPublishes : failedPublishes).incrementAndGet();
+                }
+            };
     private OutboxProcessor processor;
+
+    @org.junit.jupiter.api.AfterEach
+    void closeProcessor() { processor.close(); }
+
 
     @BeforeEach
     public void setup() {
@@ -75,7 +87,7 @@ public class OutboxProcessorTest {
                 Duration.ZERO,
                 "lockOwnerId",
                 "eventSource",
-                beanFactory);
+                null, null, beanFactory, metrics);
 
         when(record1.getId()).thenReturn(1L);
         when(record1.getKey()).thenReturn("r1");
@@ -135,6 +147,8 @@ public class OutboxProcessorTest {
 
         verify(repository, never()).updateProcessed(eq(record1.getId()), any());
         verify(repository).updateProcessed(eq(record2.getId()), any());
+        assertEquals(1, successfulPublishes.get());
+        assertEquals(1, failedPublishes.get());
     }
 
     @NotNull

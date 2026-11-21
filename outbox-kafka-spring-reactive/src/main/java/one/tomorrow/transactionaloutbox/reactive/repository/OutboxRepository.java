@@ -15,6 +15,7 @@
  */
 package one.tomorrow.transactionaloutbox.reactive.repository;
 
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import one.tomorrow.transactionaloutbox.reactive.model.OutboxRecord;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
@@ -42,6 +43,16 @@ public interface OutboxRepository extends ReactiveCrudRepository<OutboxRecord, L
      */
     @Query("select * from outbox_kafka where processed is null order by id asc limit :limit")
     Flux<OutboxRecord> getUnprocessedRecords(int limit);
+
+    record PendingMetrics(long pendingCount, Instant oldestCreated) {}
+
+    @Query("select count(*) as pending_count, min(created) as oldest_created from outbox_kafka where processed is null")
+    Mono<PendingMetrics> queryPendingMetrics();
+
+    default Mono<OutboxMetrics.Pending> getPendingMetrics() {
+        return queryPendingMetrics().map(row -> new OutboxMetrics.Pending(
+                row.pendingCount(), row.oldestCreated()));
+    }
 
     Mono<Long> deleteOutboxRecordByProcessedNotNullAndProcessedIsBefore(Instant deleteOlderThan);
 

@@ -8,6 +8,9 @@ project(":outbox-kafka-spring-reactive").version = "4.1.1-SNAPSHOT"
 project(":outbox-kafka-quarkus").version = "1.0.1-SNAPSHOT"
 project(":outbox-kafka-quarkus-deployment").version = "1.0.1-SNAPSHOT"
 
+project(":outbox-metrics-api").version = "1.0.0-SNAPSHOT"
+project(":outbox-metrics-micrometer").version = "1.0.0-SNAPSHOT"
+
 plugins {
     id("java-library")
     id("java-test-fixtures")

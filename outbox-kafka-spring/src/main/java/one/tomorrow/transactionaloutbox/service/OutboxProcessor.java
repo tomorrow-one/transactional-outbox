@@ -17,6 +17,7 @@ package one.tomorrow.transactionaloutbox.service;
 
 import lombok.Builder;
 import lombok.Getter;
+import one.tomorrow.transactionaloutbox.metrics.OutboxMetrics;
 import lombok.Value;
 import one.tomorrow.transactionaloutbox.commons.Longs;
 import one.tomorrow.transactionaloutbox.model.OutboxRecord;
@@ -77,9 +78,11 @@ public class OutboxProcessor {
     private final ScheduledExecutorService cleanupExecutor;
     private final byte[] eventSource;
     private final TracingService tracingService;
+    private final OutboxMetrics metrics;
+    private final OutboxMetrics.Registration metricsRegistration;
     private KafkaProducer<String, byte[]> producer;
     @Getter
-    private boolean active;
+    private volatile boolean active;
     private Instant lastLockAckquisitionAttempt;
 
     private ScheduledFuture<?> schedule;
@@ -106,6 +109,21 @@ public class OutboxProcessor {
             CleanupSettings cleanupSettings,
             TracingService tracingService,
             AutowireCapableBeanFactory beanFactory) {
+        this(repository, producerFactory, processingInterval, lockTimeout, lockOwnerId, eventSource,
+                cleanupSettings, tracingService, beanFactory, OutboxMetrics.NOOP);
+    }
+
+    public OutboxProcessor(
+            OutboxRepository repository,
+            KafkaProducerFactory producerFactory,
+            Duration processingInterval,
+            Duration lockTimeout,
+            String lockOwnerId,
+            String eventSource,
+            CleanupSettings cleanupSettings,
+            TracingService tracingService,
+            AutowireCapableBeanFactory beanFactory, OutboxMetrics metrics) {
+        this.metrics = OutboxMetrics.safe(metrics);
         logger.info("Starting outbox processor with lockOwnerId {}, source {} and processing interval {} ms and producer factory {}",
                 lockOwnerId, eventSource, processingInterval.toMillis(), producerFactory);
         this.repository = repository;
@@ -124,6 +142,8 @@ public class OutboxProcessor {
         tryLockAcquisition();
 
         cleanupExecutor = cleanupSettings != null ? setupCleanupSchedule(repository, cleanupSettings) : null;
+        metricsRegistration = this.metrics.monitor(
+                () -> java.util.concurrent.CompletableFuture.completedFuture(repository.getPendingMetrics()), this::isActive);
     }
 
     private ScheduledExecutorService setupCleanupSchedule(OutboxRepository repository, CleanupSettings cleanupSettings) {
@@ -154,6 +174,7 @@ public class OutboxProcessor {
 
     @PreDestroy
     public void close() {
+        metricsRegistration.close();
         logger.info("Stopping OutboxProcessor with lockOwnerId {}.", lockOwnerId);
         if (schedule != null)
             schedule.cancel(false);
@@ -239,7 +260,9 @@ public class OutboxProcessor {
 
     private Future<RecordMetadata> process(OutboxRecord outboxRecord) {
         TraceOutboxRecordProcessingResult tracingResult = tracingService.traceOutboxRecordProcessing(outboxRecord);
+        OutboxMetrics.Attempt attempt = metrics.startPublish();
         Callback callback = (metadata, exception) -> {
+            attempt.complete(exception == null);
             if (exception != null) {
                 logger.warn("Failed to publish {}", outboxRecord, exception);
                 tracingResult.publishFailed(exception);
@@ -249,7 +272,12 @@ public class OutboxProcessor {
                 tracingResult.publishCompleted();
             }
         };
-        return producer.send(toProducerRecord(outboxRecord, tracingResult.getHeaders()), callback);
+        try {
+            return producer.send(toProducerRecord(outboxRecord, tracingResult.getHeaders()), callback);
+        } catch (RuntimeException e) {
+            attempt.complete(false);
+            throw e;
+        }
     }
 
     private static void await(Future<?> future) {

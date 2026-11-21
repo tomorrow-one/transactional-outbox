@@ -121,6 +121,21 @@ class OutboxRepositoryIntegrationTest {
         assertTrue(outboxRecordExists(shouldBeKeptAsNotProcessed.getId()));
     }
 
+    @Test
+    @Transactional
+    void pendingMetricsExcludeProcessedRecords() {
+        assertEquals(0, repository.getPendingMetrics().count());
+        assertNull(repository.getPendingMetrics().oldestCreated());
+        OutboxRecord pending = newRecord(null, "topic", "key", "value", Collections.emptyMap());
+        repository.persist(pending);
+        repository.persist(newRecord(Instant.now(), "topic", "key", "value", Collections.emptyMap()));
+        entityManager.flush();
+        assertEquals(1, repository.getPendingMetrics().count());
+        assertNotNull(repository.getPendingMetrics().oldestCreated());
+        assertTrue(Duration.between(pending.getCreated(), repository.getPendingMetrics().oldestCreated()).abs()
+                .compareTo(Duration.ofMillis(1)) < 0);
+    }
+
     private boolean outboxRecordExists(Long id) {
         Long result = (Long) entityManager.createQuery("select count(*) from OutboxRecord o where o.id=:id")
                 .setParameter("id", id)

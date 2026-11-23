@@ -37,7 +37,7 @@ dependencies {
     // testing
     testImplementation(testFixtures(project(":commons")))
     testImplementation("com.google.protobuf:protobuf-java:${rootProject.extra["protobufVersion"]}")
-    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.1.2") {
+    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc:4.2.0") {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
     }
     testImplementation("io.projectreactor:reactor-test:3.8.8")

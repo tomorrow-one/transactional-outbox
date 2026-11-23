@@ -16,7 +16,7 @@ plugins {
     id("maven-publish")
     id("org.jreleaser") version "1.27.0"
     id("jacoco")
-    id("io.quarkus.extension") version "3.40.1.2" apply false
+    id("io.quarkus.extension") version "4.0.0" apply false
     id("io.quarkus") version "3.40.1.2" apply false
 }
 

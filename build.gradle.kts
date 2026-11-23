@@ -23,7 +23,7 @@ plugins {
 group = "one.tomorrow.transactional-outbox"
 
 extra["protobufVersion"] = "3.25.5"
-extra["quarkusVersion"] = "3.40.1.2"
+extra["quarkusVersion"] = "4.0.0"
 
 // disable JReleaser on root level
 jreleaser {
